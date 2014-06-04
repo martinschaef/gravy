@@ -1,0 +1,13 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<classpath>
+	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER/org.eclipse.jdt.internal.debug.ui.launcher.StandardVMType/JavaSE-1.7"/>
+	<classpathentry kind="lib" path="lib/args4j-2.0.18.jar"/>
+	<classpathentry kind="lib" path="lib/log4j-1.2.16.jar"/>
+	<classpathentry kind="lib" path="lib/princess.jar"/>
+	<classpathentry kind="lib" path="lib/cfg-plugin.jar"/>
+	<classpathentry kind="lib" path="lib/scala-actors.jar"/>
+	<classpathentry kind="lib" path="lib/scala-library.jar"/>
+	<classpathentry kind="lib" path="lib/boogieamp.jar" sourcepath="/boogieamp/src"/>
+	<classpathentry kind="output" path="bin"/>
+</classpath>
