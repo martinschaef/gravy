@@ -32,11 +32,19 @@ public class ProgramAnalysis {
 	private long totalPossiblyUnsafe = 0;
 
 	private long timeouts = 0;
-
-	public ProgramAnalysis(ProgramFactory pf) {
-		this.pf = pf;
-		GlobalsCache.v().setProgramFactory(pf);
+	
+	public ProgramAnalysis(String boogieFileName) throws Exception {
+		ProgramFactory pf;
+		try {
+			pf = new ProgramFactory(boogieFileName);
+			Log.info("Parsed "+ boogieFileName + ": "+ (pf.getASTRoot()!=null));		
+			this.pf = pf;
+			GlobalsCache.v().setProgramFactory(pf);
+		} catch (Exception e) {
+			throw e;
+		}			
 	}
+	
 	
 	public void runFullProgramAnalysis() {		
 		

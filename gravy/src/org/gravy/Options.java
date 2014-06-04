@@ -39,7 +39,7 @@ public class Options {
 	}
 	
 	@Option(name = "-t", usage = "Timeout per prover query", required = false)
-	private int timeOut;
+	private int timeOut = 5000; //after 1 seconds
 	
 	public int getTimeOut() {
 		return timeOut;

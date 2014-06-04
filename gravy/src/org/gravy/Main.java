@@ -7,7 +7,6 @@ import org.kohsuke.args4j.CmdLineException;
 import org.kohsuke.args4j.CmdLineParser;
 
 import util.Log;
-import boogie.ProgramFactory;
 
 /**
  * @author schaef
@@ -24,10 +23,9 @@ public class Main {
 
 		try {
 			// parse command-line arguments
-			parser.parseArgument(args);
-			ProgramFactory pf = new ProgramFactory(options.getBoogieFile());
-			Log.info("Parsed "+ options.getBoogieFile() + ": "+ (pf.getASTRoot()!=null));
-			ProgramAnalysis pa = new ProgramAnalysis(pf);
+			parser.parseArgument(args);			
+			ProgramAnalysis pa = new ProgramAnalysis(options.getBoogieFile());
+			Log.info("Parsed "+ options.getBoogieFile());			
 			pa.runFullProgramAnalysis();			
 		} catch (CmdLineException e) {
 			Log.error(e.getMessage());			
