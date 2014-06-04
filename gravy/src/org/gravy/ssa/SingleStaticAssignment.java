@@ -12,8 +12,22 @@ import util.Log;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.CfgVariable;
+import boogie.controlflow.expression.CfgArrayAccessExpression;
+import boogie.controlflow.expression.CfgArrayStoreExpression;
+import boogie.controlflow.expression.CfgBinaryExpression;
+import boogie.controlflow.expression.CfgBitVectorAccessExpression;
+import boogie.controlflow.expression.CfgExpression;
+import boogie.controlflow.expression.CfgFunctionApplication;
 import boogie.controlflow.expression.CfgIdentifierExpression;
+import boogie.controlflow.expression.CfgIfThenElseExpression;
+import boogie.controlflow.expression.CfgQuantifierExpression;
+import boogie.controlflow.expression.CfgUnaryExpression;
+import boogie.controlflow.statement.CfgAssertStatement;
 import boogie.controlflow.statement.CfgAssignStatement;
+import boogie.controlflow.statement.CfgAssumeStatement;
+import boogie.controlflow.statement.CfgCallStatement;
+import boogie.controlflow.statement.CfgHavocStatement;
+import boogie.controlflow.statement.CfgStatement;
 
 /**
  * @author martin
@@ -86,15 +100,20 @@ public class SingleStaticAssignment {
 				}			
 			}		
 		}
-		
-		//this.foldBlocks(p);
-				
 		Log.debug("------ recomute the ssa");
 		//Do the actual SSA
 		todo = new LinkedList<BasicBlock>();
 		done = new LinkedList<BasicBlock>();		
 		todo.add(p.getRootNode());
 
+		//do SSA on the precondition first.
+		
+		
+		
+		for (CfgExpression expr : p.getRequires()) {
+			recomputLocalSSA(expr, new HashMap<CfgVariable, Integer>());	
+		}
+		
 		while (!todo.isEmpty()) {
 			BasicBlock current = todo.removeLast();
 			
@@ -130,8 +149,8 @@ public class SingleStaticAssignment {
 							current.getPredecessors())) {
 						addFrameCondition(pred, offset);
 					}
-				}
-				current.recomputLocalSSA(offset);
+				} 
+				recomputLocalSSA(current, offset);
 			}
 			for (BasicBlock next : current.getSuccessors()) {
 				if (!todo.contains(next) && !done.contains(next)) {
@@ -149,7 +168,7 @@ public class SingleStaticAssignment {
 				if (b.getSuccessors().size() == 0) {
 					b.connectToSuccessor(finalUnifiedExit);					
 				}
-				//TODO: @Daniel ... this is untested and maybe I have created a monster
+
 				{
 					HashMap<CfgVariable, Integer> offset = new HashMap<CfgVariable, Integer>();
 					for (BasicBlock pred : finalUnifiedExit.getPredecessors()) {
@@ -159,12 +178,17 @@ public class SingleStaticAssignment {
 							finalUnifiedExit.getPredecessors())) {
 						addFrameCondition(pred, offset);
 					}
-					finalUnifiedExit.recomputLocalSSA(offset);
+					recomputLocalSSA(finalUnifiedExit, offset);					
 				}
 				
 			}
-			//TODO: This line was removed as part of the monster hack... 
-			//p.getExitNode().connectToSuccessor(finalUnifiedExit);
+			//Now do the SSA for the postcondition using the offset of
+			//the unified exit.
+			for (CfgExpression expr : p.getEnsures()) {
+				recomputLocalSSA(expr, finalUnifiedExit.getLocalIncarnationMap());	
+			}
+			
+
 			p.setExitNode(finalUnifiedExit);
 		}
 				
@@ -206,5 +230,105 @@ public class SingleStaticAssignment {
 		}
 
 	}
+	
+	public void recomputLocalSSA(BasicBlock b, HashMap<CfgVariable, Integer> offset) {
+		b.localIncarnationMap = new HashMap<CfgVariable, Integer>(offset);
+		for (CfgStatement stmt : b.getStatements()) {
+			if (stmt instanceof CfgAssertStatement) {
+				CfgAssertStatement asrt = (CfgAssertStatement) stmt;
+				recomputLocalSSA(asrt.getCondition(), b.localIncarnationMap);
+			} else if (stmt instanceof CfgAssumeStatement) {
+				CfgAssumeStatement asum = (CfgAssumeStatement) stmt;
+				recomputLocalSSA(asum.getCondition(), b.localIncarnationMap);
+			} else if (stmt instanceof CfgAssignStatement) {
+				CfgAssignStatement asgn = (CfgAssignStatement) stmt;
+				recomputLocalSSA(asgn.getRight(), b.localIncarnationMap);
+				for (CfgIdentifierExpression id : asgn.getLeft()) {
+					if (!b.localIncarnationMap.containsKey(id.getVariable())) {
+						b.localIncarnationMap.put(id.getVariable(), 0);
+					}
+					b.localIncarnationMap.put(id.getVariable(),
+							b.localIncarnationMap.get(id.getVariable()) + 1);
+					id.setCurrentIncarnation(b.localIncarnationMap.get(id.getVariable()));
+				}
+			} else if (stmt instanceof CfgCallStatement) {
+				CfgCallStatement call = (CfgCallStatement) stmt;
+				recomputLocalSSA(call.getArguments(), b.localIncarnationMap);
+				for (CfgVariable v : call.getCallee().getModifies()) {
+					if (!b.localIncarnationMap.containsKey(v)) {
+						b.localIncarnationMap.put(v, 0);
+					}
+					b.localIncarnationMap.put(v, b.localIncarnationMap.get(v) + 1);
+				}
+				for (CfgIdentifierExpression id : call.getLeftHandSide()) {
+					if (!b.localIncarnationMap.containsKey(id.getVariable())) {
+						b.localIncarnationMap.put(id.getVariable(), 0);
+					}
+					b.localIncarnationMap.put(id.getVariable(),
+							b.localIncarnationMap.get(id.getVariable()) + 1);
+					id.setCurrentIncarnation(b.localIncarnationMap.get(id.getVariable()));
+				}
+			} else if (stmt instanceof CfgHavocStatement) {
+				for (CfgVariable v : ((CfgHavocStatement) stmt).getVariables()) {
+					if (!b.localIncarnationMap.containsKey(v)) {
+						b.localIncarnationMap.put(v, 0);
+					}
+					b.localIncarnationMap.put(v, b.localIncarnationMap.get(v) + 1);
+				}
+			}
+		}
+	}
+
+	private void recomputLocalSSA(CfgExpression[] exp,
+			HashMap<CfgVariable, Integer> offset) {
+		if (exp == null) {
+			return;
+		}
+		for (int i = 0; i < exp.length; i++) {
+			recomputLocalSSA(exp[i], offset);
+		}
+	}
+
+	private void recomputLocalSSA(CfgExpression exp,
+			HashMap<CfgVariable, Integer> offset) {
+		if (exp instanceof CfgArrayAccessExpression) {
+			CfgArrayAccessExpression aae = (CfgArrayAccessExpression) exp;
+			recomputLocalSSA(aae.getIndices(), offset);
+			recomputLocalSSA(aae.getBaseExpression(), offset);
+		} else if (exp instanceof CfgArrayStoreExpression) {
+			CfgArrayStoreExpression ase = (CfgArrayStoreExpression) exp;
+			recomputLocalSSA(ase.getValueExpression(), offset);
+			recomputLocalSSA(ase.getIndices(), offset);
+			recomputLocalSSA(ase.getBaseExpression(), offset);
+		} else if (exp instanceof CfgBinaryExpression) {
+			CfgBinaryExpression bexp = (CfgBinaryExpression) exp;
+			recomputLocalSSA(bexp.getLeftOp(), offset);
+			recomputLocalSSA(bexp.getRightOp(), offset);
+		} else if (exp instanceof CfgBitVectorAccessExpression) {
+			CfgBitVectorAccessExpression bva = (CfgBitVectorAccessExpression) exp;
+			recomputLocalSSA(bva.getBitvector(), offset);
+		} else if (exp instanceof CfgFunctionApplication) {
+			CfgFunctionApplication fa = (CfgFunctionApplication) exp;
+			recomputLocalSSA(fa.getArguments(), offset);
+		} else if (exp instanceof CfgIdentifierExpression) {
+			CfgIdentifierExpression id = (CfgIdentifierExpression) exp;
+			if (!offset.containsKey(id.getVariable())) {
+				offset.put(id.getVariable(), Integer.valueOf(0));
+			}
+			id.setCurrentIncarnation(offset.get(id.getVariable()));
+		} else if (exp instanceof CfgIfThenElseExpression) {
+			CfgIfThenElseExpression ite = (CfgIfThenElseExpression) exp;
+			recomputLocalSSA(ite.getCondition(), offset);
+			recomputLocalSSA(ite.getThenExpression(), offset);
+			recomputLocalSSA(ite.getElseExpression(), offset);
+		} else if (exp instanceof CfgQuantifierExpression) {
+			CfgQuantifierExpression qe = (CfgQuantifierExpression) exp;
+			// TODO
+		} else if (exp instanceof CfgUnaryExpression) {
+			CfgUnaryExpression uexp = (CfgUnaryExpression) exp;
+			recomputLocalSSA(uexp.getExpression(), offset);
+		}
+	}
+	
 
 }

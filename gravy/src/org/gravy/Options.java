@@ -46,6 +46,16 @@ public class Options {
 	}
 
 	/**
+	 * Boogie input file
+	 */
+	@Option(name = "-debug", usage = "Print Debug output and files", required = false)
+	private boolean debugMode = false;
+	
+	public boolean getDebugMode() {
+		return debugMode;
+	}
+	
+	/**
 	 * Option object
 	 */
 	private static Options options;

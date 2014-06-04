@@ -65,6 +65,8 @@ public class AbstractTransitionRelation {
 
 	protected HashMap<BasicBlock, LinkedList<ProverExpr>> proofObligations = new HashMap<BasicBlock, LinkedList<ProverExpr>>();
 	protected HashMap<BasicBlock, ProverExpr> reachabilityVariables = new HashMap<BasicBlock, ProverExpr>();
+	
+	protected ProverExpr requires, ensures;
 
 	private HashSet<CfgVariable> usedPOVariables = new HashSet<CfgVariable>();
 
@@ -72,25 +74,46 @@ public class AbstractTransitionRelation {
 	protected HashMap<ProverExpr, CfgVariable> invertProverVariables = new HashMap<ProverExpr, CfgVariable>();
 	protected HashMap<ProverExpr, Integer> invertIncarnationMap = new HashMap<ProverExpr, Integer>();
 
-	public ProverExpr getProverExpr(CfgVariable v, Integer i) {
-		if (i == null)
-			return null;
-		// TODO DSN fix this to not crash if non existant.
-		SortedMap<Integer, ProverExpr> m = proverVariables.get(v);
-		if (m == null) {
-			return null;
-		} else {
-			return m.get(i);
-		}
+	/**
+	 * Returns the prover expression of the ssa-version of the precondition.
+	 * This is meant to be asserted with the verification condition, it is not what
+	 * you want to use on the caller side.
+	 * @return ProverExpr of the procedure precondition
+	 */
+	public ProverExpr getRequires() {
+		return this.requires;
 	}
 
-	public HashMap<ProverExpr, CfgVariable> getInvertProverVariables() {
-		return invertProverVariables;
+	/**
+	 * Returns the prover expression of the ssa-version of the postcondition.
+	 * This is meant to be asserted with the verification condition, it is not what
+	 * you want to use on the caller side.
+	 * @return ProverExpr of the procedure postcondition
+	 */	
+	public ProverExpr getEnsures() {
+		return this.ensures;
 	}
+	
+	
+//	public ProverExpr getProverExpr(CfgVariable v, Integer i) {
+//		if (i == null)
+//			return null;
+//		// TODO DSN fix this to not crash if non existant.
+//		SortedMap<Integer, ProverExpr> m = proverVariables.get(v);
+//		if (m == null) {
+//			return null;
+//		} else {
+//			return m.get(i);
+//		}
+//	}
 
-	public HashMap<ProverExpr, Integer> getInvertIncarnationMap() {
-		return invertIncarnationMap;
-	}
+//	public HashMap<ProverExpr, CfgVariable> getInvertProverVariables() {
+//		return invertProverVariables;
+//	}
+//
+//	public HashMap<ProverExpr, Integer> getInvertIncarnationMap() {
+//		return invertIncarnationMap;
+//	}
 
 	/**
 	 * returns the map from BasicBlocks to their corresponding ProverExpression

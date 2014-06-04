@@ -3,14 +3,14 @@ package org.gravy.verificationcondition;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
-import java.util.SortedMap;
 
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
+
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
-import boogie.controlflow.CfgVariable;
+import boogie.controlflow.expression.CfgExpression;
 
 
 /**
@@ -20,18 +20,37 @@ import boogie.controlflow.CfgVariable;
  */
 public class TransitionRelation extends AbstractTransitionRelation {
 
-	protected ProverExpr expetionalReturnFlag = null;
+//	protected ProverExpr expetionalReturnFlag = null;
 	
 	//TODO: this is a hack, like the creation
 	//of this variable in the constructor
-	public ProverExpr getExpetionalReturnFlag() {
-		return expetionalReturnFlag;
-	}
+//	public ProverExpr getExpetionalReturnFlag() {
+//		return expetionalReturnFlag;
+//	}
 
 	
 	public TransitionRelation(CfgProcedure cfg, AbstractControlFlowFactory cff, Prover p) {
 		super(cff, p);
 		makePrelude();
+
+		//create the ProverExpr for the precondition 
+		ProverExpr[] prec = new ProverExpr[cfg.getRequires().size()];
+		int i=0;
+		for (CfgExpression expr : cfg.getRequires()) {
+			prec[i]=this.expression2proverExpression(expr);
+			i++;
+		}
+		this.requires = this.prover.mkAnd(prec);
+
+		//create the ProverExpr for the precondition 
+		ProverExpr[] post = new ProverExpr[cfg.getEnsures().size()];
+		i=0;
+		for (CfgExpression expr : cfg.getEnsures()) {
+			post[i]=this.expression2proverExpression(expr);
+			i++;
+		}
+		this.ensures = this.prover.mkAnd(post);
+		
 		
 		//encode the forward reachability
 		ProverExpr firstok = block2transitionRelation(cfg.getRootNode(),
@@ -70,27 +89,9 @@ public class TransitionRelation extends AbstractTransitionRelation {
             this.proofObligations.get(b).add(bwdobligation);
         }
 
-		{
-			//TODO: HACK find the exceptional return flag. 
-			//This has to be done somewhere else later! In particular
-			//identifying the variable by name is horrible as the translation,
-			//where the variable is created, and the checking are supposed to be separate modules
-			for (Entry<CfgVariable, SortedMap<Integer, ProverExpr>> entry : this.proverVariables.entrySet()) {
-				if (!entry.getKey().getVarname().contains("$ex_return")) {
-					continue;
-				}
-				Integer i = null;
-				ProverExpr best = null;
-				for (Entry<Integer, ProverExpr> incarnation : entry.getValue().entrySet()) {
-					if (i==null || incarnation.getKey()>i) {
-						i = incarnation.getKey();
-						best = incarnation.getValue();
-					}
-				}
-				this.expetionalReturnFlag = best;
-				break;
-			}
-		}
+
+			
+			//TODO: compute postcondition and precondition
 		
 		finalizeAxioms();
 		

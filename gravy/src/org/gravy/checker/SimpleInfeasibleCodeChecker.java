@@ -9,11 +9,18 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 
+import org.gravy.callunwinding.CallUnwinding;
+import org.gravy.loopunwinding.AbstractLoopUnwinding;
+import org.gravy.loopunwinding.HavocOnlyUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
+import org.gravy.prover.ProverFactory;
 import org.gravy.prover.ProverResult;
+import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
+import org.gravy.verificationcondition.CfgTransitionRelation;
 import org.gravy.verificationcondition.TransitionRelation;
+
 import util.Log;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
@@ -26,26 +33,53 @@ import boogie.statement.Statement;
  * @author martin
  *
  */
-public class IcfemInfeasibleCodeDetection extends
+public class SimpleInfeasibleCodeChecker extends
 		AbstractChecker {
 
 	/**
 	 * @param cff
 	 * @param p
 	 */
-	public IcfemInfeasibleCodeDetection(AbstractControlFlowFactory cff, CfgProcedure p) {
+	public SimpleInfeasibleCodeChecker(AbstractControlFlowFactory cff, CfgProcedure p) {
 		super(cff, p);
+
+		p.pruneUnreachableBlocks();
+
+		CallUnwinding cunwind = new CallUnwinding();
+		cunwind.unwindCalls(p);
+
+		AbstractLoopUnwinding unwind = new HavocOnlyUnwinding(p);
+		unwind.unwind();
+		p.pruneUnreachableBlocks();
+
+		SingleStaticAssignment ssa = new SingleStaticAssignment();
+		ssa.recomputeSSA(p);
+
+		p.pruneUnreachableBlocks();
+		
 	}
+	
+	
+	@Override
+	public void run() {
+		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();
+		//Prover prover = pf.spawnWithLog("lala");
+		this.prover = pf.spawn();
+		Log.debug("Compute Transition Relation "+this.procedure.getProcedureName());
+		//AbstractTransitionRelation tr = new TransitionRelation(this.procedure, this.cff, prover);
+		TransitionRelation tr = new TransitionRelation(this.procedure, this.cff, prover);
+		checkSat(prover, tr); 
+		shutDownProver();
+	}
+	
 	
 	/* (non-Javadoc)
 	 * @see org.gravy.infeasiblecode.AbstractInfeasibleCodeDetection#checkSat(org.gravy.prover.Prover, org.gravy.verificationcondition.CfgTransitionRelation)
 	 */
 	@Override
-	public Collection<BasicBlock> checkSat(Prover prover,
+	public void checkSat(Prover prover,
 			AbstractTransitionRelation atr) {
-		if (!(atr instanceof TransitionRelation)) {
-			throw new RuntimeException("only works with TransitionRelation");
-		}
+
 		TransitionRelation tr = (TransitionRelation)atr; 
 		//construct the inverted reachabilityVariables which is used later 
 		//to keep track of what has been covered so far.
@@ -58,6 +92,9 @@ public class IcfemInfeasibleCodeDetection extends
 			prover.addAssertion(entry.getValue());
 		}
 		
+		//TODO: introduce a flag to decide if we want to check preconditions.		
+		prover.addAssertion(tr.getRequires());
+				
 		for (Entry<BasicBlock, LinkedList<ProverExpr>> entry : tr.getProofObligations()
 				.entrySet()) {
 			for (ProverExpr assertion : entry.getValue()) {
@@ -65,14 +102,13 @@ public class IcfemInfeasibleCodeDetection extends
 			}
 		}
 		
-		
-		
-		//now exclude exceptional termination
+		//now exclude all executions that violate the postcondition
 		prover.push();
-		prover.addAssertion(prover.mkEq(tr.getExpetionalReturnFlag(), prover.mkLiteral(false)));
+		prover.addAssertion(tr.getEnsures());
 
-		HashSet<BasicBlock> feasibleBlocks = new HashSet<BasicBlock>();
-		HashSet<BasicBlock> exceptionalFeasibleBlocks = new HashSet<BasicBlock>();
+		feasibleBlocks = new HashSet<BasicBlock>();
+		infeasibleBlocksUnderPost = new HashSet<BasicBlock>();
+		
 		for (int i=0; i<2; i++) {
 				
 			ProverResult res = prover.checkSat(true);
@@ -90,14 +126,14 @@ public class IcfemInfeasibleCodeDetection extends
 								//if we are in the first iteration, this is a feasible block
 								feasibleBlocks.add(uncoveredBlocks.get(pe));
 							} else {
-								exceptionalFeasibleBlocks.add(uncoveredBlocks.get(pe));
+								infeasibleBlocksUnderPost.add(uncoveredBlocks.get(pe));
 							}							
 							uncoveredBlocks.remove(pe);
 						}
 					}				
 				} else {
 					Log.error("Prover returned " + res);
-					return new LinkedList<BasicBlock>();
+					return;
 				}
 							
 				ProverExpr enablingClause;
@@ -108,18 +144,13 @@ public class IcfemInfeasibleCodeDetection extends
 				}
 				
 				prover.addAssertion(enablingClause);
-//				if (i==0) {
-//					Log.info("... remaining blocks: "+ uncoveredBlocks.size()+"/"+tr.getReachabilityVariables().size());
-//				} else {
-//					Log.info("... exceptional blocks: "+ uncoveredBlocks.size()+"/"+tr.getReachabilityVariables().size());
-//				}
 				
 				res = prover.checkSat(true);
 			}			
 			//do the second part only once!
 			if (i==1) break;
-			infeasibleBlocks.addAll(uncoveredBlocks.values());
-			Log.info("covered the non-exceptional returning code");
+
+			Log.debug("covered the non-exceptional returning code");
 			//pop the assertion $ex_returned == false
 			prover.pop();
 			//now check again while allowing exceptional termination
@@ -131,44 +162,18 @@ public class IcfemInfeasibleCodeDetection extends
 			}			
 			prover.addAssertion(enablingClause);
 			res = prover.checkSat(true);			
-		}			
+		}
+		infeasibleBlocks = new HashSet<BasicBlock>();
+		infeasibleBlocks.addAll(uncoveredBlocks.values());
+		
 		
 		StringBuilder sb = new StringBuilder();
 		sb.append("Statistics -------- \n");
 		sb.append("Total Blocks: " + tr.getReachabilityVariables().size() + "\n");
 		sb.append("Feasible Blocks: " + feasibleBlocks.size() + "\n");
-		sb.append("Feasible Exceptional Blocks: " + exceptionalFeasibleBlocks.size()+"\n");
-		sb.append("Infeasible Blocks: " + uncoveredBlocks.size()+"\n");
-		Log.error(sb);
-		
-		//collect all assignments that are feasible on executions
-		//with exceptional return but not on others.		
-		//Log.error("feasibleExceptions:");
-		for (BasicBlock b : exceptionalFeasibleBlocks) {
-			for (CfgStatement stmt : b.getStatements()) {
-				Statement s = this.cff.findAstStatement(stmt);
-				if (s!=null) {
-					this.feasibleExceptions.add(s);
-					//Log.error(s);					
-				}
-			}
-		}
-		//collect all infeasible statements
-		//Log.error("infeasibleExceptions:");
-		for (BasicBlock b : uncoveredBlocks.values()) {
-			for (CfgStatement stmt : b.getStatements()) {
-				Statement s = this.cff.findAstStatement(stmt);
-				if (s!=null) {					
-					this.infeasibleExceptions.add(s);
-					//Log.error(s);
-				}
-			}
-		}
-		
-		//HACK: now find the original AST statements of the feasible exceptions
-		//and store them somewhere.
-		
-		return uncoveredBlocks.values();
+		sb.append("Infeasible wrt to Postcondition: " + infeasibleBlocksUnderPost.size()+"\n");
+		sb.append("Infeasible w/o postcondition Blocks: " + infeasibleBlocks.size()+"\n");
+		Log.error(sb);		
 	}
 
 }

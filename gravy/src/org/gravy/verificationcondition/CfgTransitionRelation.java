@@ -11,7 +11,6 @@ import org.gravy.effectualset.HasseDiagram;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.princess.PrincessProver;
-
 import org.joogie.cfgPlugin.CFGPlugin;
 import org.joogie.cfgPlugin.Util.Dag;
 
@@ -21,6 +20,7 @@ import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.CfgVariable;
+import boogie.controlflow.expression.CfgExpression;
 
 /**
  * @author martin
@@ -31,13 +31,13 @@ public class CfgTransitionRelation extends AbstractTransitionRelation {
 	
 	protected Dag<IFormula> proverDAG;	
 	protected HasseDiagram hasse;
-	protected ProverExpr expetionalReturnFlag = null;
+//	protected ProverExpr expetionalReturnFlag = null;
 	
 	//TODO: this is a hack, like the creation
 	//of this variable in the constructor
-	public ProverExpr getExpetionalReturnFlag() {
-		return expetionalReturnFlag;
-	}
+//	public ProverExpr getExpetionalReturnFlag() {
+//		return expetionalReturnFlag;
+//	}
 
 	public Dag<IFormula> getProverDAG() {
 		return proverDAG;
@@ -47,10 +47,26 @@ public class CfgTransitionRelation extends AbstractTransitionRelation {
 		super(cff, p);
 		makePrelude();
 		
+		//create the ProverExpr for the precondition 
+		ProverExpr[] prec = new ProverExpr[cfg.getRequires().size()];
+		int i=0;
+		for (CfgExpression expr : cfg.getRequires()) {
+			prec[i]=this.expression2proverExpression(expr);
+			i++;
+		}
+		this.requires = this.prover.mkAnd(prec);
+
+		//create the ProverExpr for the precondition 
+		ProverExpr[] post = new ProverExpr[cfg.getEnsures().size()];
+		i=0;
+		for (CfgExpression expr : cfg.getEnsures()) {
+			post[i]=this.expression2proverExpression(expr);
+			i++;
+		}
+		this.ensures = this.prover.mkAnd(post);
 		
 		
 		this.hasse = new HasseDiagram(cfg);
-		
 		//encode the forward reachability
 		ProverExpr firstok = block2transitionRelation(cfg.getRootNode(),
 				this.reachabilityVariables, this.proofObligations);
@@ -59,27 +75,7 @@ public class CfgTransitionRelation extends AbstractTransitionRelation {
 		this.proofObligations.get(cfg.getRootNode()).add(firstok);
 		
 		this.proverDAG = procToPrincessDag(cfg, this.reachabilityVariables );
-		{
-			//TODO: HACK find the exceptional return flag. 
-			//This has to be done somewhere else later! In particular
-			//identifying the variable by name is horrible as the translation,
-			//where the variable is created, and the checking are supposed to be separate modules
-			for (Entry<CfgVariable, SortedMap<Integer, ProverExpr>> entry : this.proverVariables.entrySet()) {
-				if (!entry.getKey().getVarname().contains("$ex_return")) {
-					continue;
-				}
-				Integer i = null;
-				ProverExpr best = null;
-				for (Entry<Integer, ProverExpr> incarnation : entry.getValue().entrySet()) {
-					if (i==null || incarnation.getKey()>i) {
-						i = incarnation.getKey();
-						best = incarnation.getValue();
-					}
-				}
-				this.expetionalReturnFlag = best;
-				break;
-			}
-		}
+
 		finalizeAxioms();		
 	}
 

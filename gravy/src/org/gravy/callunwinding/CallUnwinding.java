@@ -13,6 +13,7 @@ import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.CfgVariable;
 import boogie.controlflow.expression.CfgExpression;
 import boogie.controlflow.expression.CfgIdentifierExpression;
+import boogie.controlflow.statement.CfgAssertStatement;
 import boogie.controlflow.statement.CfgAssumeStatement;
 import boogie.controlflow.statement.CfgCallStatement;
 import boogie.controlflow.statement.CfgHavocStatement;
@@ -54,30 +55,19 @@ public class CallUnwinding {
 					CfgCallStatement call = (CfgCallStatement)stmt;					
 					int offset = 0;
 	
-//					for (CfgExpression xp : call.getCallee().getRequires()) {						
-//						statements.add(statements.indexOf(stmt), 
-//								new CfgAssertStatement(call.getLocation(), xp.substitute(substitutes)));
-//					}
-					
-					
-					//insert the assume statements that are guaranteed by the "ensures" clauses
+					LinkedList<CfgStatement> callcontract = new LinkedList<CfgStatement>();  
+					//insert the assert statements that are enforced by the "requires" clauses
 					//of the callee.
-					//Note that the assertions from the "requires" are inserted elsewhere
-					//because we want to insert them using the error model of the AST generation.
 					HashMap<CfgVariable, CfgExpression> substitutes = new HashMap<CfgVariable, CfgExpression>();
-					for (int j=offset; j<call.getCallee().getOutParams().length; j++) {
-						substitutes.put(call.getCallee().getOutParams()[j], call.getLeftHandSide()[j]);
+					for (int j=offset; j<call.getCallee().getInParams().length; j++) {
+						substitutes.put(call.getCallee().getInParams()[j], call.getArguments()[j]);
 					}					
-					for (CfgExpression xp : call.getCallee().getEnusres()) {
-						if (statements.indexOf(stmt)<statements.size()-1) {
-							statements.add(statements.indexOf(stmt)+1, 
-									new CfgAssumeStatement(call.getLocation(), xp.substitute(substitutes)));
-						} else {
-							statements.add(new CfgAssumeStatement(call.getLocation(), xp.substitute(substitutes)));
-						}
+					
+					for (CfgExpression xp : call.getCallee().getRequires()) {						
+						callcontract.add(new CfgAssertStatement(call.getLocation(), xp.substitute(substitutes)));
 					}
-					
-					
+
+					//create the havoc statement for the modifies clause.
 					HashSet<CfgVariable> modifies = new HashSet<CfgVariable>();
 					modifies.addAll(call.getCallee().getModifies());
 					for (CfgIdentifierExpression lhs : call.getLeftHandSide()) {
@@ -89,9 +79,29 @@ public class CallUnwinding {
 					// Log.error(" call: "+ call.toString());
 					// Log.error(" becomes: "+ havoc.toString());
 					havoc.setReplacedStatement(call);
-					statements.set(statements.indexOf(stmt), havoc);
+					callcontract.add(havoc);
 					
 					
+					//insert the assume statements that are guaranteed by the "ensures" clauses
+					//of the callee.
+					substitutes = new HashMap<CfgVariable, CfgExpression>();
+					for (int j=offset; j<call.getCallee().getOutParams().length; j++) {
+						substitutes.put(call.getCallee().getOutParams()[j], call.getLeftHandSide()[j]);
+					}					
+					for (CfgExpression xp : call.getCallee().getEnsures()) {
+						if (statements.indexOf(stmt)<statements.size()-1) {
+							statements.add(new CfgAssumeStatement(call.getLocation(), xp.substitute(substitutes)));
+						} else {
+							callcontract.add(new CfgAssumeStatement(call.getLocation(), xp.substitute(substitutes)));
+						}
+					}
+					
+					//now merge callcontract back into statements at and replace the original call stmt.					
+					statements.addAll(statements.indexOf(stmt), callcontract);
+					//and now remove the old call statement.
+					statements.remove(stmt);					
+				} else {
+					//TODO
 				}
 			}
 			current.setStatements(statements);
