@@ -19,6 +19,7 @@
 
 package org.gravy;
 
+import org.kohsuke.args4j.Argument;
 import org.kohsuke.args4j.Option;
 
 /**
@@ -27,30 +28,38 @@ import org.kohsuke.args4j.Option;
  * @author arlt, schaef
  */
 public class Options {
-	
+		
 	/**
 	 * Boogie input file
-	 */
-	@Option(name = "-b", usage = "Boogie File", required = true)
-	private String boogieFile;
-	
+	 */	
+	@Argument(required = true, index = 0, metaVar = "BoogieFile",
+			usage = "File that will be analyzed")
+	private String boogieFile=null;
+
 	public String getBoogieFile() {
 		return boogieFile;
 	}
 	
-	@Option(name = "-t", usage = "Timeout per prover query", required = false)
+	@Option(name = "-t", usage = "Timeout per prover query in ms")
 	private int timeOut = 5000; //after 1 seconds
 	
 	public int getTimeOut() {
 		return timeOut;
 	}
 
+	
+	@Option(name = "-checker", usage = "Which check should be used:\n\t0\t: Gradual Verification\n\t1\t: Infeasible Code Detection")
+	private int checker = 0; 	
+	public int getChecker() {
+		return checker;
+	}
+	
+	
 	/**
 	 * Boogie input file
 	 */
-	@Option(name = "-debug", usage = "Print Debug output and files", required = false)
-	private boolean debugMode = false;
-	
+	@Option(name = "-debug", usage = "Print Debug output and files")
+	private boolean debugMode = false;	
 	public boolean getDebugMode() {
 		return debugMode;
 	}

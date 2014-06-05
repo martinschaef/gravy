@@ -23,10 +23,10 @@ public class Main {
 
 		try {
 			// parse command-line arguments
-			parser.parseArgument(args);			
-			ProgramAnalysis pa = new ProgramAnalysis(options.getBoogieFile());
+			parser.parseArgument(args);
+			ProgramAnalysis pa = new ProgramAnalysis(options.getBoogieFile());					
 			Log.info("Parsed "+ options.getBoogieFile());			
-			pa.runFullProgramAnalysis();			
+			pa.runFullProgramAnalysis();
 		} catch (CmdLineException e) {
 			Log.error(e.getMessage());			
 			parser.printUsage(System.err);

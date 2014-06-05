@@ -8,6 +8,7 @@ import java.util.concurrent.TimeoutException;
 
 import org.gravy.checker.AbstractChecker;
 import org.gravy.checker.GravyChecker;
+import org.gravy.checker.InfeasibleCodeChecker;
 
 import typechecker.TypeChecker;
 import util.Log;
@@ -85,8 +86,28 @@ public class ProgramAnalysis {
 		
 		AbstractChecker detectionThread = null;		
 		
-		//detectionThread = new SimpleGravyChecker(cff, p);
-		detectionThread = new GravyChecker(cff, p);
+		switch (Options.v().getChecker()) {
+		case 0: {
+			detectionThread = new GravyChecker(cff, p);
+			break;
+		}
+		case 1: {
+			detectionThread = new InfeasibleCodeChecker(cff, p);
+			break;
+		}
+		default: {
+			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
+			detectionThread = new GravyChecker(cff, p);
+			break;
+		}
+		}
+		
+		if (Options.v().getChecker()==0) {	
+			//detectionThread = new SimpleGravyChecker(cff, p);
+			detectionThread = new GravyChecker(cff, p);
+		} else if (Options.v().getChecker()==1) {
+			
+		} 
 		
 		final Future<?> future = executor.submit(detectionThread);
 

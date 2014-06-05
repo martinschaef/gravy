@@ -58,8 +58,8 @@
                         <fileset dir="${bin}" includes="**/*" />     
                 		<zipgroupfileset dir="${lib}" />
                         <manifest>
-                                <attribute name="Main-Class" value="main.Main" />
-                                <attribute name="Class-Path" value="log4j-1.2.16.jar args4j-1.2.16.jar princess.jar scala-actors.jar scala-library.jar boogieamp.jar" />
+                                <attribute name="Main-Class" value="org.gravy.Main" />
+                                <attribute name="Class-Path" value="log4j-1.2.16.jar args4j-2.0.18.jar princess.jar scala-actors.jar scala-library.jar boogieamp.jar" />
                         </manifest>
                 </jar>
         </target>
