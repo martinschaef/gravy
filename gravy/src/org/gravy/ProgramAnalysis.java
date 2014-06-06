@@ -28,6 +28,9 @@ public class ProgramAnalysis {
 
 	private long timeouts = 0;
 	
+	public long feasibleBlocks, infeasibleBlocks, infeasibleBlocksUnderPost;
+	
+	
 	public ProgramAnalysis(String boogieFileName) throws Exception {
 		ProgramFactory pf;
 		try {
@@ -43,6 +46,10 @@ public class ProgramAnalysis {
 	
 	public void runFullProgramAnalysis() {		
 		
+		feasibleBlocks=0;
+		infeasibleBlocks=0;
+		infeasibleBlocksUnderPost=0;
+		
 		TypeChecker tc = new TypeChecker(pf.getASTRoot());
 		this.cff = new DefaultControlFlowFactory(pf.getASTRoot(), tc);
 
@@ -50,17 +57,12 @@ public class ProgramAnalysis {
 			this.cff.toFile("unstructured.bpl");
 		}
 
-		 int failed = 0;
-		 
 		for (CfgProcedure p : this.cff.getProcedureCFGs()) {
 			if (p.getRootNode()==null) continue;
 			try {
-				if (!analyzeProcedure(p)) {
-					failed++;
-				}
+				analyzeProcedure(p);
 			} catch (Exception e) {
 				e.printStackTrace();
-				failed++;
 			}
 		}
 
@@ -69,16 +71,12 @@ public class ProgramAnalysis {
 			this.cff.toFile("passive.bpl");
 		}
 
-		
-		
-		Log.info("Total failed analysis calls:  " + failed);
-		
 		Log.info("Total Timeouts after " + Options.v().getTimeOut()
 				+ "ms: " + this.timeouts);
 				
 	}
 	
-	private boolean analyzeProcedure( CfgProcedure p) {
+	private void analyzeProcedure( CfgProcedure p) {
 		Log.info("Checking: " + p.getProcedureName());
 		// create an executor to kill the verification with a timeout if
 		// necessary
@@ -111,7 +109,7 @@ public class ProgramAnalysis {
 		
 		final Future<?> future = executor.submit(detectionThread);
 
-		boolean not_safe = true;
+		
 		boolean timeout = false;
 
 		try {
@@ -143,10 +141,12 @@ public class ProgramAnalysis {
 		if (timeout) {
 			// report 
 		} else {
-			// log the result
+			feasibleBlocks+=detectionThread.countFeasibleBlock() ;
+			infeasibleBlocks+=detectionThread.countInfeasibleBlock();
+			infeasibleBlocksUnderPost+=detectionThread.countInfeasibleBlockUnderPost();
 		}
 		
-		return not_safe;
+		
 	}
 
 

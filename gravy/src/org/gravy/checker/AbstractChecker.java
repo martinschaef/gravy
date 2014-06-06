@@ -29,6 +29,20 @@ public abstract class AbstractChecker implements Runnable {
 	protected HashSet<BasicBlock> infeasibleBlocks = new HashSet<BasicBlock>();
 	protected HashSet<BasicBlock> infeasibleBlocksUnderPost = new HashSet<BasicBlock>();
 
+	//TODO: this is a very trivial way of reporting
+	public long countFeasibleBlock() {
+		return feasibleBlocks.size();
+	}
+
+	//TODO: this is a very trivial way of reporting
+	public long countInfeasibleBlock() {
+		return infeasibleBlocks.size();
+	}
+
+	//TODO: this is a very trivial way of reporting
+	public long countInfeasibleBlockUnderPost() {
+		return infeasibleBlocksUnderPost.size();
+	}
 	
 	
 	protected Prover prover = null;

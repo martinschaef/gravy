@@ -53,6 +53,9 @@ public class Options {
 	public int getChecker() {
 		return checker;
 	}
+	public void setChecker(int ch) {
+		checker = ch;
+	}
 	
 	
 	/**
