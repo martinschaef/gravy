@@ -220,8 +220,7 @@ public class InfeasibleCodeChecker extends
             break;
           
           infeasibleBlocks.addAll(uncoveredBlocks.values());
-          
-          Log.info("covered the non-exceptional returning code");
+                    
           //pop the assertion $ex_returned == false
           prover.pop();
         }
@@ -231,11 +230,18 @@ public class InfeasibleCodeChecker extends
 
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append("Statistics -------- \n");
+		sb.append("Statistics for "+this.procedure.getProcedureName() + " \n");
 		sb.append("Total Blocks: " + tr.getReachabilityVariables().size() + "\n");
 		sb.append("Feasible Blocks: " + feasibleBlocks.size() + "\n");
 		sb.append("Feasible Exceptional Blocks: " + infeasibleBlocksUnderPost.size()+"\n");
+		for (BasicBlock b : infeasibleBlocksUnderPost) {
+			sb.append("\t"+b.getLocationTag().getStartLine()+"-"+b.getLocationTag().getEndLine()+"\n");
+		}
 		sb.append("Infeasible Blocks: " + uncoveredBlocks.size()+"\n");
-		Log.error(sb);
+		for (BasicBlock b : uncoveredBlocks.values()) {
+			sb.append("\t"+b.getLocationTag().getStartLine()+"-"+b.getLocationTag().getEndLine()+"\n");
+		}
+
+		Log.info(sb);
 	}
 }

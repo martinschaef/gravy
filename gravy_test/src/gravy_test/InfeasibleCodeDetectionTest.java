@@ -17,10 +17,10 @@ public class InfeasibleCodeDetectionTest {
 
 	@Test
 	public void test() {
-		String fname = "regression/infeasible_code/infeasiblecode.bpl";	
+		String fname = "regression/infeasible_code/infeasiblecode001.bpl";	
 		
-		long expectedFeasibleBlocks = 43;
-		long expectedInfeasibleBlocks = 12;
+		long expectedFeasibleBlocks = 56;
+		long expectedInfeasibleBlocks = 4;
 		long expectedInfeasibleBlocksUnderPost = 0;
 		//set the checker to GradualVerification (default)
 		Options.v().setChecker(1);

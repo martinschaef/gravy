@@ -229,8 +229,7 @@ public class GravyChecker extends
             break;
           
           infeasibleBlocks.addAll(uncoveredBlocks.values());
-          
-          Log.info("covered the non-exceptional returning code");
+                    
           //pop the assertion $ex_returned == false
           prover.pop();
         }
@@ -239,7 +238,7 @@ public class GravyChecker extends
 		infeasibleBlocks.addAll(uncoveredBlocks.values());
 
 		StringBuilder sb = new StringBuilder();
-		sb.append("Statistics -------- \n");
+		sb.append("Statistics for "+this.procedure.getProcedureName() + " \n");
 		sb.append("Total Blocks: " + tr.getReachabilityVariables().size() + "\n");
 		sb.append("Feasible Blocks: " + feasibleBlocks.size() + "\n");
 		sb.append("Feasible Exceptional Blocks: " + infeasibleBlocksUnderPost.size()+"\n");
@@ -263,7 +262,7 @@ public class GravyChecker extends
 		sb.append("feasibleExceptions: " + feasibleExceptions+"\n");
 		sb.append("infeasibleExceptions: " + infeasibleExceptions+"\n");
 		
-		Log.error(sb);
+		Log.info(sb);
 	}
 
 

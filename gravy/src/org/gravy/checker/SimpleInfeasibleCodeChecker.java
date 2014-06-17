@@ -150,7 +150,7 @@ public class SimpleInfeasibleCodeChecker extends
 			//do the second part only once!
 			if (i==1) break;
 
-			Log.debug("covered the non-exceptional returning code");
+			
 			//pop the assertion $ex_returned == false
 			prover.pop();
 			//now check again while allowing exceptional termination
@@ -168,12 +168,12 @@ public class SimpleInfeasibleCodeChecker extends
 		
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append("Statistics -------- \n");
+		sb.append("Statistics for "+this.procedure.getProcedureName() + " \n");
 		sb.append("Total Blocks: " + tr.getReachabilityVariables().size() + "\n");
 		sb.append("Feasible Blocks: " + feasibleBlocks.size() + "\n");
 		sb.append("Infeasible wrt to Postcondition: " + infeasibleBlocksUnderPost.size()+"\n");
 		sb.append("Infeasible w/o postcondition Blocks: " + infeasibleBlocks.size()+"\n");
-		Log.error(sb);		
+		Log.info(sb);		
 	}
 
 }

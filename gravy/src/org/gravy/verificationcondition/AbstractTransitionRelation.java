@@ -331,7 +331,7 @@ public class AbstractTransitionRelation {
 	 * @return a new expression casting e to int
 	 */
 	protected ProverExpr wrapInInt(ProverExpr e, BoogieType type) {
-
+		if (type == null) throw new RuntimeException("wrapInInt has type null! Did you forget to run the typechecker?");
 		if (type == GlobalsCache.v().getProgramFactory().getBoolType())
 			return this.prover.mkIte(e, this.prover.mkLiteral(0),
 					this.prover.mkLiteral(1));
@@ -347,6 +347,7 @@ public class AbstractTransitionRelation {
 	 * @return
 	 */
 	protected ProverExpr unwrapFromInt(ProverExpr e, BoogieType type) {
+		if (type == null) throw new RuntimeException("wrapInInt has type null! Did you forget to run the typechecker? "+e.toString() );
 		if (type == GlobalsCache.v().getProgramFactory().getBoolType())
 			return this.prover.mkEq(e, this.prover.mkLiteral(0));
 		else

@@ -17,7 +17,7 @@ public class GardualVerificationTest {
 
 	@Test
 	public void test() {
-		String fname = "regression/gradual_verification/gradualverification.bpl";
+		String fname = "regression/gradual_verification/gradualverification001.bpl";
 		
 		long expectedFeasibleBlocks = 53;
 		long expectedInfeasibleBlocks = 18;

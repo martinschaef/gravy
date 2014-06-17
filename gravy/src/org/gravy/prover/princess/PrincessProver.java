@@ -225,7 +225,6 @@ public class PrincessProver implements Prover {
 	}
 
 	public ProverExpr mkNot(ProverExpr body) {
-		// System.err.println(body);
 		return new FormulaExpr(new INot(((FormulaExpr) body).formula));
 	}
 
