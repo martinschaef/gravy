@@ -1,5 +1,7 @@
 package org.gravy.loopunwinding;
 
+import org.gravy.Options;
+
 import boogie.controlflow.CfgProcedure;
 
 /**
@@ -7,6 +9,16 @@ import boogie.controlflow.CfgProcedure;
  */
 public abstract class AbstractLoopUnwinding {
 
+	public static void unwindeLoops(CfgProcedure proc) {
+		AbstractLoopUnwinding unwinder = null;
+		if (Options.v().getUnwindings()<0) {
+			unwinder = new HavocOnlyUnwinding(proc);
+		} else {
+			unwinder = new SimpleUnwinding(proc, Options.v().getUnwindings());
+		}
+		unwinder.unwind();
+	}
+	
 	/**
 	 * Boogie procedure
 	 */

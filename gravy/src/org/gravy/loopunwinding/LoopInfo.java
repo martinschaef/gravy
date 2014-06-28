@@ -25,6 +25,14 @@ public class LoopInfo {
 
 	public boolean isNestedLoop = false;
 
+	public void UpdateLoopEntries() {
+		loopEntries.clear();
+		for (BasicBlock b : loopHead.getPredecessors()) {
+			if (!loopingPred.contains(b))
+				loopEntries.add(b);
+		}		
+	}
+	
 	public LoopInfo(BasicBlock loophead, HashSet<BasicBlock> loopingpred,
 			HashSet<BasicBlock> loopbody, HashSet<BasicBlock> loopexit) {
 		loopHead = loophead;

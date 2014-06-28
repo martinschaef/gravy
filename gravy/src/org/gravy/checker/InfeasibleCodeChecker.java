@@ -3,7 +3,6 @@
  */
 package org.gravy.checker;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -19,10 +18,8 @@ import org.gravy.prover.ProverFactory;
 import org.gravy.prover.ProverResult;
 import org.gravy.prover.princess.PrincessProver;
 import org.gravy.ssa.SingleStaticAssignment;
-import org.gravy.util.StopWatch;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
-import org.gravy.verificationcondition.TransitionRelation;
 import org.joogie.cfgPlugin.Util.Dag;
 
 import util.Log;
@@ -31,8 +28,6 @@ import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
-import boogie.controlflow.statement.CfgStatement;
-import boogie.statement.Statement;
 
 /**
  * @author martin
@@ -54,11 +49,12 @@ public class InfeasibleCodeChecker extends
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
 
-		AbstractLoopUnwinding unwind = new HavocOnlyUnwinding(p);
-		unwind.unwind();
+		
+		AbstractLoopUnwinding.unwindeLoops(p);
 
 		p.pruneUnreachableBlocks();
 
+		
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.recomputeSSA(p);

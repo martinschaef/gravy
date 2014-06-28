@@ -5,7 +5,7 @@ procedure doWhile(N : int)
   var n : int;
 	root:
 		n := 0;
-		goto loophead;
+		goto preloop;
 	preloop:
 		n := n + 1;
 		goto loophead;

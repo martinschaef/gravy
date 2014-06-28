@@ -60,9 +60,10 @@ public class ProgramAnalysis {
 		for (CfgProcedure p : this.cff.getProcedureCFGs()) {
 			if (p.getRootNode()==null) continue;
 			try {
-				analyzeProcedure(p);
+				if (!analyzeProcedure(p)) break;
 			} catch (Exception e) {
 				e.printStackTrace();
+				break;
 			}
 		}
 
@@ -76,7 +77,7 @@ public class ProgramAnalysis {
 				
 	}
 	
-	private void analyzeProcedure( CfgProcedure p) {
+	private boolean analyzeProcedure( CfgProcedure p) {
 		Log.info("Checking: " + p.getProcedureName());
 		// create an executor to kill the verification with a timeout if
 		// necessary
@@ -100,17 +101,12 @@ public class ProgramAnalysis {
 		}
 		}
 		
-		if (Options.v().getChecker()==0) {	
-			//detectionThread = new SimpleGravyChecker(cff, p);
-			detectionThread = new GravyChecker(cff, p);
-		} else if (Options.v().getChecker()==1) {
-			
-		} 
 		
 		final Future<?> future = executor.submit(detectionThread);
 
 		
 		boolean timeout = false;
+		boolean exception = false;
 
 		try {
 			// start thread and wait xx seconds
@@ -124,7 +120,8 @@ public class ProgramAnalysis {
 			timeout = true;
 		} catch (Exception e) {
 			e.printStackTrace();
-
+			future.cancel(true);
+			exception =true;			
 		} finally {
 			// cancel thread if not done
 			if (!future.isDone()) {
@@ -146,7 +143,7 @@ public class ProgramAnalysis {
 			infeasibleBlocksUnderPost+=detectionThread.countInfeasibleBlockUnderPost();
 		}
 		
-		
+		return !exception;
 	}
 
 

@@ -48,6 +48,14 @@ public class Options {
 	}
 
 	
+	@Option(name = "-unwind", usage = "Number of loop unwindings. Default: -1 means use havoc instead of unwindings")
+	private int unwindings = -1; //-1 means no unwindings
+	
+	public int getUnwindings() {
+		return unwindings;
+	}
+	
+	
 	@Option(name = "-checker", usage = "Which check should be used:\n\t0\t: Gradual Verification\n\t1\t: Infeasible Code Detection")
 	private int checker = 0; 	
 	public int getChecker() {

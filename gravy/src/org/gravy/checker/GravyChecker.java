@@ -9,9 +9,10 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 
+import org.gravy.Options;
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
-import org.gravy.loopunwinding.HavocOnlyUnwinding;
+import org.gravy.loopunwinding.SimpleUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
@@ -55,17 +56,20 @@ public class GravyChecker extends
 	public GravyChecker(AbstractControlFlowFactory cff,
 			CfgProcedure p) {
 		super(cff, p);
+		
+		p.pruneUnreachableBlocks();		
 
-		p.pruneUnreachableBlocks();
-
+		if (Options.v().getDebugMode()) p.toFile("cfg_"+p.getProcedureName()+".bpl");
+		
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
 
-		AbstractLoopUnwinding unwind = new HavocOnlyUnwinding(p);
-		unwind.unwind();
+		AbstractLoopUnwinding.unwindeLoops(p);
 
 		p.pruneUnreachableBlocks();
 
+		if (Options.v().getDebugMode())  p.toFile("loopfree_"+p.getProcedureName()+".bpl");
+		
 		//turn assertions into conditional choices.
 		turnAssertionsIntoConditionals(p);
 		

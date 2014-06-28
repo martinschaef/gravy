@@ -48,8 +48,8 @@ public class SimpleInfeasibleCodeChecker extends
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
 
-		AbstractLoopUnwinding unwind = new HavocOnlyUnwinding(p);
-		unwind.unwind();
+		AbstractLoopUnwinding.unwindeLoops(p);
+
 		p.pruneUnreachableBlocks();
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();

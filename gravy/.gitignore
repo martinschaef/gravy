@@ -3,3 +3,5 @@
 /.settings
 /passive.bpl
 /unstructured.bpl
+/cfg_doWhile.bpl
+/loopfree_doWhile.bpl
