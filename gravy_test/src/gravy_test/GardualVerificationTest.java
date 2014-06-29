@@ -19,11 +19,11 @@ public class GardualVerificationTest {
 	public void test() {
 		String fname = "regression/gradual_verification/gradualverification001.bpl";
 		
-		long expectedFeasibleBlocks = 53;
-		long expectedInfeasibleBlocks = 18;
+		long expectedFeasibleBlocks = 43;
+		long expectedInfeasibleBlocks = 12;
 		long expectedInfeasibleBlocksUnderPost = 0;
 		//set the checker to GradualVerification (default)
-		Options.v().setChecker(0);
+		Options.v().setChecker(1);
 		
 		try {
 			ProgramAnalysis pa = new ProgramAnalysis(fname);

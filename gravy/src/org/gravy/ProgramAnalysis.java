@@ -93,7 +93,7 @@ public class ProgramAnalysis {
 		case 1: {
 			detectionThread = new InfeasibleCodeChecker(cff, p);
 			break;
-		}
+		}		
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			detectionThread = new GravyChecker(cff, p);

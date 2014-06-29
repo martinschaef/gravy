@@ -54,8 +54,6 @@ public class InfeasibleCodeChecker extends
 
 		p.pruneUnreachableBlocks();
 
-		
-
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.recomputeSSA(p);
 
@@ -85,159 +83,50 @@ public class InfeasibleCodeChecker extends
 
 		
 //		StopWatch firstcheck = StopWatch.getInstanceAndStart();
-//		StopWatch allchecks = StopWatch.getInstanceAndStart();
-		
-		CfgTransitionRelation tr = (CfgTransitionRelation)atr;
-		Dag<IFormula> vcdag = tr.getProverDAG();
 
+		CfgTransitionRelation tr = (CfgTransitionRelation) atr;
+		Dag<IFormula> vcdag = tr.getProverDAG();
+		
 		// generate ineff flags; this map is also used to keep
 		// track of the remaining uncovered blocks
 		LinkedHashMap<ProverExpr, ProverExpr> ineffFlags = new LinkedHashMap<ProverExpr, ProverExpr>();
 
 		for (BasicBlock block : tr.getEffectualSet()) {
 			ProverExpr v = tr.getReachabilityVariables().get(block);
-			ineffFlags.put(
-					v,
-					prover.mkVariable("" + v + "_flag",
-							prover.getBooleanType()));
+			ineffFlags.put(v, prover.mkVariable("" + v + "_flag",
+					prover.getBooleanType()));
 		}
-		
-		
-        //construct the inverted reachabilityVariables which is used later 
-        //to keep track of what has been covered so far.
-        HashMap<ProverExpr, BasicBlock> uncoveredBlocks = new HashMap<ProverExpr, BasicBlock>();
-        
-        //@Daniel: allBlocks is a local helper that we use the reconstruct feasible paths later
-        HashMap<ProverExpr, BasicBlock> allBlocks = new HashMap<ProverExpr, BasicBlock>();
-        
-        for (Entry<BasicBlock, ProverExpr> entry : tr.getReachabilityVariables().entrySet()) {
-            uncoveredBlocks.put(entry.getValue(), entry.getKey());
-            allBlocks.put(entry.getValue(), entry.getKey());
-        }       
-		
 
-		//now assert all proof obligations
-		for (Entry<CfgAxiom, ProverExpr> entry : tr.getPreludeAxioms().entrySet()) {
-			prover.addAssertion(entry.getValue());
-		}
-		
-		//TODO: introduce a flag to decide if we want to check preconditions.
-		prover.addAssertion(tr.getRequires());
-		
-        for (Entry<BasicBlock, LinkedList<ProverExpr>> entry : tr.getProofObligations()
-            .entrySet()) {
-          for (ProverExpr assertion : entry.getValue()) {
-            prover.addAssertion(assertion);
-          }
-        }
-    
+		this.pushTransitionRelation(prover, tr);	
 
+		HashSet<BasicBlock> blocks2cover = new HashSet<BasicBlock>(tr.getReachabilityVariables().keySet()); 
+		
 		// now exclude all feasible paths that may violate the postcondition
-        prover.push();
+		prover.push();
 		prover.addAssertion(tr.getEnsures());
+		//compute the feasible path cover under the given postcondition
+		feasibleBlocks = new HashSet<BasicBlock>(computePathCover(prover, tr, ineffFlags, blocks2cover));
+		blocks2cover.removeAll(feasibleBlocks);
 		
-        for (int checkPostcondition=0; checkPostcondition<2; checkPostcondition++) {
+		//this set is empty for infeasible code detection.
+		infeasibleBlocksUnderPost = new HashSet<BasicBlock>();
 		
-          int threshold = ineffFlags.size();
-          // slightly better guess
-          if (threshold > 1)
-            threshold = threshold / 2;
-
-          int rounds = 1;// only for pretty printing
-
-          while (threshold >= 1 && !ineffFlags.isEmpty()) {
-            prover.push();
-
-			// setup the CFG module
-			LinkedList<ProverExpr> remainingBlockVars = new LinkedList<ProverExpr>();
-			LinkedList<ProverExpr> remainingIneffFlags = new LinkedList<ProverExpr>();
-
-			for (Entry<ProverExpr, ProverExpr> entry : ineffFlags.entrySet()) {
-				remainingBlockVars.add(entry.getKey());
-				remainingIneffFlags.add(entry.getValue());
-			}
-
-			((PrincessProver) prover).setupCFGPlugin(vcdag,
-					remainingBlockVars, remainingIneffFlags, threshold);
-
-			// Query the feasible paths for this setup
-			ProverResult res = prover.checkSat(true);
-			//if (rounds==1) firstcheck.stop();
-			Log.debug("Round " + (rounds++));
-			Log.debug("Prover returns " + res.toString());
-
-			while (res == ProverResult.Sat) {
-				LinkedList<ProverExpr> covered = new LinkedList<ProverExpr>();
-				LinkedList<ProverExpr> flagsToAssert = new LinkedList<ProverExpr>();
-				
-                for (Entry<ProverExpr, BasicBlock> entry : uncoveredBlocks.entrySet()) {
-                  final ProverExpr pe = entry.getKey();
-                  if (prover.evaluate(pe).getBooleanLiteralValue()) {                	  
-                    covered.add(pe);                    
-                    if (checkPostcondition == 0) {
-                        //if we are in the first iteration, this is a feasible block
-                        feasibleBlocks.add(entry.getValue());
-                    } else {
-                        infeasibleBlocksUnderPost.add(entry.getValue());
-                    }
-                    
-                    ProverExpr flag = ineffFlags.get(pe);
-                    if (flag != null)
-                      flagsToAssert.add(flag);
-                  }
-                }
-				
-				for (ProverExpr e : covered) {
-					ineffFlags.remove(e);
-					uncoveredBlocks.remove(e);
-				}
-				
-				prover.addAssertion(prover.mkAnd(flagsToAssert
-						.toArray(new ProverExpr[flagsToAssert.size()])));
-
-				res = prover.checkSat(true);
-
-				Log.debug("Round " + (rounds++));
-				Log.debug("Prover returns " + res.toString());
-			}
-
-			prover.pop();
-
-			if (threshold == 1 || ineffFlags.isEmpty())
-				break;
-
-			do {
-			  threshold = (int) Math.ceil((double) threshold / 2.0);
-			} while (threshold > ineffFlags.size());
-			
-          }
-          
-          if (checkPostcondition == 1)
-            break;
-          
-          infeasibleBlocks.addAll(uncoveredBlocks.values());
-                    
-          //pop the assertion $ex_returned == false
-          prover.pop();
-        }
-		//allchecks.stop();
-		infeasibleBlocks = new HashSet<BasicBlock>();
-		infeasibleBlocks.addAll(uncoveredBlocks.values());
-
+		infeasibleBlocks = new HashSet<BasicBlock>(tr.getReachabilityVariables().keySet());
+		infeasibleBlocks.removeAll(feasibleBlocks);
+		
 		
 		StringBuilder sb = new StringBuilder();
-		sb.append("Statistics for "+this.procedure.getProcedureName() + " \n");
-		sb.append("Total Blocks: " + tr.getReachabilityVariables().size() + "\n");
+		sb.append("Statistics for " + this.procedure.getProcedureName() + " \n");
+		sb.append("Total Blocks: " + tr.getReachabilityVariables().size()
+				+ "\n");
 		sb.append("Feasible Blocks: " + feasibleBlocks.size() + "\n");
-		sb.append("Feasible Exceptional Blocks: " + infeasibleBlocksUnderPost.size()+"\n");
-		for (BasicBlock b : infeasibleBlocksUnderPost) {
-			sb.append("\t"+b.getLocationTag().getStartLine()+"-"+b.getLocationTag().getEndLine()+"\n");
-		}
-		sb.append("Infeasible Blocks: " + uncoveredBlocks.size()+"\n");
-		for (BasicBlock b : uncoveredBlocks.values()) {
-			sb.append("\t"+b.getLocationTag().getStartLine()+"-"+b.getLocationTag().getEndLine()+"\n");
-		}
+
+		sb.append("Feasible Exceptional Blocks: "
+				+ infeasibleBlocksUnderPost.size() + "\n");
+		
+		sb.append("Infeasible Blocks: " + infeasibleBlocks.size() + "\n");
 
 		Log.info(sb);
+
 	}
 }

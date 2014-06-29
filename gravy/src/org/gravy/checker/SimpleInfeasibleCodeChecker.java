@@ -3,7 +3,6 @@
  */
 package org.gravy.checker;
 
-import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -11,14 +10,12 @@ import java.util.Map.Entry;
 
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
-import org.gravy.loopunwinding.HavocOnlyUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
 import org.gravy.prover.ProverResult;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
-import org.gravy.verificationcondition.CfgTransitionRelation;
 import org.gravy.verificationcondition.TransitionRelation;
 
 import util.Log;
@@ -26,8 +23,6 @@ import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
-import boogie.controlflow.statement.CfgStatement;
-import boogie.statement.Statement;
 
 /**
  * @author martin
