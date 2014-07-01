@@ -23,7 +23,7 @@ public class GardualVerificationTest {
 		long expectedInfeasibleBlocks = 12;
 		long expectedInfeasibleBlocksUnderPost = 0;
 		//set the checker to GradualVerification (default)
-		Options.v().setChecker(1);
+		Options.v().setChecker(0);
 		
 		try {
 			ProgramAnalysis pa = new ProgramAnalysis(fname);

@@ -3,30 +3,22 @@
  */
 package org.gravy.checker;
 
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
-import java.util.Map.Entry;
 
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
-import org.gravy.loopunwinding.HavocOnlyUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
-import org.gravy.prover.ProverResult;
-import org.gravy.prover.princess.PrincessProver;
+import org.gravy.report.InfeasibleReport;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
-import org.joogie.cfgPlugin.Util.Dag;
 
 import util.Log;
-import ap.parser.IFormula;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
-import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
 
 /**
@@ -85,7 +77,6 @@ public class InfeasibleCodeChecker extends
 //		StopWatch firstcheck = StopWatch.getInstanceAndStart();
 
 		CfgTransitionRelation tr = (CfgTransitionRelation) atr;
-		Dag<IFormula> vcdag = tr.getProverDAG();
 		
 		// generate ineff flags; this map is also used to keep
 		// track of the remaining uncovered blocks
@@ -114,19 +105,7 @@ public class InfeasibleCodeChecker extends
 		infeasibleBlocks = new HashSet<BasicBlock>(tr.getReachabilityVariables().keySet());
 		infeasibleBlocks.removeAll(feasibleBlocks);
 		
-		
-		StringBuilder sb = new StringBuilder();
-		sb.append("Statistics for " + this.procedure.getProcedureName() + " \n");
-		sb.append("Total Blocks: " + tr.getReachabilityVariables().size()
-				+ "\n");
-		sb.append("Feasible Blocks: " + feasibleBlocks.size() + "\n");
-
-		sb.append("Feasible Exceptional Blocks: "
-				+ infeasibleBlocksUnderPost.size() + "\n");
-		
-		sb.append("Infeasible Blocks: " + infeasibleBlocks.size() + "\n");
-
-		Log.info(sb);
+		new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
 
 	}
 }

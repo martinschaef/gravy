@@ -136,7 +136,7 @@ public class ProgramAnalysis {
 		}
 
 		if (timeout) {
-			// report 
+			timeouts++;
 		} else {
 			feasibleBlocks+=detectionThread.countFeasibleBlock() ;
 			infeasibleBlocks+=detectionThread.countInfeasibleBlock();

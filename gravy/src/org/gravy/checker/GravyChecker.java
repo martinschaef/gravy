@@ -3,6 +3,7 @@
  */
 package org.gravy.checker;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -13,13 +14,12 @@ import org.gravy.loopunwinding.AbstractLoopUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
+import org.gravy.report.GravyReport;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
-import org.joogie.cfgPlugin.Util.Dag;
 
 import util.Log;
-import ap.parser.IFormula;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
@@ -42,13 +42,14 @@ import boogie.type.BoogieType;
  */
 public class GravyChecker extends AbstractChecker {
 
+	private HashMap<CfgAssertStatement, BasicBlock[]> assertIfThenElseMap = new HashMap<CfgAssertStatement, BasicBlock[]>();
 	/**
 	 * @param cff
 	 * @param p
 	 */
 	public GravyChecker(AbstractControlFlowFactory cff, CfgProcedure p) {
 		super(cff, p);
-
+	
 		p.pruneUnreachableBlocks();
 
 		if (Options.v().getDebugMode())
@@ -108,7 +109,6 @@ public class GravyChecker extends AbstractChecker {
 		// StopWatch allchecks = StopWatch.getInstanceAndStart();
 
 		CfgTransitionRelation tr = (CfgTransitionRelation) atr;
-		Dag<IFormula> vcdag = tr.getProverDAG();
 		
 		// generate ineff flags; this map is also used to keep
 		// track of the remaining uncovered blocks
@@ -139,38 +139,9 @@ public class GravyChecker extends AbstractChecker {
 		infeasibleBlocks.removeAll(feasibleBlocks);
 		infeasibleBlocks.removeAll(infeasibleBlocksUnderPost);
 		
-		StringBuilder sb = new StringBuilder();
-		sb.append("Statistics for " + this.procedure.getProcedureName() + " \n");
-		sb.append("Total Blocks: " + tr.getReachabilityVariables().size()
-				+ "\n");
-		sb.append("Feasible Blocks: " + feasibleBlocks.size() + "\n");
-
-		sb.append("Feasible Exceptional Blocks: "
-				+ infeasibleBlocksUnderPost.size() + "\n");
-		
-		sb.append("Infeasible Blocks: " + infeasibleBlocks.size() + "\n");
-
-		int feasibleExceptions = 0;
-		for (BasicBlock b : infeasibleBlocksUnderPost) {
-			if (b.getLabel().endsWith("#assertionElse")) {
-				feasibleExceptions++;
-			}
-		}
-
-		int infeasibleExceptions = 0;
-		for (BasicBlock b : infeasibleBlocks) {
-			if (b.getLabel().endsWith("#assertionElse")) {
-				infeasibleExceptions++;
-			}
-		}
-
-		// TODO: this is a very primitive way of counting.
-		sb.append("feasibleExceptions: " + feasibleExceptions + "\n");
-		sb.append("infeasibleExceptions: " + infeasibleExceptions + "\n");
-
-		Log.info(sb);
-	}
-
+		new GravyReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocksUnderPost, this.infeasibleBlocks, this.assertIfThenElseMap);
+	}	
+	
 	private void turnAssertionsIntoConditionals(CfgProcedure p) {
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		LinkedList<BasicBlock> done = new LinkedList<BasicBlock>();
@@ -254,6 +225,8 @@ public class GravyChecker extends AbstractChecker {
 					// look
 					// for more assertions.
 					current = thenBlock;
+					
+					this.assertIfThenElseMap.put(asrt, new BasicBlock[]{thenBlock, elseBlock})  ;
 				}
 			}
 
