@@ -15,6 +15,7 @@ import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
 import org.gravy.report.GravyReport;
+import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
@@ -103,7 +104,7 @@ public class GravyChecker extends AbstractChecker {
 	 * org.gravy.verificationcondition.CfgTransitionRelation)
 	 */
 	@Override
-	public void checkSat(Prover prover, AbstractTransitionRelation atr) {
+	public Report checkSat(Prover prover, AbstractTransitionRelation atr) {
 
 		// StopWatch firstcheck = StopWatch.getInstanceAndStart();
 		// StopWatch allchecks = StopWatch.getInstanceAndStart();
@@ -139,7 +140,7 @@ public class GravyChecker extends AbstractChecker {
 		infeasibleBlocks.removeAll(feasibleBlocks);
 		infeasibleBlocks.removeAll(infeasibleBlocksUnderPost);
 		
-		new GravyReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocksUnderPost, this.infeasibleBlocks, this.assertIfThenElseMap);
+		return new GravyReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocksUnderPost, this.infeasibleBlocks, this.assertIfThenElseMap);
 	}	
 	
 	private void turnAssertionsIntoConditionals(CfgProcedure p) {

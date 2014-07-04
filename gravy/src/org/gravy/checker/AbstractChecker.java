@@ -4,7 +4,6 @@
 package org.gravy.checker;
 
 import java.util.Collection;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedList;
@@ -15,6 +14,7 @@ import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
 import org.gravy.prover.ProverResult;
 import org.gravy.prover.princess.PrincessProver;
+import org.gravy.report.Report;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
 import org.joogie.cfgPlugin.Util.Dag;
@@ -25,7 +25,6 @@ import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
-import boogie.statement.Statement;
 
 /**
  * @author martin
@@ -35,6 +34,8 @@ public abstract class AbstractChecker implements Runnable {
 
 	protected AbstractControlFlowFactory cff;
 	protected CfgProcedure procedure;
+	
+	private Report report = null;
 		
 	protected HashSet<BasicBlock> feasibleBlocks = new HashSet<BasicBlock>();
 	protected HashSet<BasicBlock> infeasibleBlocks = new HashSet<BasicBlock>();
@@ -66,7 +67,11 @@ public abstract class AbstractChecker implements Runnable {
 		this.procedure = p;
 	}
 
-	public abstract void checkSat(Prover prover, AbstractTransitionRelation tr);
+	public abstract Report checkSat(Prover prover, AbstractTransitionRelation tr);
+	
+	public Report getReport() {
+		return this.report;
+	}
 	
 	
 	@Override
@@ -77,7 +82,7 @@ public abstract class AbstractChecker implements Runnable {
 		Log.debug("Compute Transition Relation "+this.procedure.getProcedureName());
 		//AbstractTransitionRelation tr = new TransitionRelation(this.procedure, this.cff, prover);
 		CfgTransitionRelation tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
-		checkSat(prover, tr); 
+		this.report = checkSat(prover, tr); 
 		shutDownProver();
 	}
 	

@@ -30,7 +30,7 @@ import boogie.controlflow.expression.CfgExpression;
 public class CfgTransitionRelation extends AbstractTransitionRelation {
 	
 	protected Dag<IFormula> proverDAG;	
-	protected HasseDiagram hasse;
+	
 //	protected ProverExpr expetionalReturnFlag = null;
 	
 	//TODO: this is a hack, like the creation
@@ -44,7 +44,7 @@ public class CfgTransitionRelation extends AbstractTransitionRelation {
 	}
 
 	public CfgTransitionRelation(CfgProcedure cfg, AbstractControlFlowFactory cff, Prover p) {
-		super(cff, p);
+		super(cfg, cff, p);
 		makePrelude();
 		
 		//create the ProverExpr for the precondition 
@@ -64,9 +64,7 @@ public class CfgTransitionRelation extends AbstractTransitionRelation {
 			i++;
 		}
 		this.ensures = this.prover.mkAnd(post);
-		
-		
-		this.hasse = new HasseDiagram(cfg);
+				
 		//encode the forward reachability
 		ProverExpr firstok = block2transitionRelation(cfg.getRootNode(),
 				this.reachabilityVariables, this.proofObligations);
@@ -77,12 +75,7 @@ public class CfgTransitionRelation extends AbstractTransitionRelation {
 		this.proverDAG = procToPrincessDag(cfg, this.reachabilityVariables );
 
 		finalizeAxioms();		
-	}
-
-	public Set<BasicBlock> getEffectualSet() {
-		return this.hasse.getEffectualSet();
-	}
-	
+	}	
 	
 	private ProverExpr block2transitionRelation(BasicBlock b,
 			HashMap<BasicBlock, ProverExpr> blockvars,

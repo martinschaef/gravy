@@ -8,10 +8,12 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.gravy.GlobalsCache;
+import org.gravy.effectualset.HasseDiagram;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFun;
@@ -22,6 +24,7 @@ import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgFunction;
 import boogie.controlflow.CfgParentEdge;
+import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.CfgVariable;
 import boogie.controlflow.expression.CfgArrayAccessExpression;
 import boogie.controlflow.expression.CfgArrayStoreExpression;
@@ -73,6 +76,15 @@ public class AbstractTransitionRelation {
 	// helper maps for subsitution.
 	protected HashMap<ProverExpr, CfgVariable> invertProverVariables = new HashMap<ProverExpr, CfgVariable>();
 	protected HashMap<ProverExpr, Integer> invertIncarnationMap = new HashMap<ProverExpr, Integer>();
+	
+	protected HasseDiagram hasse;
+	
+	public AbstractTransitionRelation(CfgProcedure cfg, AbstractControlFlowFactory cff, Prover p) {
+		this.prover = p;
+		this.controlFlowFactory = cff;
+		this.hasse = new HasseDiagram(cfg);
+	}
+	
 
 	/**
 	 * Returns the prover expression of the ssa-version of the precondition.
@@ -94,6 +106,13 @@ public class AbstractTransitionRelation {
 		return this.ensures;
 	}
 	
+	public Set<BasicBlock> getEffectualSet() {
+		return this.hasse.getEffectualSet();
+	}
+	
+	public HasseDiagram getHasseDiagram() {
+		return this.hasse;
+	}
 	
 //	public ProverExpr getProverExpr(CfgVariable v, Integer i) {
 //		if (i == null)
@@ -146,10 +165,6 @@ public class AbstractTransitionRelation {
 		return preludeAxioms;
 	}
 
-	public AbstractTransitionRelation(AbstractControlFlowFactory cff, Prover p) {
-		this.prover = p;
-		this.controlFlowFactory = cff;
-	}
 
 	/**
 	 * returns the CfgVariable that is represented by v, or null if v is not a

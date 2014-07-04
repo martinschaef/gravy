@@ -18,6 +18,8 @@ import boogie.statement.Statement;
  */
 public class GravyReport extends Report {
 
+	private StringBuilder sb = new StringBuilder();
+	
 	/**
 	 * 
 	 * @param tr
@@ -33,7 +35,6 @@ public class GravyReport extends Report {
 			Set<BasicBlock> infeasibleBlocks1,
 			Set<BasicBlock> infeasibleBlocks2,
 			HashMap<CfgAssertStatement, BasicBlock[]> assertIfThenElseMap) {
-		super(cff, tr);
 
 		LinkedList<Statement> safe = new LinkedList<Statement>();
 		LinkedList<Statement> unreachable = new LinkedList<Statement>();
@@ -60,8 +61,7 @@ public class GravyReport extends Report {
 				guar_unsafe.add(st);
 			}
 		}
-
-		StringBuilder sb = new StringBuilder();
+		
 		if (safe.size()>0) {
 			sb.append("Safe assertions:\n");
 			sb.append(printLocationAttributes(safe));
@@ -85,4 +85,8 @@ public class GravyReport extends Report {
 		System.err.println(sb.toString());
 	}
 
+	@Override 
+	public String toString() {
+		return sb.toString();
+	}
 }

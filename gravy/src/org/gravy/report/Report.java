@@ -6,8 +6,6 @@ package org.gravy.report;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.gravy.verificationcondition.AbstractTransitionRelation;
-
 import util.BoogiePrinter;
 import boogie.ProgramFactory;
 import boogie.ast.Attribute;
@@ -25,12 +23,7 @@ import boogie.statement.Statement;
  */
 public class Report {
 
-	protected AbstractTransitionRelation transrel;
-	protected AbstractControlFlowFactory cff;
-	
-	public Report(AbstractControlFlowFactory cff, AbstractTransitionRelation tr) {
-		this.cff = cff;
-		this.transrel = tr;
+	public Report() {
 	}
 	
 	protected String printLocationAttributes(LinkedList<Statement> stmts) {
@@ -94,11 +87,11 @@ public class Report {
 		return sb.toString();
 	}
 	
-	protected LinkedList<Statement> collectStatements(Set<BasicBlock> blocks) {
+	protected LinkedList<Statement> collectStatements(AbstractControlFlowFactory cff, Set<BasicBlock> blocks) {
 		LinkedList<Statement> astStatements = new LinkedList<Statement>();
 		for (BasicBlock b : blocks) {
 			for (CfgStatement s : b.getStatements()) {
-				Statement ast_stmt = this.cff.findAstStatement(s);
+				Statement ast_stmt = cff.findAstStatement(s);
 				if (ast_stmt!=null && ast_stmt.getLocation()!=null) {
 					astStatements.add(ast_stmt);
 				} else {

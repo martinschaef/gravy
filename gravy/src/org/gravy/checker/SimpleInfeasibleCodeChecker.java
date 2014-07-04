@@ -14,6 +14,8 @@ import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
 import org.gravy.prover.ProverResult;
+import org.gravy.report.InfeasibleReport;
+import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.TransitionRelation;
@@ -72,7 +74,7 @@ public class SimpleInfeasibleCodeChecker extends
 	 * @see org.gravy.infeasiblecode.AbstractInfeasibleCodeDetection#checkSat(org.gravy.prover.Prover, org.gravy.verificationcondition.CfgTransitionRelation)
 	 */
 	@Override
-	public void checkSat(Prover prover,
+	public Report checkSat(Prover prover,
 			AbstractTransitionRelation atr) {
 
 		TransitionRelation tr = (TransitionRelation)atr; 
@@ -128,7 +130,7 @@ public class SimpleInfeasibleCodeChecker extends
 					}				
 				} else {
 					Log.error("Prover returned " + res);
-					return;
+					return null;
 				}
 							
 				ProverExpr enablingClause;
@@ -160,15 +162,8 @@ public class SimpleInfeasibleCodeChecker extends
 		}
 		infeasibleBlocks = new HashSet<BasicBlock>();
 		infeasibleBlocks.addAll(uncoveredBlocks.values());
-		
-		
-		StringBuilder sb = new StringBuilder();
-		sb.append("Statistics for "+this.procedure.getProcedureName() + " \n");
-		sb.append("Total Blocks: " + tr.getReachabilityVariables().size() + "\n");
-		sb.append("Feasible Blocks: " + feasibleBlocks.size() + "\n");
-		sb.append("Infeasible wrt to Postcondition: " + infeasibleBlocksUnderPost.size()+"\n");
-		sb.append("Infeasible w/o postcondition Blocks: " + infeasibleBlocks.size()+"\n");
-		Log.info(sb);		
+
+		return new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);	
 	}
 
 }

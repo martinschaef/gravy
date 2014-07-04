@@ -9,6 +9,7 @@ import java.util.concurrent.TimeoutException;
 import org.gravy.checker.AbstractChecker;
 import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
+import org.gravy.report.Report;
 
 import typechecker.TypeChecker;
 import util.Log;
@@ -78,7 +79,10 @@ public class ProgramAnalysis {
 	}
 	
 	private boolean analyzeProcedure( CfgProcedure p) {
-		Log.info("Checking: " + p.getProcedureName());
+		if (Options.v().getDebugMode()) {
+			Log.info("Checking: " + p.getProcedureName());
+		}
+
 		// create an executor to kill the verification with a timeout if
 		// necessary
 		ExecutorService executor = Executors.newSingleThreadExecutor();		
@@ -134,6 +138,18 @@ public class ProgramAnalysis {
 			// shutdown executor
 			executor.shutdown();
 		}
+		
+		if (Options.v().getDebugMode()) {
+			Report report = detectionThread.getReport();
+			if (timeout) {
+				Log.info("---- timout ----");
+			} else if (report!=null) {
+				Log.info(report.toString());
+			} else {
+				Log.info("No report generated :( ");
+			}
+		}
+		
 
 		if (timeout) {
 			timeouts++;

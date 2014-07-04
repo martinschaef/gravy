@@ -12,6 +12,7 @@ import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
 import org.gravy.report.InfeasibleReport;
+import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
@@ -53,24 +54,11 @@ public class InfeasibleCodeChecker extends
 	}
 
 	
-	@Override
-	public void run() {
-		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();
-		//Prover prover = pf.spawnWithLog("lala");
-		this.prover = pf.spawn();
-		Log.debug("Compute Transition Relation "+this.procedure.getProcedureName());
-		//AbstractTransitionRelation tr = new TransitionRelation(this.procedure, this.cff, prover);
-		CfgTransitionRelation tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
-		checkSat(prover, tr); 
-		shutDownProver();
-	}
-	
-	
 	/* (non-Javadoc)
 	 * @see org.gravy.infeasiblecode.AbstractInfeasibleCodeDetection#checkSat(org.gravy.prover.Prover, org.gravy.verificationcondition.CfgTransitionRelation)
 	 */
 	@Override
-	public void checkSat(Prover prover,
+	public Report checkSat(Prover prover,
 			AbstractTransitionRelation atr) {
 
 		
@@ -105,7 +93,6 @@ public class InfeasibleCodeChecker extends
 		infeasibleBlocks = new HashSet<BasicBlock>(tr.getReachabilityVariables().keySet());
 		infeasibleBlocks.removeAll(feasibleBlocks);
 		
-		new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
-
+		return new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
 	}
 }

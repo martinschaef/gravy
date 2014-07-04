@@ -30,7 +30,7 @@ public class TransitionRelation extends AbstractTransitionRelation {
 
 	
 	public TransitionRelation(CfgProcedure cfg, AbstractControlFlowFactory cff, Prover p) {
-		super(cff, p);
+		super(cfg, cff, p);
 		makePrelude();
 
 		//create the ProverExpr for the precondition 
