@@ -198,7 +198,7 @@ public class AbstractTransitionRelation {
 		// Does not work very well in this version, too many axioms, slows
 		// down everything drastically
 		//
-		// genFullPOConstraints();
+		//genFullPOConstraints();
 
 		// First, translate all prelude axioms
 		// TODO: This could be done more efficiently.
@@ -271,7 +271,7 @@ public class AbstractTransitionRelation {
 		final Prover p = this.prover;
 		final ProverFun po = this.partialOrderOperator;
 
-		for (CfgVariable var : usedPOVariables)
+		for (CfgVariable var : usedPOVariables) {
 			if (var.isConstant() && var.isGlobal()) {
 				// transitively compute all parents
 				final LinkedHashSet<CfgVariable> todo = new LinkedHashSet<CfgVariable>();
@@ -279,11 +279,12 @@ public class AbstractTransitionRelation {
 
 				todo.add(var);
 				while (!todo.isEmpty()) {
-					final CfgVariable v = todo.iterator().next();
+					CfgVariable v = todo.iterator().next();
 					todo.remove(v);
-					if (ancestors.add(v))
-						for (CfgParentEdge edge : var.getParentEdges())
+					if (ancestors.add(v)) {
+						for (CfgParentEdge edge : v.getParentEdges())
 							todo.add(edge.getVaraible());
+					}
 				}
 
 				// add constraints
@@ -291,12 +292,18 @@ public class AbstractTransitionRelation {
 					final ProverExpr pred = po
 							.mkExpr(new ProverExpr[] { createProverVar(var, 0),
 									createProverVar(var2, 0) });
-					if (ancestors.contains(var2))
+					if (ancestors.contains(var2)) {
+						//System.err.println("  "+pred);
 						p.addAssertion(pred);
-					else
+					} else {
+						//System.err.println("  !"+pred);
 						p.addAssertion(p.mkNot(pred));
+					}
 				}
+			} else {
+				throw new RuntimeException ("WTF");
 			}
+		}
 	}
 
 	protected ProverExpr statement2proverExpression(CfgStatement s) {
@@ -508,19 +515,9 @@ public class AbstractTransitionRelation {
 			return this.prover.mkNot(this.prover.mkEq(left, right));
 		} else if (exp.getOperator() == boogie.enums.BinaryOperator.COMPPO) {
 			ProverExpr[] args = { left, right };
-			if (left instanceof CfgIdentifierExpression) {
-				/*
-				 * TODO: @Philipp: in diesen listen sind infos, die du haben
-				 * wolltest. Aber wahrscheinlich musst du ehr in Zeile 187 die
-				 * Axiome erzeugen. Da wird this.partialOrderOperator definiert
-				 * und du ich hab dir ne Schleife ueber alle globals gebaut.
-				 */
-				CfgVariable leftvar = ((CfgIdentifierExpression) left)
-						.getVariable();
-				leftvar.getParentEdges();
-				// ----------------
-			}
-			return this.partialOrderOperator.mkExpr(args);
+			ProverExpr pe = this.partialOrderOperator.mkExpr(args);
+			
+			return pe;
 		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICAND) {
 			return this.prover.mkAnd(left, right);
 		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICIFF) {
@@ -608,7 +605,7 @@ public class AbstractTransitionRelation {
 			this.invertProverVariables.put(newvar, var);
 			this.invertIncarnationMap.put(newvar, incarnation);
 
-			if (var.getParentEdges() != null && var.getParentEdges().size() > 0) {
+			if (var.getParentEdges() != null && var.getParentEdges().size() > 0) {				
 				this.usedPOVariables.add(var);
 			}
 		}

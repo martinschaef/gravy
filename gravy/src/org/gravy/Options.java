@@ -41,7 +41,7 @@ public class Options {
 	}
 	
 	@Option(name = "-t", usage = "Timeout per prover query in ms")
-	private int timeOut = 5000; //after 1 seconds
+	private int timeOut = 20000; //after 10 seconds
 	
 	public int getTimeOut() {
 		return timeOut;

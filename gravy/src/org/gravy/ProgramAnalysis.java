@@ -113,10 +113,10 @@ public class ProgramAnalysis {
 		boolean exception = false;
 
 		try {
-			// start thread and wait xx seconds
+			// start thread and wait xx seconds			
 			future.get(Options.v().getTimeOut(),
 					TimeUnit.MILLISECONDS);
-
+			Log.info("Finished method " + p.getProcedureName());
 		} catch (TimeoutException e) {
 			// set timeout to method info
 			// methodInfo.setTimeout(true);
@@ -139,17 +139,11 @@ public class ProgramAnalysis {
 			executor.shutdown();
 		}
 		
-		if (Options.v().getDebugMode()) {
-			Report report = detectionThread.getReport();
-			if (timeout) {
-				Log.info("---- timout ----");
-			} else if (report!=null) {
-				Log.info(report.toString());
-			} else {
-				Log.info("No report generated :( ");
-			}
-		}
+		Report report = detectionThread.getReport();
 		
+		if (report!=null) {
+			Log.info(report.toString());
+		}
 
 		if (timeout) {
 			timeouts++;

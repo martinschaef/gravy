@@ -17,7 +17,7 @@ public class InfeasibleCodeDetectionTest {
 
 	@Test
 	public void test() {
-		String fname = "regression/infeasible_code/infeasiblecode001.bpl";	
+		String fname = "regression/infeasible_code/terpword.bpl";	
 		
 		long expectedFeasibleBlocks = 56;
 		long expectedInfeasibleBlocks = 4;

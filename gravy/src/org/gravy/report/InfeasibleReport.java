@@ -7,10 +7,12 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.gravy.effectualset.HasseDiagram;
 import org.gravy.effectualset.PartialBlockOrderNode;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
+import boogie.ProgramFactory;
+import boogie.ast.Attribute;
+import boogie.ast.NamedAttribute;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.statement.CfgStatement;
@@ -44,14 +46,15 @@ public class InfeasibleReport extends Report {
 			}
 		}
 
-		sb.append("\nInfeasible Blocks:\n");
+		boolean firstReport = true;
 		for (HashSet<BasicBlock> subprog : infeasibleSubProgs) {
 			//find the first and last line of the infeasible
 			//sub program for reporting
 			int startLine = -1;
 			int endLine = -1;
+			boolean ignoreSubProg = false;
 			
-			for (BasicBlock b : subprog) {
+			for (BasicBlock b : subprog) {				
 				ILocation loc = b.getLocationTag();			
 				if (loc!=null) {
 					if (startLine==-1 || loc.getStartLine()<startLine) {
@@ -63,6 +66,19 @@ public class InfeasibleReport extends Report {
 				}
 				
 				for (CfgStatement s : b.getStatements()) {
+					if (s.getAttributes()!=null) {
+						for (Attribute attr : s.getAttributes()) {
+							if (attr instanceof NamedAttribute) {
+								NamedAttribute na = (NamedAttribute)attr;
+								if (na.getName().equals(ProgramFactory.NoCodeTag)) {
+									ignoreSubProg = true; break;
+								} else if (na.getName().equals(ProgramFactory.LocationTag)) {
+									
+								}
+							}
+						}		
+					}
+					if (ignoreSubProg) break;
 					loc = s.getLocation();
 					if (loc!=null) {
 						if (startLine==-1 || loc.getStartLine()<startLine) {
@@ -72,12 +88,18 @@ public class InfeasibleReport extends Report {
 							endLine = loc.getEndLine();
 						}					
 					}
-				}				
+				}
+				if (ignoreSubProg) break;
 			}
 			
+			if (ignoreSubProg) continue;
+			if (firstReport) {
+				firstReport = false;
+				sb.append("Infeasible Code: ");
+			}
 			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");			
 		}
-		sb.append("\n");
+		if (!firstReport) sb.append("\n");
 		
 	}
 

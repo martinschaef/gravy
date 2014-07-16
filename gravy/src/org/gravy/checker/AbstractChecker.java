@@ -139,7 +139,7 @@ public abstract class AbstractChecker implements Runnable {
 			}	
 		}
 
-		int rounds = 0;
+		
 		int threshold = ineffFlags.size();
 		// hint for the greedy cover algorithm about
 		// how many blocks could be covered in one query.
@@ -163,8 +163,8 @@ public abstract class AbstractChecker implements Runnable {
 			// Query the feasible paths for this setup
 			ProverResult res = prover.checkSat(true);
 
-			Log.debug("Round " + (rounds++));
-			Log.debug("Prover returns " + res.toString());
+			//Log.info("Round " + (rounds++) + " "+this.procedure.getProcedureName());
+			//Log.debug("Prover returns " + res.toString());
 
 			while (res == ProverResult.Sat) {
 				LinkedList<ProverExpr> covered = new LinkedList<ProverExpr>();
@@ -192,8 +192,8 @@ public abstract class AbstractChecker implements Runnable {
 
 				res = prover.checkSat(true);
 
-				Log.debug("Round " + (rounds++));
-				Log.debug("Prover returns " + res.toString());
+//				Log.debug("Round " + (rounds++));
+//				Log.debug("Prover returns " + res.toString());
 			}
 
 			prover.pop();
