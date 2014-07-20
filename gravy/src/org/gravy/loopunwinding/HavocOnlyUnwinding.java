@@ -30,6 +30,7 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 	public HavocOnlyUnwinding(CfgProcedure proc) {
 		super(proc);
 		this.proc = proc;
+		this.maxUnwinding=1;
 	}
 
 	@Override
@@ -38,8 +39,7 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 		LoopDetection detection = new LoopDetection();
 		List<LoopInfo> loops = detection.computeLoops(root);
 
-		for (LoopInfo loop : loops) {
-			Log.debug(loop);
+		for (LoopInfo loop : loops) {			
 			havocLoop(loop);
 		}
 	}
@@ -52,15 +52,19 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 
 		loop.loopHead.addStatement(computeHavocStatement(loop), true);
 		
-		disconnectLoopingControlFlow(loop);
+		for (BasicBlock b : loop.loopExit) {
+			b.addStatement(computeHavocStatement(loop), true);
+		}
+		
+		//disconnectLoopingControlFlow(loop);
 		
 		if (loop.loopExit.size()==0) {
 			Log.error("Loop has no exit! LoopHead "+loop.loopHead.getLabel());
 		}
 		
-		for (BasicBlock b : loop.loopExit) {
-			b.addStatement(computeHavocStatement(loop), true);
-		}
+		unwind(loop,this.maxUnwinding);
+		//eliminate(loop);
+		
 	}
 	
 	private void disconnectLoopingControlFlow(LoopInfo l) {

@@ -33,21 +33,14 @@ public class InfeasibleReport extends Report {
 			AbstractTransitionRelation tr, Set<BasicBlock> feasibleBlocks,
 			Set<BasicBlock> infeasibleBlocks) {
 		
-		//collect all partial order nodes
-		HashSet<PartialBlockOrderNode> allNodes = new HashSet<PartialBlockOrderNode>();
-		for (BasicBlock b : infeasibleBlocks) {
-			allNodes.add(tr.getHasseDiagram().findNode(b));			
-		}
-		//remove those whose parents are also in the set.
-		LinkedList<HashSet<BasicBlock>> infeasibleSubProgs = new LinkedList<HashSet<BasicBlock>>();
-		for (PartialBlockOrderNode n : allNodes) {
-			if (!parentInSet(n, allNodes)) {
-				infeasibleSubProgs.add(findPOChildBlocks(n));
-			}
-		}
-
+		LinkedList<HashSet<BasicBlock>> infeasibleSubProgs = findInfeasibleSubprogs(infeasibleBlocks);
+		
 		boolean firstReport = true;
+		int i=0;
 		for (HashSet<BasicBlock> subprog : infeasibleSubProgs) {
+			
+			System.err.println("Subprog "+(i++));
+			for (BasicBlock b : subprog) System.err.println("\t"+b.getLabel());
 			//find the first and last line of the infeasible
 			//sub program for reporting
 			int startLine = -1;
@@ -70,7 +63,7 @@ public class InfeasibleReport extends Report {
 						for (Attribute attr : s.getAttributes()) {
 							if (attr instanceof NamedAttribute) {
 								NamedAttribute na = (NamedAttribute)attr;
-								if (na.getName().equals(ProgramFactory.NoCodeTag)) {
+								if (na.getName().equals(ProgramFactory.NoCodeTag)) {									
 									ignoreSubProg = true; break;
 								} else if (na.getName().equals(ProgramFactory.LocationTag)) {
 									
@@ -92,45 +85,48 @@ public class InfeasibleReport extends Report {
 				if (ignoreSubProg) break;
 			}
 			
-			if (ignoreSubProg) continue;
+			if (ignoreSubProg) continue;			
 			if (firstReport) {
 				firstReport = false;
-				sb.append("Infeasible Code: ");
+				sb.append("\nInfeasible Code:\n");
 			}
-			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");			
+			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");
+			System.err.println("is infeasible");
 		}
 		if (!firstReport) sb.append("\n");
 		
 	}
 
-	private HashSet<BasicBlock> findPOChildBlocks(PartialBlockOrderNode n) {
-		HashSet<BasicBlock> res = new HashSet<BasicBlock>();
-		LinkedList<PartialBlockOrderNode> todo = new LinkedList<PartialBlockOrderNode>();
-		LinkedList<PartialBlockOrderNode> done = new LinkedList<PartialBlockOrderNode>();
-		todo.add(n);
-		while (!todo.isEmpty()) {
-			PartialBlockOrderNode current = todo.pop();
-			done.add(current);
-			res.addAll(current.getElements());
-			for (PartialBlockOrderNode s : current.getSuccessors()) {
-				if (!todo.contains(s) && !done.contains(s)) {
-					todo.add(s);
+	private LinkedList<HashSet<BasicBlock>> findInfeasibleSubprogs(Set<BasicBlock> infeasibleBlocks) {
+		LinkedList<HashSet<BasicBlock>> res = new LinkedList<HashSet<BasicBlock>>();
+		LinkedList<BasicBlock> allblocks = new LinkedList<BasicBlock>();
+		allblocks.addAll(infeasibleBlocks);
+		while (!allblocks.isEmpty()) {
+			HashSet<BasicBlock> subprog = new HashSet<BasicBlock>();
+			LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+			todo.add(allblocks.pop());
+			while (!todo.isEmpty()) {
+				BasicBlock current = todo.pop();
+				allblocks.remove(current);
+				subprog.add(current);	
+				for (BasicBlock b : current.getPredecessors()) {
+					if (!subprog.contains(b) && !todo.contains(b) && allblocks.contains(b)) {
+						todo.add(b);
+					}
 				}
+				for (BasicBlock b : current.getSuccessors()) {
+					if (!subprog.contains(b) && !todo.contains(b) && allblocks.contains(b)) {
+						todo.add(b);
+					}
+				}				
+			}		
+			if (subprog.size()>0) {
+				res.add(subprog);
 			}
 		}
 		return res;
 	}
 	
-	private boolean parentInSet(PartialBlockOrderNode n, HashSet<PartialBlockOrderNode> allNodes) {
-		if (n.getParent()==null) {
-			return false;	
-		}
-		if (allNodes.contains(n.getParent())) {
-			return true;
-		} else {
-			return parentInSet(n.getParent(), allNodes);
-		}
-	}
 
 	@Override 
 	public String toString() {

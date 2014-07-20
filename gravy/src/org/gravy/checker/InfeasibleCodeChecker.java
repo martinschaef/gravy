@@ -10,14 +10,12 @@ import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
-import org.gravy.prover.ProverFactory;
 import org.gravy.report.InfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
 
-import util.Log;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
@@ -51,6 +49,9 @@ public class InfeasibleCodeChecker extends
 		ssa.recomputeSSA(p);
 
 		p.pruneUnreachableBlocks();
+		
+		p.toDot("./"+p.getProcedureName()+".dot");
+		p.toFile("./"+p.getProcedureName()+".bpl");
 	}
 
 	
@@ -95,4 +96,6 @@ public class InfeasibleCodeChecker extends
 		
 		return new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
 	}
+		
+	
 }
