@@ -12,25 +12,16 @@ const unique $alloc : Field bool;
 const { :SourceLocation "Object.java",-1,-1,-1,-1 } unique java.lang.Object : javaType extends  complete;
 const { :SourceLocation "SimpleThreads.java",-1,-1,-1,-1 } unique SimpleThreads : javaType extends  unique java.lang.Object complete;
 const { :SourceLocation "Serializable.java",-1,-1,-1,-1 } unique java.io.Serializable : javaType extends  unique java.lang.Object complete;
-const { :SourceLocation "Throwable.java",-1,-1,-1,-1 } unique java.lang.Throwable : javaType extends  unique java.lang.Object, unique java.io.Serializable complete;
+const { :SourceLocation "Throwable.java",-1,-1,-1,-1 } unique java.lang.Throwable : javaType extends  unique java.io.Serializable, unique java.lang.Object complete;
 const { :SourceLocation "Exception.java",-1,-1,-1,-1 } unique java.lang.Exception : javaType extends  unique java.lang.Throwable complete;
 const { :SourceLocation "RuntimeException.java",-1,-1,-1,-1 } unique java.lang.RuntimeException : javaType extends  unique java.lang.Exception complete;
 const { :SourceLocation "NullPointerException.java",-1,-1,-1,-1 } unique java.lang.NullPointerException : javaType extends  unique java.lang.RuntimeException complete;
 const { :SourceLocation "Iterable.java",-1,-1,-1,-1 } unique java.lang.Iterable : javaType extends  unique java.lang.Object complete;
 const { :SourceLocation "Iterator.java",-1,-1,-1,-1 } unique java.util.Iterator : javaType extends  unique java.lang.Object complete;
-const { :SourceLocation "Number.java",-1,-1,-1,-1 } unique java.lang.Number : javaType extends  unique java.lang.Object, unique java.io.Serializable complete;
+const { :SourceLocation "Number.java",-1,-1,-1,-1 } unique java.lang.Number : javaType extends  unique java.io.Serializable, unique java.lang.Object complete;
 const { :SourceLocation "Comparable.java",-1,-1,-1,-1 } unique java.lang.Comparable : javaType extends  unique java.lang.Object complete;
-const { :SourceLocation "Integer.java",-1,-1,-1,-1 } unique java.lang.Integer : javaType extends  unique java.lang.Number, unique java.lang.Comparable complete;
+const { :SourceLocation "Integer.java",-1,-1,-1,-1 } unique java.lang.Integer : javaType extends  unique java.lang.Comparable, unique java.lang.Number complete;
 const { :SourceLocation "ClassCastException.java",-1,-1,-1,-1 } unique java.lang.ClassCastException : javaType extends  unique java.lang.RuntimeException complete;
-const { :SourceLocation "CharSequence.java",-1,-1,-1,-1 } unique java.lang.CharSequence : javaType extends  unique java.lang.Object complete;
-const { :SourceLocation "String.java",-1,-1,-1,-1 } unique java.lang.String : javaType extends  unique java.lang.Object, unique java.io.Serializable, unique java.lang.Comparable, unique java.lang.CharSequence complete;
-const { :SourceLocation "AutoCloseable.java",-1,-1,-1,-1 } unique java.lang.AutoCloseable : javaType extends  unique java.lang.Object complete;
-const { :SourceLocation "Closeable.java",-1,-1,-1,-1 } unique java.io.Closeable : javaType extends  unique java.lang.Object, unique java.lang.AutoCloseable complete;
-const { :SourceLocation "Flushable.java",-1,-1,-1,-1 } unique java.io.Flushable : javaType extends  unique java.lang.Object complete;
-const { :SourceLocation "OutputStream.java",-1,-1,-1,-1 } unique java.io.OutputStream : javaType extends  unique java.lang.Object, unique java.io.Flushable, unique java.io.Closeable complete;
-const { :SourceLocation "FilterOutputStream.java",-1,-1,-1,-1 } unique java.io.FilterOutputStream : javaType extends  unique java.io.OutputStream complete;
-const { :SourceLocation "Appendable.java",-1,-1,-1,-1 } unique java.lang.Appendable : javaType extends  unique java.lang.Object complete;
-const { :SourceLocation "PrintStream.java",-1,-1,-1,-1 } unique java.io.PrintStream : javaType extends  unique java.io.Closeable, unique java.io.FilterOutputStream, unique java.lang.Appendable complete;
 var $heap : $heap_type;
 var $intArrayType : javaType;
 var $charArrayType : javaType;
@@ -45,7 +36,6 @@ var $realArrHeap : realArrHeap_type;
 var $intArrHeap : intArrHeap_type;
 var int$SimpleThreads$SIZE0 : int;
 var java.util.List$SimpleThreads$list234 : Field ref;
-var java.io.PrintStream$java.lang.System$err237 : ref;
 function $arrayType(t:javaType) returns ($ret:javaType);
 function $intToReal(x:int) returns ($ret:real);
 function $intToBool(x:int) returns ($ret:bool) { (if x == 0 then false else true) }
@@ -61,9 +51,10 @@ function $xorInt(x:int, y:int) returns ($ret:int);
 function $shlInt(x:int, y:int) returns ($ret:int);
 function $ushrInt(x:int, y:int) returns ($ret:int);
 function $shrInt(x:int, y:int) returns ($ret:int);
-procedure java.lang.Object$java.lang.Object$clone$43($this:ref) returns ($other:ref);
+procedure java.lang.Object$java.lang.Object$clone$43($this:ref) returns ($other:ref)  ;
 
-procedure int$java.lang.String$compareTo$87($this:ref, $other:ref) returns ($return:int);    ensures ($this == $other ==> $return == 1) && ($this != $other ==> $return == 0);    
+
+procedure int$java.lang.String$compareTo$87($this:ref, $other:ref) returns ($return:int);        ensures ($this == $other ==> $return == 1) && ($this != $other ==> $return == 0);
 
 procedure void$SimpleThreads$$la$clinit$ra$$1889() returns ($exception:ref);    modifies int$SimpleThreads$SIZE0;
 
@@ -75,38 +66,31 @@ procedure boolean$java.util.Iterator$hasNext$1051($this:ref) returns ($return:in
 
 procedure java.lang.Object$java.util.Iterator$next$1052($this:ref) returns ($return:ref, $exception:ref);    
 
-procedure java.lang.String$java.lang.Integer$toString$979($this:ref) returns ($return:ref, $exception:ref);    
-
-procedure java.lang.String$java.lang.Throwable$toString$20($this:ref) returns ($return:ref, $exception:ref);    
-
-procedure void$java.io.PrintStream$println$217($this:ref, $in_parameter__0:ref) returns ($exception:ref);    
+procedure void$java.lang.Throwable$printStackTrace$21($this:ref) returns ($exception:ref);    
 
 procedure void$SimpleThreads$$la$init$ra$$1891($this:ref) returns ($exception:ref);    
 
 procedure void$java.lang.Object$$la$init$ra$$38($this:ref) returns ($exception:ref);    
 
 
+
 implementation void$SimpleThreads$main$1890($this:ref, $in_parameter__0:ref) returns ($exception:ref){
     
-var $fakelocal_3 : ref;    
-var temp$512 : ref;    
-var $fakelocal_2 : ref;    
-var temp$613 : ref;    
+var $ex_return : bool;    
 var $fakelocal_4 : ref;    
-var this2 : ref;    
-var temp$28 : int;    
-var $fakelocal_5 : ref;    
-var temp$05 : ref;    
-var args3 : ref;    
-var temp$16 : ref;    
-var out4 : ref;    
-var temp$410 : ref;    
-var x7 : ref;    
+var $fakelocal_3 : ref;    
 var temp$39 : ref;    
-var e11 : ref;    
-var $fakelocal_0 : ref;    
+var $fakelocal_2 : ref;    
 var $fakelocal_1 : ref;    
-var $ex_return : bool;
+var e10 : ref;    
+var x7 : ref;    
+var args3 : ref;    
+var out4 : ref;    
+var this2 : ref;    
+var $fakelocal_0 : ref;    
+var temp$28 : int;    
+var temp$05 : ref;    
+var temp$16 : ref;
     assume $this != $null;
     $ex_return := false;
     this2 := $this;
@@ -191,38 +175,17 @@ var $ex_return : bool;
         goto block2;
     }
     x7 := temp$39;
-    if (x7 != $null) {
-        assert { :SourceLocation "SimpleThreads.java",53,53,11,23 } true;
-    } else {
-        assert { :NoCode } true;
-        havoc $fakelocal_5;
-        assume !$heap[$fakelocal_5,$alloc];
-        $heap := $heap[$fakelocal_5,$alloc := true];
-        assume $fakelocal_5 != $null;
-        $heap := $heap[$fakelocal_5,$type := java.lang.NullPointerException];
-        $exception := $fakelocal_5;
-        goto block2;
-    }
-    call temp$410, $exception := java.lang.String$java.lang.Integer$toString$979(x7);
-    if ($exception != $null && $heap[$exception,$type] <: java.lang.Exception) {
-        goto block2;
-    }
     goto block3;
   block4:
     goto block5;
   block2:
     assert { :SourceLocation "SimpleThreads.java",55,57,5,3 } $exception != $null;
-    assume { :NoCode } $heap[$exception,$type] <: java.lang.Throwable;
-    e11 := $exception;
-    temp$512 := java.io.PrintStream$java.lang.System$err237;
-    assert { :SourceLocation "SimpleThreads.java",56,56,4,36 } e11 != $null;
-    call temp$613, $exception := java.lang.String$java.lang.Throwable$toString$20(e11);
-    assert { :SourceLocation "SimpleThreads.java",56,56,4,36 } temp$512 != $null;
-    call $exception := void$java.io.PrintStream$println$217(temp$512, temp$613);
+    assume $heap[$exception,$type] <: java.lang.Throwable;
+    e10 := $exception;
+    assert { :SourceLocation "SimpleThreads.java",56,56,4,23 } e10 != $null;
+    call $exception := void$java.lang.Throwable$printStackTrace$21(e10);
     goto block5;
   block5:
     return;
 }
-
-
 
