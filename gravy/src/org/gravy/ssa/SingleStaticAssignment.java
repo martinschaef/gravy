@@ -322,7 +322,8 @@ public class SingleStaticAssignment {
 			recomputLocalSSA(ite.getThenExpression(), offset);
 			recomputLocalSSA(ite.getElseExpression(), offset);
 		} else if (exp instanceof CfgQuantifierExpression) {
-			CfgQuantifierExpression qe = (CfgQuantifierExpression) exp;
+			//CfgQuantifierExpression qe = (CfgQuantifierExpression) exp;
+			throw new RuntimeException("Not implemented");
 			// TODO
 		} else if (exp instanceof CfgUnaryExpression) {
 			CfgUnaryExpression uexp = (CfgUnaryExpression) exp;

@@ -50,8 +50,8 @@ public class InfeasibleCodeChecker extends
 
 		p.pruneUnreachableBlocks();
 		
-		p.toDot("./"+p.getProcedureName()+".dot");
-		p.toFile("./"+p.getProcedureName()+".bpl");
+//		p.toDot("./"+p.getProcedureName()+".dot");
+//		p.toFile("./"+p.getProcedureName()+".bpl");
 	}
 
 	

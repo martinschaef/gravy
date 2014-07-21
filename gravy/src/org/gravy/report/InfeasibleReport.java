@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.gravy.effectualset.PartialBlockOrderNode;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
 import boogie.ProgramFactory;
@@ -36,11 +35,11 @@ public class InfeasibleReport extends Report {
 		LinkedList<HashSet<BasicBlock>> infeasibleSubProgs = findInfeasibleSubprogs(infeasibleBlocks);
 		
 		boolean firstReport = true;
-		int i=0;
+//		int i=0;
 		for (HashSet<BasicBlock> subprog : infeasibleSubProgs) {
 			
-			System.err.println("Subprog "+(i++));
-			for (BasicBlock b : subprog) System.err.println("\t"+b.getLabel());
+//			System.err.println("Subprog "+(i++));
+//			for (BasicBlock b : subprog) System.err.println("\t"+b.getLabel());
 			//find the first and last line of the infeasible
 			//sub program for reporting
 			int startLine = -1;
@@ -91,7 +90,7 @@ public class InfeasibleReport extends Report {
 				sb.append("\nInfeasible Code:\n");
 			}
 			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");
-			System.err.println("is infeasible");
+//			System.err.println("is infeasible");
 		}
 		if (!firstReport) sb.append("\n");
 		

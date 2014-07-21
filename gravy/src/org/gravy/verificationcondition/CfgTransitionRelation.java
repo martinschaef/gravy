@@ -3,11 +3,7 @@ package org.gravy.verificationcondition;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
-import java.util.Map.Entry;
-import java.util.Set;
-import java.util.SortedMap;
 
-import org.gravy.effectualset.HasseDiagram;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.princess.PrincessProver;
@@ -19,7 +15,6 @@ import ap.parser.IFormula;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
-import boogie.controlflow.CfgVariable;
 import boogie.controlflow.expression.CfgExpression;
 
 /**

@@ -28,7 +28,7 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 	public HavocOnlyUnwinding(CfgProcedure proc) {
 		super(proc);
 		this.proc = proc;
-		this.maxUnwinding=1;
+		this.maxUnwinding=0;
 		this.dontVerifyClones=true;
 	}
 

@@ -137,10 +137,10 @@ public abstract class AbstractLoopUnwinding {
 		}
 
 		if (isDoWhile) {
-			System.err.println("Do-While Loop found");
+//			System.err.println("Do-While Loop found");
 			eliminateDoWhileLoop(loop);
 		} else {
-			System.err.println("Normal While Loop found");
+//			System.err.println("Normal While Loop found");
 			eliminateWhileDoLoop(loop);
 		}
 	}
