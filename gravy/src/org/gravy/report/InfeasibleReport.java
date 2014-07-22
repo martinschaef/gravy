@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
+import org.gravy.Options;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
 import boogie.ProgramFactory;
@@ -15,6 +16,7 @@ import boogie.ast.NamedAttribute;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.statement.CfgStatement;
+import boogie.expression.Expression;
 import boogie.location.ILocation;
 
 /**
@@ -34,6 +36,14 @@ public class InfeasibleReport extends Report {
 		
 		LinkedList<HashSet<BasicBlock>> infeasibleSubProgs = findInfeasibleSubprogs(infeasibleBlocks);
 		
+		if (Options.v().getJavaReport()) {
+			buildJavaErrorString(infeasibleSubProgs);
+		} else {
+			buildBoogieErrorString(infeasibleSubProgs);
+		}
+	}
+	
+	private void buildBoogieErrorString(LinkedList<HashSet<BasicBlock>> infeasibleSubProgs) {
 		boolean firstReport = true;
 //		int i=0;
 		for (HashSet<BasicBlock> subprog : infeasibleSubProgs) {
@@ -92,10 +102,78 @@ public class InfeasibleReport extends Report {
 			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");
 //			System.err.println("is infeasible");
 		}
-		if (!firstReport) sb.append("\n");
-		
+		if (!firstReport) sb.append("\n");		
 	}
 
+	
+	
+	private void buildJavaErrorString(LinkedList<HashSet<BasicBlock>> infeasibleSubProgs) {
+		boolean firstReport = true;
+//		int i=0;
+		for (HashSet<BasicBlock> subprog : infeasibleSubProgs) {
+			
+//			System.err.println("Subprog "+(i++));
+//			for (BasicBlock b : subprog) System.err.println("\t"+b.getLabel());
+			//find the first and last line of the infeasible
+			//sub program for reporting
+			int startLine = -1;
+			int endLine = -1;
+			String filename="";
+			boolean ignoreSubProg = false;
+			
+			for (BasicBlock b : subprog) {				
+				
+				for (CfgStatement s : b.getStatements()) {
+					if (s.getAttributes()!=null) {
+						for (Attribute attr : s.getAttributes()) {
+							if (attr instanceof NamedAttribute) {
+								NamedAttribute na = (NamedAttribute)attr;
+								if (na.getName().equals(ProgramFactory.NoCodeTag)) {									
+									ignoreSubProg = true; break;
+								} else if (na.getName().equals(ProgramFactory.LocationTag)
+										&& na.getValues().length>=3) {
+
+									filename = na.getValues()[0].toString();
+									try {
+										int start_line = Integer.getInteger(na.getValues()[1].toString());
+										int end_line = Integer.getInteger(na.getValues()[2].toString());
+										if (startLine==-1 || start_line<startLine) {
+											startLine = start_line;
+										}
+										if (endLine==-1 || end_line>endLine) {
+											endLine = end_line;
+										}	
+									} catch (NullPointerException e) {
+										//
+									}
+									
+								}
+							}
+						}		
+					}
+					if (ignoreSubProg) break;
+				}
+				if (ignoreSubProg) break;
+			}
+			
+			if (ignoreSubProg) continue;
+			if (filename=="" || startLine==-1 || endLine==-1) {
+				//if there is no code location, then we have nothing to report.
+				continue;
+			}
+			if (firstReport) {
+				firstReport = false;
+				sb.append("\nInfeasible Code:\n");
+			}
+			sb.append("in file: "+filename);
+			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");
+//			System.err.println("is infeasible");
+		}
+		if (!firstReport) sb.append("\n");		
+	}
+	
+	
+	
 	private LinkedList<HashSet<BasicBlock>> findInfeasibleSubprogs(Set<BasicBlock> infeasibleBlocks) {
 		LinkedList<HashSet<BasicBlock>> res = new LinkedList<HashSet<BasicBlock>>();
 		LinkedList<BasicBlock> allblocks = new LinkedList<BasicBlock>();

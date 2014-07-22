@@ -39,7 +39,6 @@ public class InfeasibleCodeChecker extends
 
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
-
 		
 		AbstractLoopUnwinding.unwindeLoops(p);
 

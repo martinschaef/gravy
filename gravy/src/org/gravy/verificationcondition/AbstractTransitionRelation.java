@@ -8,6 +8,7 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 import java.util.LinkedHashSet;
 import java.util.LinkedList;
+import java.util.List;
 import java.util.Set;
 import java.util.SortedMap;
 import java.util.TreeMap;
@@ -306,6 +307,26 @@ public class AbstractTransitionRelation {
 		}
 	}
 
+	protected List<ProverExpr> statements2proverExpression(List<CfgStatement> stmts) {
+		LinkedList<ProverExpr> res = new LinkedList<ProverExpr>(); 
+		for (CfgStatement s : stmts) {
+			if (s instanceof CfgAssumeStatement 
+					&& ((CfgAssumeStatement)s).getCondition() instanceof CfgBooleanLiteral 
+					&& ((CfgBooleanLiteral)((CfgAssumeStatement)s).getCondition()).getValue()==true) {
+				//do nothing
+				continue;
+			}
+			if (s instanceof CfgAssertStatement 
+					&& ((CfgAssertStatement)s).getCondition() instanceof CfgBooleanLiteral 
+					&& ((CfgBooleanLiteral)((CfgAssertStatement)s).getCondition()).getValue()==true) {
+				//do nothing
+				continue;
+			}
+			res.add(statement2proverExpression(s));
+		}
+		return res;
+	}
+	
 	protected ProverExpr statement2proverExpression(CfgStatement s) {
 		if (s instanceof CfgAssertStatement) {
 			CfgAssertStatement assrt = (CfgAssertStatement) s;

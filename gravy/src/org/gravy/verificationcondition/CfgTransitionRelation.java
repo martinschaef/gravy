@@ -98,11 +98,9 @@ public class CfgTransitionRelation extends AbstractTransitionRelation {
 			}
 			post = this.prover.mkOr(succs);
 		}
-		ProverExpr[] conj = new ProverExpr[b.getStatements().size() + 1];
-		for (int i = 0; i < b.getStatements().size(); i++) {
-			conj[i] = statement2proverExpression(b.getStatements().get(i));
-		}
-		conj[b.getStatements().size()] = post;
+		List<ProverExpr> stmts = statements2proverExpression(b.getStatements());
+		stmts.add(post);
+		ProverExpr[] conj = stmts.toArray(new ProverExpr[stmts.size()]);		
 
 		ProverExpr blockvar = this.prover.mkVariable(b.getLabel() + "_fwd",
 				this.prover.getBooleanType());

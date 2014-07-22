@@ -66,14 +66,19 @@ public class Options {
 	}
 	
 	
-	/**
-	 * Boogie input file
-	 */
 	@Option(name = "-debug", usage = "Print Debug output and files")
 	private boolean debugMode = false;	
 	public boolean getDebugMode() {
 		return debugMode;
 	}
+
+	@Option(name = "-java_report", usage = "Reoprt only infeasible code for which Java locations are available")
+	private boolean java_report = false;	
+	public boolean getJavaReport() {
+		return java_report;
+	}
+	
+	
 	
 	/**
 	 * Option object
