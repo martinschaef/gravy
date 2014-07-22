@@ -16,7 +16,8 @@ import boogie.ast.NamedAttribute;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.statement.CfgStatement;
-import boogie.expression.Expression;
+import boogie.expression.literal.IntegerLiteral;
+import boogie.expression.literal.StringLiteral;
 import boogie.location.ILocation;
 
 /**
@@ -131,12 +132,14 @@ public class InfeasibleReport extends Report {
 								if (na.getName().equals(ProgramFactory.NoCodeTag)) {									
 									ignoreSubProg = true; break;
 								} else if (na.getName().equals(ProgramFactory.LocationTag)
-										&& na.getValues().length>=3) {
-
-									filename = na.getValues()[0].toString();
+										&& na.getValues().length>=3) {									
 									try {
-										int start_line = Integer.getInteger(na.getValues()[1].toString());
-										int end_line = Integer.getInteger(na.getValues()[2].toString());
+										filename = ((StringLiteral)na.getValues()[0]).getValue();
+//										System.err.println("Line numbers");
+//										System.err.println(((IntegerLiteral)na.getValues()[1]).getValue());
+//										System.err.println(((IntegerLiteral)na.getValues()[2]).getValue());
+										int start_line = Integer.parseInt(((IntegerLiteral)na.getValues()[1]).getValue());
+										int end_line = Integer.parseInt(((IntegerLiteral)na.getValues()[2]).getValue());
 										if (startLine==-1 || start_line<startLine) {
 											startLine = start_line;
 										}
@@ -145,6 +148,7 @@ public class InfeasibleReport extends Report {
 										}	
 									} catch (NullPointerException e) {
 										//
+										e.printStackTrace();
 									}
 									
 								}
@@ -157,6 +161,7 @@ public class InfeasibleReport extends Report {
 			}
 			
 			if (ignoreSubProg) continue;
+			
 			if (filename=="" || startLine==-1 || endLine==-1) {
 				//if there is no code location, then we have nothing to report.
 				continue;
@@ -167,7 +172,6 @@ public class InfeasibleReport extends Report {
 			}
 			sb.append("in file: "+filename);
 			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");
-//			System.err.println("is infeasible");
 		}
 		if (!firstReport) sb.append("\n");		
 	}

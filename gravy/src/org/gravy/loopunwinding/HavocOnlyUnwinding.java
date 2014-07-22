@@ -3,6 +3,8 @@ package org.gravy.loopunwinding;
 import java.util.HashSet;
 import java.util.List;
 
+import org.gravy.Options;
+
 import util.Log;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
@@ -55,7 +57,7 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 			b.addStatement(computeHavocStatement(loop), true);
 		}
 		
-		if (loop.loopExit.size()==0) {
+		if (loop.loopExit.size()==0 && Options.v().getDebugMode()) {
 			Log.error("Loop has no exit! LoopHead "+loop.loopHead.getLabel());
 		}
 		
