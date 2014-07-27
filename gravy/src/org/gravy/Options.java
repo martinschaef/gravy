@@ -97,6 +97,11 @@ public class Options {
 		return options;
 	}
 
+	public static void resetInstance() {
+		options = null;		
+	}
+	
+	
 	/**
 	 * C-tor
 	 */

@@ -20,6 +20,10 @@ public class GlobalsCache {
 		return instance;
 	}
 	
+	public static void resetInstance() {
+		instance = null;		
+	}
+	
 	private GlobalsCache() {
 		
 	}

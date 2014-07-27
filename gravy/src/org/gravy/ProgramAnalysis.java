@@ -24,44 +24,42 @@ import boogie.controlflow.DefaultControlFlowFactory;
  */
 public class ProgramAnalysis {
 	
-	private ProgramFactory pf;
-	private AbstractControlFlowFactory cff = null;
-
-	private long timeouts = 0;
+	private static long timeouts = 0;
 	
-	public long feasibleBlocks, infeasibleBlocks, infeasibleBlocksUnderPost;
-	
-	
-	public ProgramAnalysis(String boogieFileName) throws Exception {
+	public static long feasibleBlocks, infeasibleBlocks, infeasibleBlocksUnderPost;
+		
+	public static void runProgramAnalysis(String boogieFileName) throws Exception {
 		ProgramFactory pf;
 		try {
 			pf = new ProgramFactory(boogieFileName);
-			Log.info("Parsed "+ boogieFileName + ": "+ (pf.getASTRoot()!=null));		
-			this.pf = pf;
+			Log.info("Parsed "+ boogieFileName + ": "+ (pf.getASTRoot()!=null));					
 			GlobalsCache.v().setProgramFactory(pf);
+			runFullProgramAnalysis(pf);			
 		} catch (Exception e) {
 			throw e;
-		}			
+		} finally {
+			GlobalsCache.resetInstance();
+			Options.resetInstance();
+		}
 	}
 	
-	
-	public void runFullProgramAnalysis() {		
+	private static void runFullProgramAnalysis(ProgramFactory pf) {		
 		
 		feasibleBlocks=0;
 		infeasibleBlocks=0;
 		infeasibleBlocksUnderPost=0;
 		
 		TypeChecker tc = new TypeChecker(pf.getASTRoot());
-		this.cff = new DefaultControlFlowFactory(pf.getASTRoot(), tc);
+		DefaultControlFlowFactory cff = new DefaultControlFlowFactory(pf.getASTRoot(), tc);
 
 		if (Options.v().getDebugMode()) {
-			this.cff.toFile("unstructured.bpl");
+			cff.toFile("unstructured.bpl");
 		}
 
-		for (CfgProcedure p : this.cff.getProcedureCFGs()) {
+		for (CfgProcedure p : cff.getProcedureCFGs()) {
 			if (p.getRootNode()==null) continue;
 			try {
-				if (!analyzeProcedure(p)) break;
+				if (!analyzeProcedure(p, cff)) break;
 			} catch (Exception e) {
 				e.printStackTrace();
 				break;
@@ -70,15 +68,15 @@ public class ProgramAnalysis {
 
 		if (Options.v().getDebugMode()) {
 			//after analyzing each procedure, they all are in ssa form.
-			this.cff.toFile("passive.bpl");
+			cff.toFile("passive.bpl");
 		}
 
 		Log.info("Total Timeouts after " + Options.v().getTimeOut()
-				+ "ms: " + this.timeouts);
+				+ "ms: " + timeouts);
 				
 	}
 	
-	private boolean analyzeProcedure( CfgProcedure p) {
+	private static boolean analyzeProcedure(CfgProcedure p, AbstractControlFlowFactory cff) {
 		if (Options.v().getDebugMode()) {
 			Log.info("Checking: " + p.getProcedureName());
 		}

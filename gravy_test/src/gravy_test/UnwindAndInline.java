@@ -25,18 +25,17 @@ public class UnwindAndInline {
 		//set the checker to GradualVerification (default)
 		Options.v().setChecker(1);
 		
-		try {
-			ProgramAnalysis pa = new ProgramAnalysis(fname);
-			pa.runFullProgramAnalysis();
+		try {			
+			ProgramAnalysis.runProgramAnalysis(fname);
 			
-			if (pa.feasibleBlocks!=expectedFeasibleBlocks 
-					|| pa.infeasibleBlocks!=expectedInfeasibleBlocks 
-					|| pa.infeasibleBlocksUnderPost != expectedInfeasibleBlocksUnderPost) {
+			if (ProgramAnalysis.feasibleBlocks!=expectedFeasibleBlocks 
+					|| ProgramAnalysis.infeasibleBlocks!=expectedInfeasibleBlocks 
+					|| ProgramAnalysis.infeasibleBlocksUnderPost != expectedInfeasibleBlocksUnderPost) {
 				StringBuilder sb = new StringBuilder();
 				sb.append("Analysis failed:\nExpected Result:\n");
-				sb.append("Feasible Blocks "+pa.feasibleBlocks+"\t but epxected \t"+expectedFeasibleBlocks+"\n");
-				sb.append("Infeasible Blocks "+pa.infeasibleBlocks+"\t but epxected \t"+expectedInfeasibleBlocks+"\n");
-				sb.append("Infeasible Blocks under Postcondition "+pa.infeasibleBlocksUnderPost+"\t but epxected \t"+expectedInfeasibleBlocksUnderPost+"\n");
+				sb.append("Feasible Blocks "+ProgramAnalysis.feasibleBlocks+"\t but epxected \t"+expectedFeasibleBlocks+"\n");
+				sb.append("Infeasible Blocks "+ProgramAnalysis.infeasibleBlocks+"\t but epxected \t"+expectedInfeasibleBlocks+"\n");
+				sb.append("Infeasible Blocks under Postcondition "+ProgramAnalysis.infeasibleBlocksUnderPost+"\t but epxected \t"+expectedInfeasibleBlocksUnderPost+"\n");
 				fail(sb.toString());
 			}
 			

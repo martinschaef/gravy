@@ -13,11 +13,11 @@ import org.junit.Test;
  * @author schaef
  *
  */
-public class InfeasibleCodeDetectionTest {
+public class SmackInfeasibleTest {
 
 	@Test
 	public void test() {
-		String fname = "regression/infeasible_code/terpword.bpl";	
+		String fname = "regression/smack_infeasible/cdaudio_true.i.cil.bpl";		
 		
 		long expectedFeasibleBlocks = 56;
 		long expectedInfeasibleBlocks = 4;
@@ -28,6 +28,7 @@ public class InfeasibleCodeDetectionTest {
 		try {
 			
 			ProgramAnalysis.runProgramAnalysis(fname);
+			
 			if (ProgramAnalysis.feasibleBlocks!=expectedFeasibleBlocks 
 					|| ProgramAnalysis.infeasibleBlocks!=expectedInfeasibleBlocks 
 					|| ProgramAnalysis.infeasibleBlocksUnderPost != expectedInfeasibleBlocksUnderPost) {
