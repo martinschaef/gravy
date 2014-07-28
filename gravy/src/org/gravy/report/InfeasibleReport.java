@@ -38,7 +38,7 @@ public class InfeasibleReport extends Report {
 		LinkedList<HashSet<BasicBlock>> infeasibleSubProgs = findInfeasibleSubprogs(infeasibleBlocks);
 		
 		if (Options.v().getJavaReport()) {
-			buildJavaErrorString(infeasibleSubProgs);
+			buildJavaErrorString(feasibleBlocks, infeasibleSubProgs);
 		} else {
 			buildBoogieErrorString(infeasibleSubProgs);
 		}
@@ -108,7 +108,10 @@ public class InfeasibleReport extends Report {
 
 	
 	
-	private void buildJavaErrorString(LinkedList<HashSet<BasicBlock>> infeasibleSubProgs) {
+	private void buildJavaErrorString(Set<BasicBlock> feasibleBlocks, LinkedList<HashSet<BasicBlock>> infeasibleSubProgs) {
+		
+		Set<JavaSourceLocation> goodLocations = readJavaLocationTags(feasibleBlocks);
+		
 		boolean firstReport = true;
 //		int i=0;
 		for (HashSet<BasicBlock> subprog : infeasibleSubProgs) {
@@ -131,24 +134,40 @@ public class InfeasibleReport extends Report {
 								NamedAttribute na = (NamedAttribute)attr;
 								if (na.getName().equals(ProgramFactory.NoCodeTag)) {									
 									ignoreSubProg = true; break;
-								} else if (na.getName().equals(ProgramFactory.LocationTag)
-										&& na.getValues().length>=3) {									
-									try {
-										filename = ((StringLiteral)na.getValues()[0]).getValue();
-										int start_line = Integer.parseInt(((IntegerLiteral)na.getValues()[1]).getValue());
-										int end_line = Integer.parseInt(((IntegerLiteral)na.getValues()[2]).getValue());
-										if (startLine==-1 || start_line<startLine) {
-											startLine = start_line;
-										}
-										if (endLine==-1 || end_line>endLine) {
-											endLine = end_line;
-										}	
-									} catch (NullPointerException e) {
-										//
-										e.printStackTrace();
+								} 
+								
+								JavaSourceLocation jcl = readSourceLocationFromAttrib(attr);
+								if (jcl!=null) {
+//									if (goodLocations.contains(jcl)) {
+//										System.err.println("Halloooooo!");
+//										continue;
+//									}
+									filename = jcl.FileName;
+									if (startLine==-1 || jcl.StartLine<startLine) {
+									startLine = jcl.StartLine;
 									}
-									
+									if (endLine==-1 || jcl.EndLine>endLine) {
+										endLine = jcl.EndLine;
+									}	
 								}
+//								else if (na.getName().equals(ProgramFactory.LocationTag)
+//										&& na.getValues().length>=3) {									
+//									try {
+//										filename = ((StringLiteral)na.getValues()[0]).getValue();
+//										int start_line = Integer.parseInt(((IntegerLiteral)na.getValues()[1]).getValue());
+//										int end_line = Integer.parseInt(((IntegerLiteral)na.getValues()[2]).getValue());
+//										if (startLine==-1 || start_line<startLine) {
+//											startLine = start_line;
+//										}
+//										if (endLine==-1 || end_line>endLine) {
+//											endLine = end_line;
+//										}	
+//									} catch (NullPointerException e) {
+//										//
+//										e.printStackTrace();
+//									}
+//									
+//								}
 							}
 						}		
 					}
@@ -173,7 +192,65 @@ public class InfeasibleReport extends Report {
 		if (!firstReport) sb.append("\n");		
 	}
 	
+	protected class JavaSourceLocation {
+		public String FileName = "";
+		public int StartLine = -1;
+		public int EndLine = -1;
+		public int StartCol = -1;
+		public int EndCol = -1;
+		
+		@Override
+		public boolean equals(Object other) {
+			if (other instanceof JavaSourceLocation) {
+				JavaSourceLocation o = (JavaSourceLocation)other;
+				return o.FileName.equals(FileName) && o.StartLine==this.StartLine
+						&& o.EndLine==this.EndLine && o.StartCol==this.StartCol
+						&& o.EndCol==this.EndCol;
+			}
+			return false;
+		}
+	}
 	
+	protected JavaSourceLocation readSourceLocationFromAttrib(Attribute attr) {
+		if (attr instanceof NamedAttribute) {
+			NamedAttribute na = (NamedAttribute)attr;							
+			if (na.getName().equals(ProgramFactory.LocationTag)
+					&& na.getValues().length>=3) {
+				JavaSourceLocation jcl = null;
+				try {
+					jcl = new JavaSourceLocation();
+					jcl.FileName = ((StringLiteral)na.getValues()[0]).getValue();
+					jcl.StartLine = Integer.parseInt(((IntegerLiteral)na.getValues()[1]).getValue());
+					jcl.EndLine = Integer.parseInt(((IntegerLiteral)na.getValues()[2]).getValue());
+					if (na.getValues().length>=5) {
+						jcl.StartCol = Integer.parseInt(((IntegerLiteral)na.getValues()[3]).getValue());
+						jcl.EndCol = Integer.parseInt(((IntegerLiteral)na.getValues()[4]).getValue());										
+					}
+					return jcl;
+				} catch (NullPointerException e) {
+					e.printStackTrace();
+				}
+				
+			}
+		}
+		return null;
+	}
+	
+	protected Set<JavaSourceLocation> readJavaLocationTags(Set<BasicBlock> blocks) {		
+		HashSet<JavaSourceLocation> sourceLocations = new HashSet<JavaSourceLocation>();
+		for (BasicBlock b : blocks) {				
+			
+			for (CfgStatement s : b.getStatements()) {
+				if (s.getAttributes()!=null) {
+					for (Attribute attr : s.getAttributes()) {
+						JavaSourceLocation jcl = readSourceLocationFromAttrib(attr);
+						if (jcl!=null) sourceLocations.add(jcl);
+					}		
+				}
+			}			
+		}		
+		return sourceLocations;
+	}
 	
 	private LinkedList<HashSet<BasicBlock>> findInfeasibleSubprogs(Set<BasicBlock> infeasibleBlocks) {
 		LinkedList<HashSet<BasicBlock>> res = new LinkedList<HashSet<BasicBlock>>();
