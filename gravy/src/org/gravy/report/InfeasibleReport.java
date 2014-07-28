@@ -179,6 +179,8 @@ public class InfeasibleReport extends Report {
 	
 	
 	private LinkedList<HashSet<BasicBlock>> findInfeasibleSubprogs(Set<BasicBlock> infeasibleBlocks) {
+		for(BasicBlock b : infeasibleBlocks) System.err.println(b.getLabel());
+		
 		LinkedList<HashSet<BasicBlock>> res = new LinkedList<HashSet<BasicBlock>>();
 		LinkedList<BasicBlock> allblocks = new LinkedList<BasicBlock>();
 		allblocks.addAll(infeasibleBlocks);

@@ -13,7 +13,6 @@ import org.gravy.prover.ProverFun;
 import org.gravy.prover.ProverListener;
 import org.gravy.prover.ProverResult;
 import org.gravy.prover.ProverType;
-
 import org.joogie.cfgPlugin.CFGPlugin;
 import org.joogie.cfgPlugin.Util.Dag;
 

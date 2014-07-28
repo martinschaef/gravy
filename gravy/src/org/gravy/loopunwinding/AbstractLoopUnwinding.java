@@ -105,44 +105,46 @@ public abstract class AbstractLoopUnwinding {
 		}
 	}
 
-	private void eliminateWhileDoLoop(LoopInfo loop) {
-		// remove the entire loop and connect the head only
-		// to the exit.
-		for (BasicBlock b : loop.loopBody) {
-			if (b == loop.loopHead)
-				continue;
-			for (BasicBlock s : new HashSet<BasicBlock>(b.getSuccessors())) {
-				if (!loop.loopBody.contains(s)) {
-					b.disconnectFromSuccessor(s);
-				}
-			}
-		}
-		for (BasicBlock b : new HashSet<BasicBlock>(
-				loop.loopHead.getSuccessors())) {
-			if (loop.loopBody.contains(b)) {
-				loop.loopHead.disconnectFromSuccessor(b);
-			}
-		}
-	}
+//	private void eliminateWhileDoLoop(LoopInfo loop) {
+//		// remove the entire loop and connect the head only
+//		// to the exit.
+//		for (BasicBlock b : loop.loopBody) {
+//			if (b == loop.loopHead)
+//				continue;
+//			for (BasicBlock s : new HashSet<BasicBlock>(b.getSuccessors())) {
+//				if (!loop.loopBody.contains(s)) {
+//					b.disconnectFromSuccessor(s);
+//				}
+//			}
+//		}
+//		for (BasicBlock b : new HashSet<BasicBlock>(
+//				loop.loopHead.getSuccessors())) {
+//			if (loop.loopBody.contains(b)) {
+//				loop.loopHead.disconnectFromSuccessor(b);
+//			}
+//		}
+//	}
 
 	protected void eliminate(LoopInfo loop) {
 		// check if the we have a while-do / for loop
 		// or a do-while loop.
-		boolean isDoWhile = true;
-		for (BasicBlock b : loop.loopHead.getSuccessors()) {
-			if (!loop.loopBody.contains(b)) {
-				isDoWhile = false;
-				break;
-			}
-		}
+//		boolean isDoWhile = true;
+//		for (BasicBlock b : loop.loopHead.getSuccessors()) {
+//			if (!loop.loopBody.contains(b)) {
+//				isDoWhile = false;
+//				break;
+//			}
+//		}
+		
+		eliminateDoWhileLoop(loop);
 
-		if (isDoWhile) {
-//			System.err.println("Do-While Loop found");
-			eliminateDoWhileLoop(loop);
-		} else {
-//			System.err.println("Normal While Loop found");
-			eliminateWhileDoLoop(loop);
-		}
+//		if (isDoWhile) {
+////			System.err.println("Do-While Loop found");
+//			eliminateDoWhileLoop(loop);
+//		} else {
+////			System.err.println("Normal While Loop found");
+//			eliminateWhileDoLoop(loop);
+//		}
 	}
 
 	protected void unwind(LoopInfo loop, int unwindings) {

@@ -4,6 +4,7 @@ import java.math.BigInteger;
 
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverType;
+
 import ap.SimpleAPI$;
 import ap.parser.IBoolLit;
 import ap.parser.IFormula;

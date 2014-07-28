@@ -40,7 +40,7 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 		LoopDetection detection = new LoopDetection();
 		List<LoopInfo> loops = detection.computeLoops(root);
 
-		for (LoopInfo loop : loops) {			
+		for (LoopInfo loop : loops) {
 			havocLoop(loop);
 		}
 	}
@@ -68,7 +68,7 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 
 	private CfgHavocStatement computeHavocStatement(LoopInfo l) {
 		HashSet<CfgVariable> havocedVars = new HashSet<CfgVariable>();
-		for (BasicBlock b : l.loopBody) {
+		for (BasicBlock b : l.loopBody) {			
 			for (CfgStatement s : b.getStatements()) {
 				if (s instanceof CfgAssignStatement) {
 					CfgAssignStatement ass = (CfgAssignStatement) s;

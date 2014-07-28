@@ -3,7 +3,7 @@
  */
 package gravy_test;
 
-import static org.junit.Assert.*;
+import static org.junit.Assert.fail;
 
 import org.gravy.Options;
 import org.gravy.ProgramAnalysis;

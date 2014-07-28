@@ -34,23 +34,26 @@ public class InfeasibleCodeChecker extends
 	public InfeasibleCodeChecker(AbstractControlFlowFactory cff,
 			CfgProcedure p) {
 		super(cff, p);
-
+		
 		p.pruneUnreachableBlocks();
 
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
-		
+
 		AbstractLoopUnwinding.unwindeLoops(p);
 
 		p.pruneUnreachableBlocks();
 
+//		p.toFile("./"+p.getProcedureName()+".bpl");
+//		p.toDot("./"+p.getProcedureName()+".dot");
+		
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.recomputeSSA(p);
 
 		p.pruneUnreachableBlocks();
 		
-//		p.toDot("./"+p.getProcedureName()+".dot");
-//		p.toFile("./"+p.getProcedureName()+".bpl");
+		
+		
 	}
 
 	

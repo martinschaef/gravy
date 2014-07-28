@@ -53,24 +53,24 @@ public class LoopInfo {
 	public String toString(String prefix) {
 		StringBuilder sb = new StringBuilder();
 		sb.append(">> Loop: " + loopHead.toString() + "\n");
-		// sb.append("loop head pre:\n");
-		// for (BasicBlock b : loopHead.Predecessors) {
-		// sb.append(" " + b.toString());
-		// }
-		// sb.append("\n");
-		// sb.append(">> Body:\n");
-		// sb.append(">>\t");
-		// for (BasicBlock b : loopBody) {
-		// sb.append(" " + b.toString());
-		// }
-		// sb.append("\n");
-		// sb.append(">>");
-		// sb.append(">> Exit:\n");
-		// sb.append(">>\t");
-		// for (BasicBlock b : loopExit) {
-		// sb.append(" " + b.toString());
-		// }
-		// sb.append("\n");
+		 sb.append("loop head pre:\n");
+		 for (BasicBlock b : loopHead.getPredecessors()) {
+		 sb.append(" " + b.getLabel());
+		 }
+		 sb.append("\n");
+		 sb.append(">> Body:\n");
+		 sb.append(">>\t");
+		 for (BasicBlock b : loopBody) {
+		 sb.append(" " + b.getLabel());
+		 }
+		 sb.append("\n");
+		 sb.append(">>");
+		 sb.append(">> Exit:\n");
+		 sb.append(">>\t");
+		 for (BasicBlock b : loopExit) {
+		 sb.append(" " + b.getLabel());
+		 }
+		 sb.append("\n");
 		int i = 0;
 		for (LoopInfo n : this.nestedLoops) {
 			sb.append(">> Nested Loop " + (i++) + "\n");

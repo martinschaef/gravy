@@ -3,6 +3,7 @@ package org.gravy.prover.princess;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFun;
 import org.gravy.prover.ProverType;
+
 import scala.collection.mutable.ArrayBuffer;
 import ap.basetypes.IdealInt$;
 import ap.parser.IExpression$;
