@@ -10,9 +10,9 @@ import org.gravy.checker.AbstractChecker;
 import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
 import org.gravy.report.Report;
+import org.gravy.util.Log;
 
 import typechecker.TypeChecker;
-import util.Log;
 import boogie.ProgramFactory;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.CfgProcedure;
@@ -78,7 +78,7 @@ public class ProgramAnalysis {
 	
 	private static boolean analyzeProcedure(CfgProcedure p, AbstractControlFlowFactory cff) {
 		if (Options.v().getDebugMode()) {
-			Log.info("Checking: " + p.getProcedureName());
+			Log.debug("Checking: " + p.getProcedureName());
 		}
 
 		// create an executor to kill the verification with a timeout if
@@ -114,11 +114,12 @@ public class ProgramAnalysis {
 			// start thread and wait xx seconds			
 			future.get(Options.v().getTimeOut(),
 					TimeUnit.MILLISECONDS);
-			Log.info("Finished method " + p.getProcedureName());
+			Log.debug("Finished method " + p.getProcedureName());
 		} catch (TimeoutException e) {
 			// set timeout to method info
 			// methodInfo.setTimeout(true);
-			Log.info("Timeout reached for method " + p.getProcedureName());
+			timeouts++;
+			Log.debug("Timeout reached for method " + p.getProcedureName());
 			timeout = true;
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -139,12 +140,12 @@ public class ProgramAnalysis {
 		
 		Report report = detectionThread.getReport();
 		
-		if (report!=null) {
+		if (report!=null && !report.toString().isEmpty()) {
 			Log.info(report.toString());
 		}
 
 		if (timeout) {
-			timeouts++;
+			
 		} else {
 			feasibleBlocks+=detectionThread.countFeasibleBlock() ;
 			infeasibleBlocks+=detectionThread.countInfeasibleBlock();

@@ -135,9 +135,6 @@ public class InfeasibleReport extends Report {
 										&& na.getValues().length>=3) {									
 									try {
 										filename = ((StringLiteral)na.getValues()[0]).getValue();
-//										System.err.println("Line numbers");
-//										System.err.println(((IntegerLiteral)na.getValues()[1]).getValue());
-//										System.err.println(((IntegerLiteral)na.getValues()[2]).getValue());
 										int start_line = Integer.parseInt(((IntegerLiteral)na.getValues()[1]).getValue());
 										int end_line = Integer.parseInt(((IntegerLiteral)na.getValues()[2]).getValue());
 										if (startLine==-1 || start_line<startLine) {
@@ -179,8 +176,6 @@ public class InfeasibleReport extends Report {
 	
 	
 	private LinkedList<HashSet<BasicBlock>> findInfeasibleSubprogs(Set<BasicBlock> infeasibleBlocks) {
-		for(BasicBlock b : infeasibleBlocks) System.err.println(b.getLabel());
-		
 		LinkedList<HashSet<BasicBlock>> res = new LinkedList<HashSet<BasicBlock>>();
 		LinkedList<BasicBlock> allblocks = new LinkedList<BasicBlock>();
 		allblocks.addAll(infeasibleBlocks);
