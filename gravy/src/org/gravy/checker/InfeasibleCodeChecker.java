@@ -39,7 +39,7 @@ public class InfeasibleCodeChecker extends
 		
 		p.pruneUnreachableBlocks();
 		
-		p.toDot("./"+p.getProcedureName()+".dot");
+//		p.toDot("./"+p.getProcedureName()+".dot");
 		
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);	
