@@ -30,7 +30,7 @@ import boogie.controlflow.statement.CfgHavocStatement;
 import boogie.controlflow.statement.CfgStatement;
 
 /**
- * @author martin
+ * @author schaef
  *
  */
 public class SingleStaticAssignment {
@@ -322,9 +322,12 @@ public class SingleStaticAssignment {
 			recomputLocalSSA(ite.getThenExpression(), offset);
 			recomputLocalSSA(ite.getElseExpression(), offset);
 		} else if (exp instanceof CfgQuantifierExpression) {
-			//CfgQuantifierExpression qe = (CfgQuantifierExpression) exp;
-			throw new RuntimeException("Not implemented");
-			// TODO
+			CfgQuantifierExpression qe = (CfgQuantifierExpression) exp;
+			//TODO: does that make sense?
+			for (CfgVariable v : qe.getParameters()) {
+				offset.put(v, 0);
+			}
+			recomputLocalSSA(((CfgQuantifierExpression) exp).getSubformula(), offset);
 		} else if (exp instanceof CfgUnaryExpression) {
 			CfgUnaryExpression uexp = (CfgUnaryExpression) exp;
 			recomputLocalSSA(uexp.getExpression(), offset);

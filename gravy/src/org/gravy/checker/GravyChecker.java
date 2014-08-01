@@ -38,7 +38,7 @@ import boogie.enums.UnaryOperator;
 import boogie.type.BoogieType;
 
 /**
- * @author martin
+ * @author schaef
  * 
  */
 public class GravyChecker extends AbstractChecker {

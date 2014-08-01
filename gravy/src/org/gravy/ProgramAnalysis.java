@@ -19,7 +19,7 @@ import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.DefaultControlFlowFactory;
 
 /**
- * @author martin
+ * @author schaef
  * 
  */
 public class ProgramAnalysis {
@@ -78,7 +78,7 @@ public class ProgramAnalysis {
 	
 	private static boolean analyzeProcedure(CfgProcedure p, AbstractControlFlowFactory cff) {
 		if (Options.v().getDebugMode()) {
-			Log.debug("Checking: " + p.getProcedureName());
+			Log.info("Checking: " + p.getProcedureName());
 		}
 
 		// create an executor to kill the verification with a timeout if

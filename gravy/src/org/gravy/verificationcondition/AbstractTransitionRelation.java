@@ -20,6 +20,7 @@ import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFun;
 import org.gravy.prover.ProverType;
 
+import util.Log;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
@@ -53,7 +54,7 @@ import boogie.type.ArrayType;
 import boogie.type.BoogieType;
 
 /**
- * @author martin
+ * @author schaef
  * 
  */
 public class AbstractTransitionRelation {
@@ -466,8 +467,17 @@ public class AbstractTransitionRelation {
 			return this.prover.mkLiteral(exp.getValue().intValue());
 		} else if (e instanceof CfgQuantifierExpression) {
 			CfgQuantifierExpression exp = (CfgQuantifierExpression) e;
-			throw new RuntimeException(
-					"Qantifiers are not supported right now " + exp.toString());
+			LinkedHashMap<CfgVariable, ProverExpr> boundVariables2 = new LinkedHashMap<CfgVariable, ProverExpr>(boundVariables); 
+			for (CfgVariable cfgvar : exp.getParameters()) {
+				boundVariables2.put(cfgvar, createProverVar(cfgvar, 0));
+			}
+			ProverExpr body = expression2proverExpression(exp.getSubformula(), boundVariables2);
+			ProverType type = boogieType2ProverType(exp.getType());
+			if (exp.isUniversal()) {
+				return this.prover.mkAll(body, type);
+			} else {
+				return this.prover.mkEx(body, type);
+			}
 		} else if (e instanceof CfgRealLiteral) {
 			CfgRealLiteral exp = (CfgRealLiteral) e;
 			throw new RuntimeException("Reals are not supported right now "
@@ -486,8 +496,9 @@ public class AbstractTransitionRelation {
 			} else if (exp.getOperator() == boogie.enums.UnaryOperator.LOGICNEG) {
 				return this.prover.mkNot(expression2proverExpression(
 						exp.getExpression(), boundVariables));
-			} else if (exp.getOperator() == boogie.enums.UnaryOperator.OLD) {
-				throw new RuntimeException("\\old operator not implemented");
+			} else if (exp.getOperator() == boogie.enums.UnaryOperator.OLD) {				
+				Log.error("\\old operator not implemented");
+				return expression2proverExpression(exp.getExpression(), boundVariables);
 			} else {
 				throw new RuntimeException("Unknown Unary Operator");
 			}
@@ -541,8 +552,11 @@ public class AbstractTransitionRelation {
 			return pe;
 		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICAND) {
 			return this.prover.mkAnd(left, right);
-		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICIFF) {
-			throw new RuntimeException("IFF not imeplemented");
+		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICIFF) {	
+			Log.error("Warning: check if LogicIFF is translated properly into smt");
+			ProverExpr l = this.prover.mkImplies(left, right);
+			ProverExpr r = this.prover.mkImplies(right, left);
+			return this.prover.mkAnd(l, r);
 		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICIMPLIES) {
 			return this.prover.mkOr(this.prover.mkNot(left), right);
 		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICOR) {

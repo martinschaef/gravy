@@ -32,9 +32,10 @@ public class LoopDetection {
 
 			boolean ready = true;
 			for (BasicBlock pre : current.getPredecessors()) {
-				if (!done.contains(pre)) {
+				if (!done.contains(pre) ) {
+					HashSet<BasicBlock> visited = new HashSet<BasicBlock>(); 					
 					if (!isLoop(current, pre, todo, done,
-							new HashSet<BasicBlock>())) {
+							visited)) {
 						todo.addLast(current);
 						ready = false;
 						break;
@@ -43,7 +44,7 @@ public class LoopDetection {
 						if (!loopHeads.containsKey(current)) {
 							loopHeads.put(current, new HashSet<BasicBlock>());
 						}
-						loopHeads.get(current).add(pre);
+						loopHeads.get(current).add(pre);						
 					}
 				}
 			}
@@ -74,13 +75,14 @@ public class LoopDetection {
 			HashSet<BasicBlock> visited) {
 		// Log.error("B" + visited.size() + " " + loophead.getLabel() +
 		// "/"+loopNode.getLabel());
-		if (loophead.getLabel().equals(loopNode.getLabel()))
+		
+		if (loophead==loopNode)
 			return true;
 		if (todo.contains(loopNode) || done.contains(loopNode)
 				|| visited.contains(loopNode))
 			return false;
 		visited.add(loopNode);
-		for (BasicBlock pre : loopNode.getPredecessors()) {
+		for (BasicBlock pre : loopNode.getPredecessors()) {			
 			if (isLoop(loophead, pre, todo, done, visited)) {
 				return true;
 			}

@@ -6,6 +6,7 @@ package org.gravy.checker;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 
+import org.gravy.Options;
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
 import org.gravy.prover.Prover;
@@ -13,6 +14,7 @@ import org.gravy.prover.ProverExpr;
 import org.gravy.report.InfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
+import org.gravy.util.Log;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
 
@@ -21,7 +23,7 @@ import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
 
 /**
- * @author martin
+ * @author schaef
  *
  */
 public class InfeasibleCodeChecker extends
@@ -36,17 +38,18 @@ public class InfeasibleCodeChecker extends
 		super(cff, p);
 		
 		p.pruneUnreachableBlocks();
-
+		
+		p.toDot("./"+p.getProcedureName()+".dot");
+		
 		CallUnwinding cunwind = new CallUnwinding();
-		cunwind.unwindCalls(p);
-
+		cunwind.unwindCalls(p);	
+		
 		AbstractLoopUnwinding.unwindeLoops(p);
-
 		p.pruneUnreachableBlocks();
 
 //		p.toFile("./"+p.getProcedureName()+".bpl");
 //		p.toDot("./"+p.getProcedureName()+".dot");
-		
+				
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.recomputeSSA(p);
 

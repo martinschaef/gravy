@@ -18,7 +18,7 @@ import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.expression.CfgExpression;
 
 /**
- * @author martin
+ * @author schaef
  * TODO: if we plan to do interprocedural analysis, we have
  * to change the way globals are handled here.
  */

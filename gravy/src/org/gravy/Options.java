@@ -25,7 +25,7 @@ import org.kohsuke.args4j.Option;
 /**
  * Options
  * 
- * @author arlt, schaef
+ * @author schaef, schaef
  */
 public class Options {
 		

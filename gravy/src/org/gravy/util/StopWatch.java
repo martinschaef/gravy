@@ -20,7 +20,7 @@
 package org.gravy.util;
 
 /**
- * @author arlt
+ * @author schaef
  */
 public class StopWatch {
 

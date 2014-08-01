@@ -27,7 +27,7 @@ import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
 
 /**
- * @author martin
+ * @author schaef
  *
  */
 public class SimpleInfeasibleCodeChecker extends

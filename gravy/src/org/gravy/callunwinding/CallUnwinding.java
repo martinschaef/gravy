@@ -20,7 +20,7 @@ import boogie.controlflow.statement.CfgHavocStatement;
 import boogie.controlflow.statement.CfgStatement;
 
 /**
- * @author martin
+ * @author schaef
  *
  */
 public class CallUnwinding {
