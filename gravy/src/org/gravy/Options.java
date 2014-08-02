@@ -78,6 +78,9 @@ public class Options {
 		return java_report;
 	}
 	
+	public void setJavaReport(boolean val) {
+		this.java_report = val;
+	}
 	
 	
 	/**
