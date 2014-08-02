@@ -81,12 +81,22 @@ public class AbstractTransitionRelation {
 	
 	protected HasseDiagram hasse;
 	
+	protected String procedureName;
+	
 	public AbstractTransitionRelation(CfgProcedure cfg, AbstractControlFlowFactory cff, Prover p) {
 		this.prover = p;
 		this.controlFlowFactory = cff;
 		this.hasse = new HasseDiagram(cfg);
+		this.procedureName = cfg.getProcedureName();
 	}
-	
+
+	/**
+	 * 
+	 * @return
+	 */
+	public String getProcedureName() {
+		return this.procedureName;
+	}
 
 	/**
 	 * Returns the prover expression of the ssa-version of the precondition.

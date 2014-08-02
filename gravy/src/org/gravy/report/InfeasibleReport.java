@@ -39,12 +39,12 @@ public class InfeasibleReport extends Report {
 		
 		if (Options.v().getJavaReport()) {
 			buildJavaErrorString(feasibleBlocks, infeasibleSubProgs);
-		} else {
-			buildBoogieErrorString(infeasibleSubProgs);
+		} else {			
+			buildBoogieErrorString(tr.getProcedureName(), infeasibleSubProgs);
 		}
 	}
 	
-	private void buildBoogieErrorString(LinkedList<HashSet<BasicBlock>> infeasibleSubProgs) {
+	private void buildBoogieErrorString(String procName, LinkedList<HashSet<BasicBlock>> infeasibleSubProgs) {
 		boolean firstReport = true;
 //		int i=0;
 		for (HashSet<BasicBlock> subprog : infeasibleSubProgs) {
@@ -98,7 +98,7 @@ public class InfeasibleReport extends Report {
 			if (ignoreSubProg) continue;			
 			if (firstReport) {
 				firstReport = false;
-				sb.append("\nInfeasible Code:\n");
+				sb.append("\nInfeasible Code in:"+procName+"\n");
 			}
 			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");
 //			System.err.println("is infeasible");
@@ -110,7 +110,7 @@ public class InfeasibleReport extends Report {
 	
 	private void buildJavaErrorString(Set<BasicBlock> feasibleBlocks, LinkedList<HashSet<BasicBlock>> infeasibleSubProgs) {
 		
-		Set<JavaSourceLocation> goodLocations = readJavaLocationTags(feasibleBlocks);
+//		Set<JavaSourceLocation> goodLocations = readJavaLocationTags(feasibleBlocks);
 		
 		boolean firstReport = true;
 //		int i=0;
