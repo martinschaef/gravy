@@ -55,6 +55,7 @@ public class SmackInfeasibleTest {
 	
 	@Test
 	public void test() {
+		System.out.println("Test :"+this.shortname);
 		Options.v().setChecker(1);
 		try {
 			ProgramAnalysis.runProgramAnalysis(this.input);

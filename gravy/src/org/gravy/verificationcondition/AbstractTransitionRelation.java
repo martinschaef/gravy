@@ -59,6 +59,7 @@ import boogie.type.BoogieType;
  */
 public class AbstractTransitionRelation {
 
+	
 	protected Prover prover;
 	// TODO: bad idea to use HashMap<Integer, ProverExpr> because
 	// we want to be able to iterate over the iterations of a variable
@@ -82,6 +83,7 @@ public class AbstractTransitionRelation {
 	protected HasseDiagram hasse;
 	
 	protected String procedureName;
+	
 	
 	public AbstractTransitionRelation(CfgProcedure cfg, AbstractControlFlowFactory cff, Prover p) {
 		this.prover = p;
@@ -507,8 +509,10 @@ public class AbstractTransitionRelation {
 				return this.prover.mkNot(expression2proverExpression(
 						exp.getExpression(), boundVariables));
 			} else if (exp.getOperator() == boogie.enums.UnaryOperator.OLD) {				
-				Log.error("\\old operator not implemented");
-				return expression2proverExpression(exp.getExpression(), boundVariables);
+				insideOldExpression = true;				
+				ProverExpr res =  expression2proverExpression(exp.getExpression(), boundVariables);
+				insideOldExpression = false;
+				return res;
 			} else {
 				throw new RuntimeException("Unknown Unary Operator");
 			}
@@ -522,6 +526,8 @@ public class AbstractTransitionRelation {
 					+ e.getClass().toString());
 		}
 	}
+	
+	private boolean insideOldExpression = false;
 
 	protected ProverExpr binopExpression2proverExpression(
 			CfgBinaryExpression exp,
@@ -562,8 +568,7 @@ public class AbstractTransitionRelation {
 			return pe;
 		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICAND) {
 			return this.prover.mkAnd(left, right);
-		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICIFF) {	
-			Log.error("Warning: check if LogicIFF is translated properly into smt");
+		} else if (exp.getOperator() == boogie.enums.BinaryOperator.LOGICIFF) {				
 			ProverExpr l = this.prover.mkImplies(left, right);
 			ProverExpr r = this.prover.mkImplies(right, left);
 			return this.prover.mkAnd(l, r);
@@ -637,6 +642,11 @@ public class AbstractTransitionRelation {
 	private ProverExpr createProverVar(CfgVariable var, int incarnation) {
 		final BoogieType type = var.getType();
 
+		if (insideOldExpression) {
+			incarnation = 0;
+			
+		}
+		
 		if (!this.proverVariables.containsKey(var)) {
 			this.proverVariables.put(var, new TreeMap<Integer, ProverExpr>());
 		}

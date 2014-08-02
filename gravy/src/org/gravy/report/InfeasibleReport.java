@@ -57,15 +57,16 @@ public class InfeasibleReport extends Report {
 			int endLine = -1;
 			boolean ignoreSubProg = false;
 			
+			StringBuilder sb_ = new StringBuilder();
+			
 			for (BasicBlock b : subprog) {				
 				ILocation loc = b.getLocationTag();			
 				if (loc!=null) {
-					if (startLine==-1 || loc.getStartLine()<startLine) {
-						startLine = loc.getStartLine();
-					}
-					if (endLine==-1 || loc.getEndLine()>endLine) {
-						endLine = loc.getEndLine();
-					}					
+					sb_.append("\tLines ");
+					sb_.append(loc.getStartLine());
+					sb_.append(" to ");
+					sb_.append(loc.getEndLine());
+					sb_.append("\n");
 				}
 				
 				for (CfgStatement s : b.getStatements()) {
@@ -100,7 +101,7 @@ public class InfeasibleReport extends Report {
 				firstReport = false;
 				sb.append("\nInfeasible Code in:"+procName+"\n");
 			}
-			sb.append("\tfrom "+startLine + " to " + endLine+ "\n");
+			sb.append(sb_.toString());
 //			System.err.println("is infeasible");
 		}
 		if (!firstReport) sb.append("\n");		

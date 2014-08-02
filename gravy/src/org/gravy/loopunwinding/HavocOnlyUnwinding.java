@@ -39,11 +39,6 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 		BasicBlock root = proc.getRootNode();
 		LoopDetection detection = new LoopDetection();
 		
-		if (Options.v().getDebugMode()) {
-			Log.info("detect");
-		}
-
-		
 		List<LoopInfo> loops = detection.computeLoops(root);
 		
 		for (LoopInfo loop : loops) {
