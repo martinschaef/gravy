@@ -57,6 +57,7 @@ public class SmackInfeasibleTest {
 	public void test() {
 		System.out.println("Test :"+this.shortname);
 		Options.v().setChecker(1);
+		Options.v().useLocationAttribute(true);
 		try {
 			ProgramAnalysis.runProgramAnalysis(this.input);
 		} catch (Exception e) {

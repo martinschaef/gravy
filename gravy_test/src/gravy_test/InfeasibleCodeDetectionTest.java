@@ -68,7 +68,7 @@ public class InfeasibleCodeDetectionTest {
 		long expectedInfeasibleBlocksUnderPost = 0;
 		//set the checker to GradualVerification (default)
 		Options.v().setChecker(1);
-		Options.v().setJavaReport(true);
+		Options.v().useLocationAttribute(true);
 		try {
 			
 			ProgramAnalysis.runProgramAnalysis(fname);

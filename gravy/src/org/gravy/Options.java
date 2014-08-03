@@ -72,14 +72,14 @@ public class Options {
 		return debugMode;
 	}
 
-	@Option(name = "-java_report", usage = "Reoprt only infeasible code for which Java locations are available")
-	private boolean java_report = false;	
-	public boolean getJavaReport() {
-		return java_report;
+	@Option(name = "-loc_attrib", usage = "Reoprt only infeasible code with :sourceloc attributes")
+	private boolean useLocationAttribute = false;	
+	public boolean useLocationAttribute() {
+		return useLocationAttribute;
 	}
 	
-	public void setJavaReport(boolean val) {
-		this.java_report = val;
+	public void useLocationAttribute(boolean val) {
+		this.useLocationAttribute = val;
 	}
 	
 	

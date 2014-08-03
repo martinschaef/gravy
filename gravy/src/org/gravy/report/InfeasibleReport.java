@@ -37,7 +37,7 @@ public class InfeasibleReport extends Report {
 		
 		LinkedList<HashSet<BasicBlock>> infeasibleSubProgs = findInfeasibleSubprogs(infeasibleBlocks);
 		
-		if (Options.v().getJavaReport()) {
+		if (Options.v().useLocationAttribute()) {
 			buildJavaErrorString(feasibleBlocks, infeasibleSubProgs);
 		} else {			
 			buildBoogieErrorString(tr.getProcedureName(), infeasibleSubProgs);
@@ -76,9 +76,7 @@ public class InfeasibleReport extends Report {
 								NamedAttribute na = (NamedAttribute)attr;
 								if (na.getName().equals(ProgramFactory.NoCodeTag)) {									
 									ignoreSubProg = true; break;
-								} else if (na.getName().equals(ProgramFactory.LocationTag)) {
-									
-								}
+								} 
 							}
 						}		
 					}
@@ -151,24 +149,6 @@ public class InfeasibleReport extends Report {
 										endLine = jcl.EndLine;
 									}	
 								}
-//								else if (na.getName().equals(ProgramFactory.LocationTag)
-//										&& na.getValues().length>=3) {									
-//									try {
-//										filename = ((StringLiteral)na.getValues()[0]).getValue();
-//										int start_line = Integer.parseInt(((IntegerLiteral)na.getValues()[1]).getValue());
-//										int end_line = Integer.parseInt(((IntegerLiteral)na.getValues()[2]).getValue());
-//										if (startLine==-1 || start_line<startLine) {
-//											startLine = start_line;
-//										}
-//										if (endLine==-1 || end_line>endLine) {
-//											endLine = end_line;
-//										}	
-//									} catch (NullPointerException e) {
-//										//
-//										e.printStackTrace();
-//									}
-//									
-//								}
 							}
 						}		
 					}
@@ -222,9 +202,9 @@ public class InfeasibleReport extends Report {
 					jcl = new JavaSourceLocation();
 					jcl.FileName = ((StringLiteral)na.getValues()[0]).getValue();
 					jcl.StartLine = Integer.parseInt(((IntegerLiteral)na.getValues()[1]).getValue());
-					jcl.EndLine = Integer.parseInt(((IntegerLiteral)na.getValues()[2]).getValue());
-					if (na.getValues().length>=5) {
-						jcl.StartCol = Integer.parseInt(((IntegerLiteral)na.getValues()[3]).getValue());
+					jcl.StartCol = Integer.parseInt(((IntegerLiteral)na.getValues()[2]).getValue());
+					if (na.getValues().length>=5) {						
+						jcl.EndLine = Integer.parseInt(((IntegerLiteral)na.getValues()[3]).getValue());
 						jcl.EndCol = Integer.parseInt(((IntegerLiteral)na.getValues()[4]).getValue());										
 					}
 					return jcl;

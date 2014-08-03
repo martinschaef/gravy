@@ -64,9 +64,9 @@ public class Report {
 					NamedAttribute na = (NamedAttribute)att;
 					if (na.getName().equals(ProgramFactory.LocationTag)) {
 						StringLiteral fname = (StringLiteral)na.getValues()[0];
-						IntegerLiteral startLine = (IntegerLiteral)na.getValues()[1];
-						IntegerLiteral endLine = (IntegerLiteral)na.getValues()[2];
-						IntegerLiteral startCol = (IntegerLiteral)na.getValues()[3];
+						IntegerLiteral startLine = (IntegerLiteral)na.getValues()[1];						
+						IntegerLiteral startCol = (IntegerLiteral)na.getValues()[2];
+						IntegerLiteral endLine = (IntegerLiteral)na.getValues()[3];
 						IntegerLiteral endCol = (IntegerLiteral)na.getValues()[4];
 						
 						sb.append(fname.getValue());
