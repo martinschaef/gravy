@@ -14,13 +14,11 @@ import java.util.SortedMap;
 import java.util.TreeMap;
 
 import org.gravy.GlobalsCache;
-import org.gravy.effectualset.HasseDiagram;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFun;
 import org.gravy.prover.ProverType;
 
-import util.Log;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
@@ -50,6 +48,7 @@ import boogie.controlflow.statement.CfgAssumeStatement;
 import boogie.controlflow.statement.CfgCallStatement;
 import boogie.controlflow.statement.CfgHavocStatement;
 import boogie.controlflow.statement.CfgStatement;
+import boogie.controlflow.util.HasseDiagram;
 import boogie.type.ArrayType;
 import boogie.type.BoogieType;
 

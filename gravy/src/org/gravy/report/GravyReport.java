@@ -7,10 +7,10 @@ import java.util.Set;
 
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
+import boogie.ast.statement.Statement;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.statement.CfgAssertStatement;
-import boogie.statement.Statement;
 
 /**
  * @author schaef

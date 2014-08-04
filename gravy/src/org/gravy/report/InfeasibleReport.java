@@ -13,12 +13,12 @@ import org.gravy.verificationcondition.AbstractTransitionRelation;
 import boogie.ProgramFactory;
 import boogie.ast.Attribute;
 import boogie.ast.NamedAttribute;
+import boogie.ast.expression.literal.IntegerLiteral;
+import boogie.ast.expression.literal.StringLiteral;
+import boogie.ast.location.ILocation;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.statement.CfgStatement;
-import boogie.expression.literal.IntegerLiteral;
-import boogie.expression.literal.StringLiteral;
-import boogie.location.ILocation;
 
 /**
  * @author schaef
