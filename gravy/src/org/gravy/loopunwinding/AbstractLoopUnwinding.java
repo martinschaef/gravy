@@ -22,9 +22,10 @@ public abstract class AbstractLoopUnwinding {
 
 	public static void unwindeLoops(CfgProcedure proc) {
 		AbstractLoopUnwinding unwinder = null;
-		if (Options.v().getUnwindings() < 0) {
-			unwinder = new HavocOnlyUnwinding(proc);
-			//unwinder = new FmsdUnwinding(proc);
+		if (Options.v().getLoopMode() == 0 && Options.v().getUnwindings()==-1) {
+			unwinder = new HavocOnlyUnwinding(proc);			
+		} else if (Options.v().getLoopMode() == 1 && Options.v().getUnwindings()==-1) {
+			unwinder = new FmsdUnwinding(proc);
 		} else {
 			unwinder = new SimpleUnwinding(proc, Options.v().getUnwindings());
 		}
@@ -65,7 +66,7 @@ public abstract class AbstractLoopUnwinding {
 	 * 
 	 * @param loop
 	 */
-	private void eliminateDoWhileLoop(LoopInfo loop) {
+	private void eliminate(LoopInfo loop) {
 		// identify all blocks that can exit the loop.
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		for (BasicBlock b : loop.loopExit) {
@@ -93,6 +94,10 @@ public abstract class AbstractLoopUnwinding {
 
 		for (BasicBlock b : loop.loopBody) {
 			if (connectedToExit.contains(b)) {
+				//ensure that blocks inside the loop are not reported.
+				if (dontVerifyClones) {
+					markAsClone(b);
+				}				
 				for (BasicBlock s : new HashSet<BasicBlock>(b.getSuccessors())) {
 					if (!loop.loopExit.contains(s)
 							&& !connectedToExit.contains(s)) {
@@ -105,49 +110,7 @@ public abstract class AbstractLoopUnwinding {
 				}
 			}
 		}
-	}
-
-//	private void eliminateWhileDoLoop(LoopInfo loop) {
-//		// remove the entire loop and connect the head only
-//		// to the exit.
-//		for (BasicBlock b : loop.loopBody) {
-//			if (b == loop.loopHead)
-//				continue;
-//			for (BasicBlock s : new HashSet<BasicBlock>(b.getSuccessors())) {
-//				if (!loop.loopBody.contains(s)) {
-//					b.disconnectFromSuccessor(s);
-//				}
-//			}
-//		}
-//		for (BasicBlock b : new HashSet<BasicBlock>(
-//				loop.loopHead.getSuccessors())) {
-//			if (loop.loopBody.contains(b)) {
-//				loop.loopHead.disconnectFromSuccessor(b);
-//			}
-//		}
-//	}
-
-	protected void eliminate(LoopInfo loop) {
-		// check if the we have a while-do / for loop
-		// or a do-while loop.
-//		boolean isDoWhile = true;
-//		for (BasicBlock b : loop.loopHead.getSuccessors()) {
-//			if (!loop.loopBody.contains(b)) {
-//				isDoWhile = false;
-//				break;
-//			}
-//		}
-		
-		eliminateDoWhileLoop(loop);
-
-//		if (isDoWhile) {
-////			System.err.println("Do-While Loop found");
-//			eliminateDoWhileLoop(loop);
-//		} else {
-////			System.err.println("Normal While Loop found");
-//			eliminateWhileDoLoop(loop);
-//		}
-	}
+	}	
 
 	protected void unwind(LoopInfo loop, int unwindings) {
 		for (LoopInfo nest : new LinkedList<LoopInfo>(loop.nestedLoops)) {

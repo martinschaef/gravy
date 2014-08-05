@@ -54,6 +54,15 @@ public class Options {
 	public int getUnwindings() {
 		return unwindings;
 	}
+
+	@Option(name = "-loopmode", usage = "Method for abstracting loops.\n \t0: (default) use havoc instead of unwindings.\n"
+			+ "\t1: use havoc and unwind the last iteration (experimental)")
+	private int loopmode = 0; //-1 means no unwindings
+	
+	public int getLoopMode() {
+		return loopmode;
+	}
+	
 	
 	
 	@Option(name = "-checker", usage = "Which check should be used:\n\t0\t: Gradual Verification\n\t1\t: Infeasible Code Detection")

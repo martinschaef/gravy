@@ -46,7 +46,7 @@ public class InfeasibleCodeChecker extends
 		p.pruneUnreachableBlocks();
 
 //		p.toFile("./"+p.getProcedureName()+".bpl");
-//		p.toDot("./"+p.getProcedureName()+".dot");
+//		p.toDot("./"+p.getProcedureName()+"_lf.dot");
 				
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.recomputeSSA(p);

@@ -64,6 +64,8 @@ public class InfeasibleReport extends Report {
 					sb_.append(loc.getStartLine());
 					sb_.append(" to ");
 					sb_.append(loc.getEndLine());
+					sb_.append(": ");
+					sb_.append(b.getLabel());
 					sb_.append("\n");
 				}
 			}
