@@ -1,6 +1,7 @@
 package org.gravy.loopunwinding;
 
 import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.List;
 
 import org.gravy.Options;
@@ -21,7 +22,7 @@ import boogie.controlflow.util.LoopInfo;
 /**
  * @author schaef
  */
-public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
+public class FmsdUnwinding extends AbstractLoopUnwinding {
 
 	/**
 	 * C-tor
@@ -29,9 +30,10 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 	 * @param proc
 	 *            Boogie procedure
 	 */
-	public HavocOnlyUnwinding(CfgProcedure proc) {
+	public FmsdUnwinding(CfgProcedure proc) {
 		super(proc);
-		this.proc = proc;		
+		this.proc = proc;
+		this.maxUnwinding=1;
 		this.dontVerifyClones=true;
 	}
 
@@ -40,22 +42,43 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 		BasicBlock root = proc.getRootNode();
 		LoopDetection detection = new LoopDetection();
 		
-		this.maxUnwinding=0;
-		
 		List<LoopInfo> loops = detection.computeLoops(root);
 		
 		for (LoopInfo loop : loops) {
-			havocLoop(loop);
+			abstractUnwinding(loop);
 		}
 		
 	}
 
-	private void havocLoop(LoopInfo loop) {
+	private void abstractUnwinding(LoopInfo loop) {
 		// havoc the nested loops first
-		for (LoopInfo nest : loop.nestedLoops) {
+		this.maxUnwinding=0;
+		for (LoopInfo nest : new LinkedList<LoopInfo>(loop.nestedLoops)) {
+			loop.nestedLoopHeads.remove(nest.loopHead);
+			loop.nestedLoops.remove(nest);
 			havocLoop(nest);
 		}
-
+		loop.refreshLoopBody(); //TODO: test
+		loop.UpdateLoopEntries();
+		
+		//TOOD: recompute the loop info because the body has changed		
+		this.maxUnwinding=1;
+		
+		for (BasicBlock b : loop.loopEntries) {			
+			b.addStatement(computeHavocStatement(loop), false);	
+		}
+		
+		unwind(loop,this.maxUnwinding);
+	}
+	
+	private void havocLoop(LoopInfo loop) {
+		// havoc the nested loops first
+		for (LoopInfo nest : new LinkedList<LoopInfo>(loop.nestedLoops)) {
+			loop.nestedLoopHeads.remove(nest.loopHead);
+			loop.nestedLoops.remove(nest);
+			havocLoop(nest);
+		}
+		loop.refreshLoopBody(); //TODO: test
 		loop.loopHead.addStatement(computeHavocStatement(loop), true);
 		
 		for (BasicBlock b : loop.loopExit) {
@@ -66,9 +89,9 @@ public class HavocOnlyUnwinding extends AbstractLoopUnwinding {
 			Log.error("Loop has no exit! LoopHead "+loop.loopHead.getLabel());
 		}
 		
-		unwind(loop,this.maxUnwinding);
+		unwind(loop,0);
 		
-	}
+	}	
 	
 
 	private CfgHavocStatement computeHavocStatement(LoopInfo l) {

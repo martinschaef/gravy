@@ -13,6 +13,7 @@ import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.expression.CfgBooleanLiteral;
 import boogie.controlflow.statement.CfgAssertStatement;
+import boogie.controlflow.util.LoopInfo;
 
 /**
  * @author schaef
@@ -23,6 +24,7 @@ public abstract class AbstractLoopUnwinding {
 		AbstractLoopUnwinding unwinder = null;
 		if (Options.v().getUnwindings() < 0) {
 			unwinder = new HavocOnlyUnwinding(proc);
+			//unwinder = new FmsdUnwinding(proc);
 		} else {
 			unwinder = new SimpleUnwinding(proc, Options.v().getUnwindings());
 		}
@@ -148,10 +150,13 @@ public abstract class AbstractLoopUnwinding {
 	}
 
 	protected void unwind(LoopInfo loop, int unwindings) {
-		for (LoopInfo nest : loop.nestedLoops) {
+		for (LoopInfo nest : new LinkedList<LoopInfo>(loop.nestedLoops)) {
+			loop.nestedLoopHeads.remove(nest.loopHead);
+			loop.nestedLoops.remove(nest);
 			unwind(nest, unwindings);
 		}
-
+		loop.refreshLoopBody(); //TODO: test
+		
 		if (unwindings <= 0) {
 			eliminate(loop);
 			return;
@@ -172,7 +177,7 @@ public abstract class AbstractLoopUnwinding {
 			// if we want to do abstract unwinding, we have to make
 			// the clones NoCode blocks.
 			if (dontVerifyClones) {
-				ignoreInVerification(clone);
+				markAsClone(clone);
 			}
 			
 			clonemap.put(b, clone);
@@ -213,10 +218,10 @@ public abstract class AbstractLoopUnwinding {
 		unwind(loop, unwindings - 1);
 	}
 	
-	private void ignoreInVerification(BasicBlock clone) {
-		ProgramFactory pf = GlobalsCache.v().getProgramFactory();
+	private void markAsClone(BasicBlock clone) {
+		ProgramFactory pf = GlobalsCache.v().getProgramFactory();		
 		clone.addStatement(new CfgAssertStatement(null,
-				new Attribute[] { pf.mkNoCodeAttribute() },
+				new Attribute[] { pf.mkCustomAttribute(GlobalsCache.cloneAttribute) },
 				new CfgBooleanLiteral(null, pf.getBoolType(), true)));	
 	}
 	

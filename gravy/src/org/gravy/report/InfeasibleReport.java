@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
+import org.gravy.GlobalsCache;
 import org.gravy.Options;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
@@ -49,18 +50,15 @@ public class InfeasibleReport extends Report {
 //		int i=0;
 		for (HashSet<BasicBlock> subprog : infeasibleSubProgs) {
 			
-//			System.err.println("Subprog "+(i++));
-//			for (BasicBlock b : subprog) System.err.println("\t"+b.getLabel());
-			//find the first and last line of the infeasible
-			//sub program for reporting
-			int startLine = -1;
-			int endLine = -1;
-			boolean ignoreSubProg = false;
-			
 			StringBuilder sb_ = new StringBuilder();
 			
 			for (BasicBlock b : subprog) {				
-				ILocation loc = b.getLocationTag();			
+							
+				if (this.containsNoVerifyAttribute(b)) {
+					continue;
+				}
+				
+				ILocation loc = b.getLocationTag();
 				if (loc!=null) {
 					sb_.append("\tLines ");
 					sb_.append(loc.getStartLine());
@@ -68,33 +66,8 @@ public class InfeasibleReport extends Report {
 					sb_.append(loc.getEndLine());
 					sb_.append("\n");
 				}
-				
-				for (CfgStatement s : b.getStatements()) {
-					if (s.getAttributes()!=null) {
-						for (Attribute attr : s.getAttributes()) {
-							if (attr instanceof NamedAttribute) {
-								NamedAttribute na = (NamedAttribute)attr;
-								if (na.getName().equals(ProgramFactory.NoCodeTag)) {									
-									ignoreSubProg = true; break;
-								} 
-							}
-						}		
-					}
-					if (ignoreSubProg) break;
-					loc = s.getLocation();
-					if (loc!=null) {
-						if (startLine==-1 || loc.getStartLine()<startLine) {
-							startLine = loc.getStartLine();
-						}
-						if (endLine==-1 || loc.getEndLine()>endLine) {
-							endLine = loc.getEndLine();
-						}					
-					}
-				}
-				if (ignoreSubProg) break;
 			}
 			
-			if (ignoreSubProg) continue;			
 			if (firstReport) {
 				firstReport = false;
 				sb.append("\nInfeasible Code in:"+procName+"\n");
@@ -122,18 +95,24 @@ public class InfeasibleReport extends Report {
 			int startLine = -1;
 			int endLine = -1;
 			String filename="";
-			boolean ignoreSubProg = false;
+			//boolean ignoreSubProg = false;
 			
-			for (BasicBlock b : subprog) {				
+			for (BasicBlock b : subprog) {
+				
+				if (this.containsNoVerifyAttribute(b)) {
+					//Ignore this report
+					startLine = -1;
+					endLine = -1;
+					filename="";					
+					break;					
+				} else if (this.containsNamedAttribute(b, GlobalsCache.cloneAttribute)) {
+					continue;
+				}
 				
 				for (CfgStatement s : b.getStatements()) {
 					if (s.getAttributes()!=null) {
 						for (Attribute attr : s.getAttributes()) {
 							if (attr instanceof NamedAttribute) {
-								NamedAttribute na = (NamedAttribute)attr;
-								if (na.getName().equals(ProgramFactory.NoCodeTag)) {									
-									ignoreSubProg = true; break;
-								} 
 								
 								JavaSourceLocation jcl = readSourceLocationFromAttrib(attr);
 								if (jcl!=null) {
@@ -152,12 +131,12 @@ public class InfeasibleReport extends Report {
 							}
 						}		
 					}
-					if (ignoreSubProg) break;
+					
 				}
-				if (ignoreSubProg) break;
+				
 			}
 			
-			if (ignoreSubProg) continue;
+			//if (ignoreSubProg) continue;
 			
 			if (filename=="" || startLine==-1 || endLine==-1) {
 				//if there is no code location, then we have nothing to report.

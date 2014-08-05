@@ -11,6 +11,8 @@ import boogie.ProgramFactory;
  */
 public class GlobalsCache {
 
+	public static final String cloneAttribute = "ClonedBlock";
+	
 	private static GlobalsCache instance = null;
 	
 	public static GlobalsCache v() {

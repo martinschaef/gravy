@@ -42,6 +42,7 @@ public class Log {
 		if (null == logger) {
 			// create logger
 			logger = Logger.getRootLogger();
+			
 		}
 
 		return logger;

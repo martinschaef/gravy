@@ -8,6 +8,8 @@ import java.util.List;
 import util.Log;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
+import boogie.controlflow.util.LoopDetection;
+import boogie.controlflow.util.LoopInfo;
 
 /**
  * @author schaef

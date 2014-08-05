@@ -87,6 +87,28 @@ public class Report {
 		return sb.toString();
 	}
 	
+	protected boolean containsNoVerifyAttribute(BasicBlock b) {
+		return containsNamedAttribute(b, ProgramFactory.NoVerifyTag);
+	}
+	
+	protected boolean containsNamedAttribute(BasicBlock b, String name) {
+		for (CfgStatement s : b.getStatements()) {
+			if (s.getAttributes()!=null) {
+				for (Attribute attr : s.getAttributes()) {
+					if (attr instanceof NamedAttribute) {
+						NamedAttribute na = (NamedAttribute)attr;
+						if (na.getName().equals(name)) {									
+							return true;
+						} 
+					}
+				}		
+			}
+		}
+		return false;
+	}
+	
+	
+	
 	protected LinkedList<Statement> collectStatements(AbstractControlFlowFactory cff, Set<BasicBlock> blocks) {
 		LinkedList<Statement> astStatements = new LinkedList<Statement>();
 		for (BasicBlock b : blocks) {
