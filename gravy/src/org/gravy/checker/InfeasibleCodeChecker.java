@@ -45,8 +45,8 @@ public class InfeasibleCodeChecker extends
 		AbstractLoopUnwinding.unwindeLoops(p);
 		p.pruneUnreachableBlocks();
 
-//		p.toFile("./"+p.getProcedureName()+".bpl");
-//		p.toDot("./"+p.getProcedureName()+"_lf.dot");
+		p.toFile("./"+p.getProcedureName()+".bpl");
+		p.toDot("./"+p.getProcedureName()+"_lf.dot");
 				
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.recomputeSSA(p);

@@ -4,15 +4,20 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
+import org.gravy.GlobalsCache;
 import org.gravy.Options;
 
 import util.Log;
+import boogie.ProgramFactory;
+import boogie.ast.Attribute;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.CfgVariable;
+import boogie.controlflow.expression.CfgBooleanLiteral;
 import boogie.controlflow.expression.CfgExpression;
 import boogie.controlflow.expression.CfgIdentifierExpression;
 import boogie.controlflow.statement.CfgAssignStatement;
+import boogie.controlflow.statement.CfgAssumeStatement;
 import boogie.controlflow.statement.CfgCallStatement;
 import boogie.controlflow.statement.CfgHavocStatement;
 import boogie.controlflow.statement.CfgStatement;
@@ -60,7 +65,7 @@ public class FmsdUnwinding extends AbstractLoopUnwinding {
 		}
 		loop.refreshLoopBody(); //TODO: test
 		loop.UpdateLoopEntries();
-		
+
 		//TOOD: recompute the loop info because the body has changed		
 		this.maxUnwinding=1;
 		
@@ -79,6 +84,7 @@ public class FmsdUnwinding extends AbstractLoopUnwinding {
 			havocLoop(nest);
 		}
 		loop.refreshLoopBody(); //TODO: test
+		
 		loop.loopHead.addStatement(computeHavocStatement(loop), true);
 		
 		for (BasicBlock b : loop.loopExit) {

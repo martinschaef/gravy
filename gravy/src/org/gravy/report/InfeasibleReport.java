@@ -57,6 +57,10 @@ public class InfeasibleReport extends Report {
 				if (this.containsNoVerifyAttribute(b)) {
 					continue;
 				}
+				if (this.containsNamedAttribute(b, GlobalsCache.ignoreInfeasibleReport)) {
+					sb_ = new StringBuilder();
+					break;
+				}
 				
 				ILocation loc = b.getLocationTag();
 				if (loc!=null) {
@@ -70,7 +74,7 @@ public class InfeasibleReport extends Report {
 				}
 			}
 			
-			if (firstReport) {
+			if (firstReport && sb_.length()>0) {
 				firstReport = false;
 				sb.append("\nInfeasible Code in:"+procName+"\n");
 			}
@@ -122,6 +126,8 @@ public class InfeasibleReport extends Report {
 //										System.err.println("Halloooooo!");
 //										continue;
 //									}
+							
+									
 									filename = jcl.FileName;
 									if (startLine==-1 || jcl.StartLine<startLine) {
 									startLine = jcl.StartLine;
@@ -170,6 +176,11 @@ public class InfeasibleReport extends Report {
 						&& o.EndCol==this.EndCol;
 			}
 			return false;
+		}
+		
+		@Override
+		public int hashCode(){
+			return this.FileName.hashCode()*StartLine*EndLine*StartCol*EndCol;
 		}
 	}
 	

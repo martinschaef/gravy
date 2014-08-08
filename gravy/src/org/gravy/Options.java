@@ -63,6 +63,9 @@ public class Options {
 		return loopmode;
 	}
 	
+	public void setLoopMode(int lm) {
+		loopmode=lm;
+	}
 	
 	
 	@Option(name = "-checker", usage = "Which check should be used:\n\t0\t: Gradual Verification\n\t1\t: Infeasible Code Detection")

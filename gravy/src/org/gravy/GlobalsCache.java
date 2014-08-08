@@ -13,6 +13,8 @@ public class GlobalsCache {
 
 	public static final String cloneAttribute = "ClonedBlock";
 	
+	public static final String ignoreInfeasibleReport = "IgnoreReport";
+	
 	private static GlobalsCache instance = null;
 	
 	public static GlobalsCache v() {
