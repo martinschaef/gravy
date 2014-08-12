@@ -10,6 +10,9 @@ import org.gravy.checker.AbstractChecker;
 import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
 import org.gravy.report.Report;
+import org.gravy.reportprinter.DefaultGraVyReportPrinter;
+import org.gravy.reportprinter.DefaultInfeasibleCodeReportPrinter;
+import org.gravy.reportprinter.ReportPrinter;
 import org.gravy.util.Log;
 
 import typechecker.TypeChecker;
@@ -25,16 +28,13 @@ import boogie.controlflow.DefaultControlFlowFactory;
 public class ProgramAnalysis {
 	
 	private static long timeouts = 0;
-	
-	public static long feasibleBlocks, infeasibleBlocks, infeasibleBlocksUnderPost;
 		
 	public static void runProgramAnalysis(String boogieFileName) throws Exception {
 		ProgramFactory pf;
 		try {
 			pf = new ProgramFactory(boogieFileName);
-			Log.info("Parsed "+ boogieFileName + ": "+ (pf.getASTRoot()!=null));					
-			GlobalsCache.v().setProgramFactory(pf);
-			runFullProgramAnalysis(pf);			
+			Log.info("Parsed "+ boogieFileName + ": "+ (pf.getASTRoot()!=null));								
+			runFullProgramAnalysis(pf, getDefaultReportPrinter());			
 		} catch (Exception e) {
 			throw e;
 		} finally {
@@ -43,12 +43,29 @@ public class ProgramAnalysis {
 		}
 	}
 	
-	private static void runFullProgramAnalysis(ProgramFactory pf) {		
-		
-		feasibleBlocks=0;
-		infeasibleBlocks=0;
-		infeasibleBlocksUnderPost=0;
-		
+	private static ReportPrinter getDefaultReportPrinter() {
+		ReportPrinter rp = null;
+		switch (Options.v().getChecker()) {
+		case 0: {
+			rp = new DefaultGraVyReportPrinter();
+			break;
+		}
+		case 1: {
+			rp = new DefaultInfeasibleCodeReportPrinter();
+			break;
+		}		
+		default: {
+			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
+			rp = new DefaultGraVyReportPrinter();
+			break;
+		}
+		}
+		return rp;
+	}
+	
+	
+	public static void runFullProgramAnalysis(ProgramFactory pf, ReportPrinter rp) {		
+		GlobalsCache.v().setProgramFactory(pf);
 		TypeChecker tc = new TypeChecker(pf.getASTRoot());
 		DefaultControlFlowFactory cff = new DefaultControlFlowFactory(pf.getASTRoot(), tc);
 
@@ -58,8 +75,13 @@ public class ProgramAnalysis {
 
 		for (CfgProcedure p : cff.getProcedureCFGs()) {
 			if (p.getRootNode()==null) continue;
-			try {
-				if (!analyzeProcedure(p, cff)) break;
+			try {				
+				Report report = analyzeProcedure(p, cff);
+				
+				if (report!=null && !report.toString().isEmpty()) {
+					rp.printReport(report);
+				}
+						
 			} catch (Exception e) {
 				e.printStackTrace();
 				break;
@@ -76,11 +98,11 @@ public class ProgramAnalysis {
 				
 	}
 	
-	private static boolean analyzeProcedure(CfgProcedure p, AbstractControlFlowFactory cff) {
+	private static Report analyzeProcedure(CfgProcedure p, AbstractControlFlowFactory cff) {
 		if (Options.v().getDebugMode()) {
 			Log.info("Checking: " + p.getProcedureName());
 		}
-
+		Log.info("Checking: " + p.getProcedureName());
 		// create an executor to kill the verification with a timeout if
 		// necessary
 		ExecutorService executor = Executors.newSingleThreadExecutor();		
@@ -106,8 +128,6 @@ public class ProgramAnalysis {
 		
 		final Future<?> future = executor.submit(detectionThread);
 
-		
-		boolean timeout = false;
 		boolean exception = false;
 
 		try {
@@ -120,7 +140,6 @@ public class ProgramAnalysis {
 			// methodInfo.setTimeout(true);
 			timeouts++;
 			Log.debug("Timeout reached for method " + p.getProcedureName());
-			timeout = true;
 		} catch (Exception e) {
 			e.printStackTrace();
 			future.cancel(true);
@@ -136,23 +155,12 @@ public class ProgramAnalysis {
 
 			// shutdown executor
 			executor.shutdown();
+			
 		}
 		
 		Report report = detectionThread.getReport();
-		
-		if (report!=null && !report.toString().isEmpty()) {
-			Log.info(report.toString());
-		}
-
-		if (timeout) {
-			
-		} else {
-			feasibleBlocks+=detectionThread.countFeasibleBlock() ;
-			infeasibleBlocks+=detectionThread.countInfeasibleBlock();
-			infeasibleBlocksUnderPost+=detectionThread.countInfeasibleBlockUnderPost();
-		}
-		
-		return !exception;
+		if (exception) return null; 		
+		return report;
 	}
 
 

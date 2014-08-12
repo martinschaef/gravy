@@ -3,8 +3,6 @@
  */
 package gravy_test;
 
-import static org.junit.Assert.fail;
-
 import java.io.File;
 import java.util.Collection;
 import java.util.LinkedList;
@@ -63,25 +61,12 @@ public class InfeasibleCodeDetectionTest {
 		
 		String fname = this.input;	
 		
-		long expectedFeasibleBlocks = 56;
-		long expectedInfeasibleBlocks = 4;
-		long expectedInfeasibleBlocksUnderPost = 0;
 		//set the checker to GradualVerification (default)
 		Options.v().setChecker(1);
 		Options.v().useLocationAttribute(true);
 		try {
 			
 			ProgramAnalysis.runProgramAnalysis(fname);
-			if (ProgramAnalysis.feasibleBlocks!=expectedFeasibleBlocks 
-					|| ProgramAnalysis.infeasibleBlocks!=expectedInfeasibleBlocks 
-					|| ProgramAnalysis.infeasibleBlocksUnderPost != expectedInfeasibleBlocksUnderPost) {
-				StringBuilder sb = new StringBuilder();
-				sb.append("Analysis failed:\nExpected Result:\n");
-				sb.append("Feasible Blocks "+ProgramAnalysis.feasibleBlocks+"\t but epxected \t"+expectedFeasibleBlocks+"\n");
-				sb.append("Infeasible Blocks "+ProgramAnalysis.infeasibleBlocks+"\t but epxected \t"+expectedInfeasibleBlocks+"\n");
-				sb.append("Infeasible Blocks under Postcondition "+ProgramAnalysis.infeasibleBlocksUnderPost+"\t but epxected \t"+expectedInfeasibleBlocksUnderPost+"\n");
-				fail(sb.toString());
-			}
 			
 		} catch (Exception e) {
 			e.printStackTrace();
