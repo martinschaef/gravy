@@ -63,7 +63,7 @@ public class InfeasibleCodeDetectionTest {
 		
 		//set the checker to GradualVerification (default)
 		Options.v().setChecker(1);
-		Options.v().useLocationAttribute(true);
+		
 		try {
 			
 			ProgramAnalysis.runProgramAnalysis(fname);
