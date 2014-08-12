@@ -83,16 +83,6 @@ public class Options {
 	public boolean getDebugMode() {
 		return debugMode;
 	}
-
-	@Option(name = "-loc_attrib", usage = "Reoprt only infeasible code with :sourceloc attributes")
-	private boolean useLocationAttribute = false;	
-	public boolean useLocationAttribute() {
-		return useLocationAttribute;
-	}
-	
-	public void useLocationAttribute(boolean val) {
-		this.useLocationAttribute = val;
-	}
 	
 	
 	/**

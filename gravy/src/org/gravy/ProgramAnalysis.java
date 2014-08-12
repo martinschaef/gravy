@@ -78,7 +78,7 @@ public class ProgramAnalysis {
 			try {				
 				Report report = analyzeProcedure(p, cff);
 				
-				if (report!=null && !report.toString().isEmpty()) {
+				if (report!=null) {
 					rp.printReport(report);
 				}
 						
