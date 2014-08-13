@@ -102,7 +102,6 @@ public class ProgramAnalysis {
 		if (Options.v().getDebugMode()) {
 			Log.info("Checking: " + p.getProcedureName());
 		}
-		Log.info("Checking: " + p.getProcedureName());
 		// create an executor to kill the verification with a timeout if
 		// necessary
 		ExecutorService executor = Executors.newSingleThreadExecutor();		

@@ -8,15 +8,8 @@ import java.util.LinkedList;
 import java.util.Set;
 
 import org.gravy.GlobalsCache;
-import org.gravy.Options;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
-import boogie.ProgramFactory;
-import boogie.ast.Attribute;
-import boogie.ast.NamedAttribute;
-import boogie.ast.expression.literal.IntegerLiteral;
-import boogie.ast.expression.literal.StringLiteral;
-import boogie.ast.location.ILocation;
 import boogie.ast.statement.Statement;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
@@ -64,9 +57,15 @@ public class InfeasibleReport extends Report {
 			while (!todo.isEmpty()) {
 				BasicBlock current = todo.pop();
 				allblocks.remove(current);
-				for (CfgStatement stmt : current.getStatements()) {
-					Statement s = cff.findAstStatement(stmt);
-					if (s!=null) subprog.add(s);
+				boolean skipBlock = false;
+				if (this.containsNamedAttribute(current, GlobalsCache.cloneAttribute)) {
+					skipBlock = true;
+				}
+				if (!skipBlock) {				
+					for (CfgStatement stmt : current.getStatements()) {
+						Statement s = cff.findAstStatement(stmt);
+						if (s!=null) subprog.add(s);
+					}
 				}
 				for (BasicBlock b : current.getPredecessors()) {
 					if (!subprog.contains(b) && !todo.contains(b) && allblocks.contains(b)) {

@@ -10,7 +10,6 @@ import org.gravy.GlobalsCache;
 import org.gravy.report.InfeasibleReport;
 import org.gravy.report.Report;
 
-import util.BoogiePrinter;
 import util.Log;
 import boogie.ProgramFactory;
 import boogie.ast.Attribute;
@@ -38,7 +37,8 @@ public class DefaultInfeasibleCodeReportPrinter implements ReportPrinter {
 	public void printReport(Report r) {
 		if (r!=null && r instanceof InfeasibleReport) {
 			InfeasibleReport ir = (InfeasibleReport)r;
-			Log.info(this.buildBoogieErrorString(ir));
+			String s = this.buildBoogieErrorString(ir);
+			if (s!=null && s.length()>0) Log.info(s);
 		}
 	}
 
@@ -67,9 +67,9 @@ public class DefaultInfeasibleCodeReportPrinter implements ReportPrinter {
 					sb_.append(loc.getStartLine());
 					sb_.append(" to ");
 					sb_.append(loc.getEndLine());
-					sb_.append(":\n");
-					BoogiePrinter bp = new BoogiePrinter(null);
-					bp.printStatement(sb_, s, "\t");
+//					sb_.append(":\n");
+//					BoogiePrinter bp = new BoogiePrinter(null);
+//					bp.printStatement(sb_, s, "\t");
 					sb_.append("\n");
 				}
 			}

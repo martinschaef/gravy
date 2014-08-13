@@ -4,20 +4,15 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
 
-import org.gravy.GlobalsCache;
 import org.gravy.Options;
 
 import util.Log;
-import boogie.ProgramFactory;
-import boogie.ast.Attribute;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.CfgVariable;
-import boogie.controlflow.expression.CfgBooleanLiteral;
 import boogie.controlflow.expression.CfgExpression;
 import boogie.controlflow.expression.CfgIdentifierExpression;
 import boogie.controlflow.statement.CfgAssignStatement;
-import boogie.controlflow.statement.CfgAssumeStatement;
 import boogie.controlflow.statement.CfgCallStatement;
 import boogie.controlflow.statement.CfgHavocStatement;
 import boogie.controlflow.statement.CfgStatement;
