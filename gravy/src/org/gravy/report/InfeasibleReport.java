@@ -10,6 +10,7 @@ import java.util.Set;
 import org.gravy.GlobalsCache;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
+import boogie.ProgramFactory;
 import boogie.ast.statement.Statement;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
@@ -58,7 +59,7 @@ public class InfeasibleReport extends Report {
 				BasicBlock current = todo.pop();
 				allblocks.remove(current);
 				boolean skipBlock = false;
-				if (this.containsNamedAttribute(current, GlobalsCache.cloneAttribute)) {
+				if (this.containsNamedAttribute(current, ProgramFactory.Cloned)) {
 					skipBlock = true;
 				}
 				if (!skipBlock) {				

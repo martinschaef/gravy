@@ -6,7 +6,6 @@ package org.gravy.reportprinter;
 import java.util.HashSet;
 import java.util.LinkedList;
 
-import org.gravy.GlobalsCache;
 import org.gravy.report.InfeasibleReport;
 import org.gravy.report.Report;
 
@@ -55,10 +54,6 @@ public class DefaultInfeasibleCodeReportPrinter implements ReportPrinter {
 							
 				if (this.containsNoVerifyAttribute(s)) {
 					continue;
-				}
-				if (this.containsNamedAttribute(s, GlobalsCache.ignoreInfeasibleReport)) {
-					sb_ = new StringBuilder();
-					break;
 				}
 				
 				ILocation loc = s.getLocation();

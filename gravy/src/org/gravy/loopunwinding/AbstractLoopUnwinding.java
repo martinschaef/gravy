@@ -184,7 +184,7 @@ public abstract class AbstractLoopUnwinding {
 	private void markAsClone(BasicBlock clone) {
 		ProgramFactory pf = GlobalsCache.v().getProgramFactory();		
 		clone.addStatement(new CfgAssertStatement(null,
-				new Attribute[] { pf.mkCustomAttribute(GlobalsCache.cloneAttribute) },
+				new Attribute[] { pf.mkCustomAttribute(ProgramFactory.Cloned) },
 				new CfgBooleanLiteral(null, pf.getBoolType(), true)));	
 	}
 	
