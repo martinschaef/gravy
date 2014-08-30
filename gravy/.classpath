@@ -5,9 +5,21 @@
 	<classpathentry kind="lib" path="lib/args4j-2.0.18.jar"/>
 	<classpathentry kind="lib" path="lib/log4j-1.2.16.jar"/>
 	<classpathentry kind="lib" path="lib/princess.jar"/>
-	<classpathentry kind="lib" path="lib/cfg-plugin.jar"/>
-	<classpathentry kind="lib" path="lib/scala-actors.jar"/>
-	<classpathentry kind="lib" path="lib/scala-library.jar"/>
-	<classpathentry kind="lib" path="lib/boogieamp.jar" sourcepath="/boogieamp/src"/>
+	<classpathentry kind="lib" path="lib/cfg-plugin.jar">
+		<accessrules>
+			<accessrule kind="accessible" pattern="**"/>
+		</accessrules>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/scala-actors.jar">
+		<accessrules>
+			<accessrule kind="accessible" pattern="**"/>
+		</accessrules>
+	</classpathentry>
+	<classpathentry kind="lib" path="lib/scala-library.jar">
+		<accessrules>
+			<accessrule kind="accessible" pattern="*"/>
+		</accessrules>
+	</classpathentry>
+	<classpathentry combineaccessrules="false" kind="src" path="/boogieamp"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>

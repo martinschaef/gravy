@@ -9,16 +9,23 @@ type intArrHeap_type = [ref][int]int;
 const unique $type : Field javaType;
 const unique $alloc : Field bool;
 const unique $null : ref;
-const { :sourceloc "Object.java",-1,-1,-1,-1 } unique java.lang.Object : javaType extends  complete;
-const { :sourceloc "FalsePositives04.java",-1,-1,-1,-1 } unique FalsePositives04 : javaType extends  unique java.lang.Object complete;
-const { :sourceloc "Serializable.java",-1,-1,-1,-1 } unique java.io.Serializable : javaType extends  unique java.lang.Object complete;
-const { :sourceloc "Throwable.java",-1,-1,-1,-1 } unique java.lang.Throwable : javaType extends  unique java.io.Serializable, unique java.lang.Object complete;
-const { :sourceloc "Exception.java",-1,-1,-1,-1 } unique java.lang.Exception : javaType extends  unique java.lang.Throwable complete;
-const { :sourceloc "RuntimeException.java",-1,-1,-1,-1 } unique java.lang.RuntimeException : javaType extends  unique java.lang.Exception complete;
-const { :sourceloc "NullPointerException.java",-1,-1,-1,-1 } unique java.lang.NullPointerException : javaType extends  unique java.lang.RuntimeException complete;
-const { :sourceloc "Comparable.java",-1,-1,-1,-1 } unique java.lang.Comparable : javaType extends  unique java.lang.Object complete;
-const { :sourceloc "CharSequence.java",-1,-1,-1,-1 } unique java.lang.CharSequence : javaType extends  unique java.lang.Object complete;
-const { :sourceloc "String.java",-1,-1,-1,-1 } unique java.lang.String : javaType extends  unique java.io.Serializable, unique java.lang.CharSequence, unique java.lang.Comparable, unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.lang.Object : javaType extends  complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique InfeasibleCode01 : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.lang.Appendable : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.lang.CharSequence : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.lang.AbstractStringBuilder : javaType extends  unique java.lang.CharSequence, unique java.lang.Object, unique java.lang.Appendable complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.io.Serializable : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.lang.StringBuffer : javaType extends  unique java.io.Serializable, unique java.lang.CharSequence, unique java.lang.AbstractStringBuilder complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.lang.Comparable : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.lang.String : javaType extends  unique java.io.Serializable, unique java.lang.CharSequence, unique java.lang.Object, unique java.lang.Comparable complete;
+const unique $StringConst0 : ref extends  complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.lang.AutoCloseable : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.io.Closeable : javaType extends  unique java.lang.AutoCloseable, unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.io.Flushable : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.io.OutputStream : javaType extends  unique java.io.Flushable, unique java.lang.Object, unique java.io.Closeable complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.io.FilterOutputStream : javaType extends  unique java.io.OutputStream complete;
+const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } unique java.io.PrintStream : javaType extends  unique java.io.FilterOutputStream, unique java.io.Closeable, unique java.lang.Appendable complete;
+const unique $StringConst1 : ref extends  complete;
 var $heap : $heap_type;
 var $intArrayType : javaType;
 var $charArrayType : javaType;
@@ -31,7 +38,9 @@ var $boolArrHeap : boolArrHeap_type;
 var $refArrHeap : refArrHeap_type;
 var $realArrHeap : realArrHeap_type;
 var $intArrHeap : intArrHeap_type;
-var java.lang.Object$FalsePositives04$first234 : Field ref;
+var InfeasibleCode01$InfeasibleCode01$bases234 : Field ref;
+var java.io.PrintStream$java.lang.System$err237 : ref;
+var int$InfeasibleCode01$beginEndTag0 : Field int;
 function $arrayType(t:javaType) returns ($ret:javaType);
 function $intToReal(x:int) returns ($ret:real);
 function $intToBool(x:int) returns ($ret:bool) { (if x == 0 then false else true) }
@@ -48,128 +57,170 @@ function $shlInt(x:int, y:int) returns ($ret:int);
 function $ushrInt(x:int, y:int) returns ($ret:int);
 function $shrInt(x:int, y:int) returns ($ret:int);
 axiom (forall t : javaType :: $heap[$null,$type] <: t);
-procedure $new(obj_type:javaType) returns ($obj:ref);    ensures $heap[$obj,$type] == obj_type;    requires $heap[$obj,$alloc] == false;        ensures $obj != $null;    ensures $heap[$obj,$alloc] == true;
+procedure $new(obj_type:javaType) returns ($obj:ref);        requires $heap[$obj,$alloc] == false;    ensures $heap[$obj,$type] == obj_type;    ensures $heap[$obj,$alloc] == true;    ensures $obj != $null;
 
-procedure java.lang.Object$java.lang.Object$clone$43($this:ref) returns ($other:ref);        ensures $other != $null;    ensures $heap[$other,$alloc] == true;    ensures $heap[$other,$type] == $heap[$this,$type];
+procedure java.lang.Object$java.lang.Object$clone$43($this:ref) returns ($other:ref);    ensures $heap[$other,$type] == $heap[$this,$type];    ensures $other != $null;        ensures $heap[$other,$alloc] == true;
 
 procedure int$java.lang.String$compareTo$87($this:ref, $other:ref) returns ($return:int);    
 
-procedure java.lang.Object$FalsePositives04$peekFirst$1890($this:ref) returns ($return:ref, $exception:ref);    modifies $heap;
+procedure boolean$InfeasibleCode01$foo$1889($this:ref, $in_parameter__0:ref) returns ($return:int, $exception:ref);    
 
-procedure java.lang.Object$FalsePositives04$foo$1889($this:ref) returns ($return:ref, $exception:ref);    modifies $heap;
+procedure int$java.lang.Object$hashCode$41($this:ref) returns ($return:int, $exception:ref);    
+
+procedure int$InfeasibleCode01$infeasible0$1890($this:ref, $in_parameter__0:ref) returns ($return:int, $exception:ref);    modifies $intArrHeap;
+
+procedure int$InfeasibleCode01$infeasible1$1891($this:ref, $in_parameter__0:ref) returns ($return:int, $exception:ref);    
+
+procedure void$java.lang.StringBuffer$$la$init$ra$$685($this:ref) returns ($exception:ref);    
 
 procedure java.lang.String$java.lang.Object$toString$44($this:ref) returns ($return:ref, $exception:ref);    
 
-procedure void$FalsePositives04$$la$init$ra$$1891($this:ref) returns ($exception:ref);    
+procedure java.lang.StringBuffer$java.lang.StringBuffer$append$701($this:ref, $in_parameter__0:ref) returns ($return:ref, $exception:ref);    
+
+procedure java.lang.String$java.lang.StringBuffer$toString$738($this:ref) returns ($return:ref, $exception:ref);    
+
+procedure void$java.io.PrintStream$println$217($this:ref, $in_parameter__0:ref) returns ($exception:ref);    
+
+procedure void$InfeasibleCode01$infeasible2$1892($this:ref, $in_parameter__0:ref) returns ($exception:ref);    modifies $intArrHeap;
+
+procedure void$InfeasibleCode01$infeasible3$1893($this:ref, $in_parameter__0:int, $in_parameter__1:int) returns ($exception:ref);    
+
+procedure boolean$InfeasibleCode01$infeasible4$1894($this:ref, $in_parameter__0:ref) returns ($return:int, $exception:ref);    
+
+procedure void$InfeasibleCode01$infeasible5$1895($this:ref) returns ($exception:ref);    modifies $stringSizeHeap;
+
+procedure int$InfeasibleCode01$infeasible6$1896($this:ref, $in_parameter__0:ref) returns ($return:int, $exception:ref);    
+
+procedure void$InfeasibleCode01$infeasible07$1897($this:ref, $in_parameter__0:ref) returns ($exception:ref);    
+
+procedure void$InfeasibleCode01$infeasible08$1898($this:ref, $in_parameter__0:ref, $in_parameter__1:ref, $in_parameter__2:int) returns ($exception:ref);    
+
+procedure int$java.lang.String$indexOf$102($this:ref, $in_parameter__0:ref, $in_parameter__1:int) returns ($return:int, $exception:ref);    
+
+procedure void$InfeasibleCode01$$la$init$ra$$1899($this:ref) returns ($exception:ref);    
 
 procedure void$java.lang.Object$$la$init$ra$$38($this:ref) returns ($exception:ref);    
 
-implementation java.lang.Object$FalsePositives04$peekFirst$1890($this:ref) returns ($return:ref, $exception:ref){
-    
-var temp$24 : ref;    
-var this1 : ref;    
-var temp$35 : ref;    
-var temp$13 : ref;    
-var temp$68 : ref;    
-var temp$57 : ref;    
-var temp$79 : ref;    
-var temp$02 : ref;    
-var temp$46 : ref;
-    assume $this != $null;
-    assume $heap[$return,$type] <: java.lang.Object;
-    assert { :sourceloc "FalsePositives04.java",8,5,17,5 } true;
-    this1 := $this;
-  block1:
-    assert { :sourceloc "FalsePositives04.java",8,5,17,5 } true;
-    assert { :sourceloc "FalsePositives04.java",10,18,10,22 } true;
-    call temp$02, $exception := java.lang.Object$FalsePositives04$foo$1889(this1);
-    if ($exception != $null && $heap[$exception,$type] <: java.lang.Throwable) {
-        goto block2;
-    }
-    assert { :sourceloc "FalsePositives04.java",10,10,10,14 } true;
-    $heap := $heap[this1,java.lang.Object$FalsePositives04$first234 := temp$02];
-    assert { :sourceloc "FalsePositives04.java",11,20,11,24 } true;
-    temp$13 := $heap[this1,java.lang.Object$FalsePositives04$first234];
-    assert { :sourceloc "FalsePositives04.java",11,20,11,24 } true;
-    if (temp$13 != $null) {
-        assert { :sourceloc "FalsePositives04.java",11,20,11,24 } true;
-    } else {
-        assert { :noverify } true;
-        call $exception := $new(java.lang.NullPointerException);
-        goto block2;
-    }
-    call temp$24, $exception := java.lang.String$java.lang.Object$toString$44(temp$13);
-    if ($exception != $null && $heap[$exception,$type] <: java.lang.Throwable) {
-        goto block2;
-    }
-  block3:
-    assert { :sourceloc "FalsePositives04.java",11,20,11,24 } true;
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } this1 != $null;
-    temp$35 := $heap[this1,java.lang.Object$FalsePositives04$first234];
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    if (temp$35 == $null) {
-        assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-        goto block4;
-    } else {
-        assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    }
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    goto block5;
-  block4:
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    temp$46 := $null;
-    assert { :sourceloc "FalsePositives04.java",14,11,14,22 } true;
-    $return := temp$46;
-    return;
-  block5:
-    assert { :sourceloc "FalsePositives04.java",14,11,14,22 } true;
-    assert { :sourceloc "FalsePositives04.java",11,13,11,36 } true;
-    $return := temp$24;
-    return;
-  block2:
-    assert { :sourceloc "FalsePositives04.java",11,13,11,36 } true;
-    assert { :sourceloc "FalsePositives04.java",9,9,16,9 } true;
-    assert { :sourceloc "FalsePositives04.java",9,9,16,9 } $exception != $null;
-    assume $heap[$exception,$type] <: java.lang.Throwable;
-    temp$57 := $exception;
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } this1 != $null;
-    temp$68 := $heap[this1,java.lang.Object$FalsePositives04$first234];
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    if (temp$68 == $null) {
-        assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-        goto block6;
-    } else {
-        assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    }
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    goto block7;
-  block6:
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    assert { :sourceloc "FalsePositives04.java",13,14,13,18 } { :clone } true;
-    temp$79 := $null;
-    assert { :sourceloc "FalsePositives04.java",14,11,14,22 } true;
-    $return := temp$79;
-    return;
-  block7:
-    assert { :sourceloc "FalsePositives04.java",14,11,14,22 } true;
-    assert { :sourceloc "FalsePositives04.java",14,11,14,22 } true;
-    $exception := temp$57;
-    return;
-}
 
-
-implementation void$FalsePositives04$$la$init$ra$$1891($this:ref) returns ($exception:ref){
+implementation void$InfeasibleCode01$infeasible08$1898($this:ref, $in_parameter__0:ref, $in_parameter__1:ref, $in_parameter__2:int) returns ($exception:ref){
     
-var this10 : ref;
-    assume $this != $null;
-    assert { :sourceloc "FalsePositives04",3,-1,-1,-1 } true;
-    this10 := $this;
-    assert { :sourceloc "FalsePositives04",3,-1,-1,-1 } true;
-    call $exception := void$java.lang.Object$$la$init$ra$$38(this10);
-    assert { :sourceloc "FalsePositives04",3,-1,-1,-1 } true;
+var interncaret83 : int;    
+var temphitpoint84 : int;    
+var temp$592 : int;    
+var this80 : ref;    
+var temp$087 : int;    
+var temp$491 : int;    
+var searchString82 : ref;    
+var temp$289 : int;    
+var temp$895 : int;    
+var temp$794 : int;    
+var temp$390 : int;    
+var hitUp86 : int;    
+var temp$188 : int;    
+var source81 : ref;    
+var temp$693 : int;    
+var flaghitup85 : int;
+    assume { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } $this != $null;
+    assume $heap[$in_parameter__0,$type] <: java.lang.String;
+    assume $heap[$in_parameter__1,$type] <: java.lang.String;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",89,2,110,2 } true;
+    this80 := $this;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",89,27,89,39 } true;
+    source81 := $in_parameter__0;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",89,42,89,60 } true;
+    searchString82 := $in_parameter__1;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",89,63,89,77 } true;
+    interncaret83 := $in_parameter__2;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",90,3,90,24 } true;
+    temphitpoint84 := -1;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",91,3,91,28 } true;
+    flaghitup85 := 0;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",92,3,92,16 } true;
+    hitUp86 := 0;
+  block27:
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",93,3,103,21 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",95,4,95,12 } true;
+    temp$087 := 0;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",95,4,95,12 } true;
+    flaghitup85 := temp$087;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",96,4,96,60 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",96,4,96,60 } source81 != $null;
+    call temp$188, $exception := int$java.lang.String$indexOf$102(source81, searchString82, interncaret83);
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",96,4,96,15 } true;
+    temphitpoint84 := temp$188;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,7,97,22 } true;
+    if (temphitpoint84 > 0) {
+        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,7,97,22 } true;
+        goto block28;
+    } else {
+        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,7,97,22 } true;
+    }
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,7,97,22 } true;
+    goto block29;
+  block28:
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,7,97,22 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,42,97,52 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,42,97,52 } this80 != $null;
+    temp$289 := $heap[this80,int$InfeasibleCode01$beginEndTag0];
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,42,97,52 } true;
+    if (temphitpoint84 < temp$289) {
+        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,42,97,52 } true;
+        goto block30;
+    } else {
+        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,42,97,52 } true;
+    }
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,42,97,52 } true;
+    goto block29;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,42,97,52 } true;
+    goto block30;
+  block30:
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",97,42,97,52 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",99,5,99,12 } true;
+    temp$390 := hitUp86;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",99,5,99,9 } true;
+    temp$491 := temp$390 + 1;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",99,5,99,9 } true;
+    hitUp86 := temp$491;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",100,5,100,13 } true;
+    temp$592 := 1;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",100,5,100,13 } true;
+    flaghitup85 := temp$592;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",101,5,101,55 } true;
+    temp$693 := temphitpoint84;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",101,5,101,55 } true;
+    temp$794 := $stringSizeHeap[searchString82];
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",101,5,101,55 } true;
+    temp$895 := temp$693 + temp$794;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",101,5,101,15 } true;
+    interncaret83 := temp$895;
+  block29:
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",101,5,101,15 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",101,5,101,15 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",103,11,103,19 } true;
+    if (flaghitup85 == 0) {
+        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",103,11,103,19 } true;
+        goto block31;
+    } else {
+        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",103,11,103,19 } true;
+    }
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",103,11,103,19 } true;
+    goto block27;
+  block31:
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",103,11,103,19 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",104,6,104,15 } true;
+    if (hitUp86 == 0) {
+        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",104,6,104,15 } true;
+        goto block32;
+    } else {
+        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",104,6,104,15 } true;
+    }
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",104,6,104,15 } true;
+    goto block33;
+  block32:
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",104,6,104,15 } true;
+  block33:
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",104,6,104,15 } true;
+    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",104,6,104,15 } true;
     return;
 }
 

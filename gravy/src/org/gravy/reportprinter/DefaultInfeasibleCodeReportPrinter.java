@@ -3,7 +3,9 @@
  */
 package org.gravy.reportprinter;
 
+import java.util.Collections;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 
 import org.gravy.report.InfeasibleReport;
@@ -46,9 +48,8 @@ public class DefaultInfeasibleCodeReportPrinter implements ReportPrinter {
 		StringBuffer sb = new StringBuffer();
 		boolean firstReport = true;
 //		int i=0;
+		LinkedHashSet<Integer> numbers = new LinkedHashSet<Integer>(); 
 		for (HashSet<Statement> subprog : infeasibleSubProgs) {
-			
-			StringBuilder sb_ = new StringBuilder();
 			
 			for (Statement s : subprog) {				
 							
@@ -58,22 +59,24 @@ public class DefaultInfeasibleCodeReportPrinter implements ReportPrinter {
 				
 				ILocation loc = s.getLocation();
 				if (loc!=null) {
-					sb_.append("\tLines ");
-					sb_.append(loc.getStartLine());
-					sb_.append(" to ");
-					sb_.append(loc.getEndLine());
+					numbers.add(loc.getStartLine());
 //					sb_.append(":\n");
 //					BoogiePrinter bp = new BoogiePrinter(null);
 //					bp.printStatement(sb_, s, "\t");
-					sb_.append("\n");
 				}
 			}
 			
-			if (firstReport && sb_.length()>0) {
+			if (firstReport && numbers.size()>0) {
 				firstReport = false;
 				sb.append("\nInfeasible Code in:"+ir.getProcedureName()+"\n");
+				LinkedList<Integer> sortednumbers = new LinkedList<Integer>(numbers);
+				Collections.sort(sortednumbers);
+				for (Integer i : sortednumbers) {
+					sb.append("\t"+i+"\n");	
+				}
+
 			}
-			sb.append(sb_.toString());
+			
 //			System.err.println("is infeasible");
 		}
 		if (!firstReport) sb.append("\n");

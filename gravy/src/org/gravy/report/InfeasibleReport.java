@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
 
-import org.gravy.GlobalsCache;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
 import boogie.ProgramFactory;
