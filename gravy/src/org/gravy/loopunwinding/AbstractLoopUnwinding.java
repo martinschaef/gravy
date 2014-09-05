@@ -96,6 +96,7 @@ public abstract class AbstractLoopUnwinding {
 			if (connectedToExit.contains(b)) {
 				//ensure that blocks inside the loop are not reported.
 				if (dontVerifyClones && (!mustset.contains(b) || loop.isNestedLoop)) {
+//				if (dontVerifyClones ) {	
 					//TODO: check if it makes sense to not mark the loop head.					
 					markAsClone(b);
 				}				
@@ -113,8 +114,82 @@ public abstract class AbstractLoopUnwinding {
 		}
 	}
 	
-	
 	private HashSet<BasicBlock> mustBeReachedByLoopHead (LoopInfo loop) {
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		HashMap<BasicBlock, HashSet<BasicBlock>> mustReach = new HashMap<BasicBlock, HashSet<BasicBlock>>();
+		
+		HashSet<BasicBlock> end_nodes = new HashSet<BasicBlock>();
+		for (BasicBlock b : loop.loopingPred) {
+			if (b!=loop.loopHead) {
+				end_nodes.add(b);
+			}
+		}
+		for (BasicBlock b : loop.loopExit) {
+			for (BasicBlock pre : b.getPredecessors()) {
+				if (loop.loopBody.contains(pre) && pre!=loop.loopHead) {
+					end_nodes.add(pre);
+				}
+			}
+		}
+ 		
+		todo.addAll(end_nodes);
+		while (!todo.isEmpty()) {			
+			BasicBlock current = todo.removeLast();
+			//check if all predecessors have been processed already.
+			//if not, add the block to the end of the cue and start over
+			boolean allGood = true;
+			for (BasicBlock prev : current.getSuccessors()) {
+				if (!loop.loopBody.contains(prev) || prev==loop.loopHead) continue;
+				if (!done.contains(prev)) {
+					allGood=false;
+					break;
+				}
+			}		
+			if (!allGood){
+				todo.addFirst(current);
+				continue;
+			}
+			//if all predecessors have been processed,
+			//we can compute the dominators list by
+			//intersecting the list of all predecessors
+			HashSet<BasicBlock> currentDom = null;
+			if (!end_nodes.contains(current)) {
+				for (BasicBlock prev : current.getSuccessors()) {
+					if (!loop.loopBody.contains(prev) || prev==loop.loopHead) continue;
+					if (currentDom == null) {
+						currentDom = new HashSet<BasicBlock>(mustReach.get(prev));
+					} else {
+						//retainAll computes the intersection of the two sets.
+						currentDom.retainAll(mustReach.get(prev));
+					}				
+				}		
+			}
+			//special case, only occurs for the root/sink
+			if (currentDom == null) {
+				currentDom = new HashSet<BasicBlock>();
+			}
+			currentDom.add(current); //of course, a block dominates itself
+			mustReach.put(current, currentDom);
+			done.add(current);	
+			if (current!=loop.loopHead) {
+				for (BasicBlock next : current.getPredecessors()) {
+					if (!todo.contains(next) && !done.contains(next)) {
+						if (!loop.loopBody.contains(next)) continue;
+						todo.addLast(next);
+					}
+				}			
+			}
+		}	
+//		System.err.println("MUST REACH");
+//		for (BasicBlock b : mustReach.get(loop.loopHead)) {
+//			System.err.println("\t" + b.getLabel());
+//		}
+		return mustReach.get(loop.loopHead);	
+	}
+	
+	
+	private HashSet<BasicBlock> mustBeReachedByLoopHead_old (LoopInfo loop) {
 		HashSet<BasicBlock> mustbe = new HashSet<BasicBlock>();
 		//should be sufficient to mark the loophead as non-clone
 		//because if any block that shares the same set of executions

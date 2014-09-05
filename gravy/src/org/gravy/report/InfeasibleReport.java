@@ -34,8 +34,8 @@ public class InfeasibleReport extends Report {
 			AbstractTransitionRelation tr, Set<BasicBlock> feasibleBlocks,
 			Set<BasicBlock> infeasibleBlocks) {
 		this.procedureName = tr.getProcedureName();
-		//infeasibleSubProgs = findInfeasibleSubprogs(cff, infeasibleBlocks);
-		infeasibleSubProgs = findInfeasibleSubGraphs(cff, infeasibleBlocks);
+		infeasibleSubProgs = findInfeasibleSubprogs(cff, infeasibleBlocks);
+//		infeasibleSubProgs = findInfeasibleSubGraphs(cff, infeasibleBlocks);
 		
 	}
 	
@@ -57,6 +57,7 @@ public class InfeasibleReport extends Report {
 			HashSet<Statement> subprog = new HashSet<Statement>();
 			LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 			todo.add(allblocks.pop());
+//			System.err.println("blocks ");
 			while (!todo.isEmpty()) {
 				BasicBlock current = todo.pop();
 				allblocks.remove(current);
@@ -64,7 +65,8 @@ public class InfeasibleReport extends Report {
 				if (this.containsNamedAttribute(current, ProgramFactory.Cloned)) {
 					skipBlock = true;
 				}
-				if (!skipBlock) {				
+				if (!skipBlock) {			
+//					System.err.println("\t"+current.getLabel());
 					for (CfgStatement stmt : current.getStatements()) {
 						Statement s = cff.findAstStatement(stmt);
 						if (s!=null) subprog.add(s);
@@ -118,18 +120,21 @@ public class InfeasibleReport extends Report {
 			//now compute the source and the sinks of the subgraph.
 			//note, that there can only be one source
 			//but several sinks.
-			BasicBlock source=null;
+			
+			HashSet<BasicBlock> sources=new HashSet<BasicBlock>();
 			HashSet<BasicBlock> sinks=new HashSet<BasicBlock>();
+			System.err.println("subprog: ");
 			for (BasicBlock b : subprog) {
+//				System.err.println("\t"+b.getLabel());	
 				boolean connected = false;
 				for (BasicBlock x : b.getPredecessors()) {
 					if (subprog.contains(x)) {
 						connected = true; break;
 					}
 				}
-				if (!connected) {
-					if (source!=null) System.err.println("ups");
-					source = b;
+				if (!connected) {					
+					System.err.println("Source "+b.getLabel());
+					sources.add(b);
 				}
 				connected = false;
 				for (BasicBlock x : b.getSuccessors()) {
@@ -137,22 +142,24 @@ public class InfeasibleReport extends Report {
 						connected = true; break;
 					}
 				}
-				if (!connected) {					
+				if (!connected) {
+					System.err.println("Sinks "+b.getLabel());
 					sinks.add(b);
 				}				
 			}
 			
 			
-			HashSet<Statement> stmts = computeCleanedStmtList(cff, subprog, source, sinks);
+			HashSet<Statement> stmts = computeCleanedStmtList(cff, subprog, sources, sinks);
 			if (stmts.size()>0) {				
 				res.add(stmts);
 			}
+			System.err.println("---------------------");
 		}
 		return res;
 	}
 	
-	private HashSet<Statement> computeCleanedStmtList(AbstractControlFlowFactory cff, HashSet<BasicBlock> subgraph, BasicBlock source, HashSet<BasicBlock> sinks) {
-		if (subgraph.size()==0 || source==null || sinks.size()==0) {
+	private HashSet<Statement> computeCleanedStmtList(AbstractControlFlowFactory cff, HashSet<BasicBlock> subgraph, HashSet<BasicBlock> sources, HashSet<BasicBlock> sinks) {
+		if (subgraph.size()==0 || sources.size()==0 || sinks.size()==0) {
 			return new HashSet<Statement>(); 
 		}
 		//the following code finds all blocks that must
@@ -212,15 +219,24 @@ public class InfeasibleReport extends Report {
 		HashSet<Statement> ret = new HashSet<Statement>();
 		for (BasicBlock b : subgraph) {			
 			if (this.containsNamedAttribute(b, ProgramFactory.Cloned)) {
-				if (mustReach.get(source).contains(b)) {
-					//in that case, drop the entire report
-					//because any path contains a cloned statement
-					return new HashSet<Statement>();
-				}
+				//ignore every block that is labeled as clone				
 			} else {
-				for (CfgStatement stmt : b.getStatements()) {
-					Statement s = cff.findAstStatement(stmt);
-					if (s!=null) ret.add(s);
+				//only add statements of blocks that must
+				//be reached on any iteration through the
+				//loop. All other statements might be only infeasible
+				//in the last iteration.
+				boolean mustreach = true;
+				for (BasicBlock s : sources) {
+					if (!mustReach.get(s).contains(b)) {
+						mustreach = false; break;
+					}
+				}
+				System.err.println("must reach " + b.getLabel() + ": "+mustreach);
+				if (mustreach) {
+					for (CfgStatement stmt : b.getStatements()) {
+						Statement s = cff.findAstStatement(stmt);
+						if (s!=null) ret.add(s);
+					}
 				}
 			}
 		}

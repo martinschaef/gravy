@@ -3,8 +3,12 @@
  */
 package org.gravy.checker;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.LinkedList;
 
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
@@ -46,18 +50,16 @@ public class InfeasibleCodeChecker extends
 		p.pruneUnreachableBlocks();
 
 //		p.toFile("./"+p.getProcedureName()+".bpl");
-//		p.toDot("./"+p.getProcedureName()+"_lf.dot");
 				
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.recomputeSSA(p);
 
 		p.pruneUnreachableBlocks();
 		
-		
-		
+//		p.toDot("./"+p.getProcedureName()+"_lf.dot");
 	}
 
-	
+
 	/* (non-Javadoc)
 	 * @see org.gravy.infeasiblecode.AbstractInfeasibleCodeDetection#checkSat(org.gravy.prover.Prover, org.gravy.verificationcondition.CfgTransitionRelation)
 	 */
