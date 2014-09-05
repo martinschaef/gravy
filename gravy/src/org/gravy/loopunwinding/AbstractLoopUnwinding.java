@@ -7,6 +7,7 @@ import java.util.LinkedList;
 import org.gravy.GlobalsCache;
 import org.gravy.Options;
 
+import util.Log;
 import boogie.ProgramFactory;
 import boogie.ast.Attribute;
 import boogie.controlflow.BasicBlock;
@@ -95,7 +96,9 @@ public abstract class AbstractLoopUnwinding {
 		for (BasicBlock b : loop.loopBody) {
 			if (connectedToExit.contains(b)) {
 				//ensure that blocks inside the loop are not reported.
-				if (dontVerifyClones && (!mustset.contains(b) || loop.isNestedLoop)) {
+				if (dontVerifyClones 
+						&& (!mustset.contains(b) 
+								|| loop.isNestedLoop)) {
 //				if (dontVerifyClones ) {	
 					//TODO: check if it makes sense to not mark the loop head.					
 					markAsClone(b);
@@ -115,6 +118,12 @@ public abstract class AbstractLoopUnwinding {
 	}
 	
 	private HashSet<BasicBlock> mustBeReachedByLoopHead (LoopInfo loop) {
+		if (loop.loopExit.size()==0) {
+			//TODO: the code below does not work for loops without exit
+			//so we simply return the empty set
+			return new HashSet<BasicBlock>();
+		}
+		
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
 		HashMap<BasicBlock, HashSet<BasicBlock>> mustReach = new HashMap<BasicBlock, HashSet<BasicBlock>>();
@@ -185,6 +194,13 @@ public abstract class AbstractLoopUnwinding {
 //		for (BasicBlock b : mustReach.get(loop.loopHead)) {
 //			System.err.println("\t" + b.getLabel());
 //		}
+		
+		if (mustReach.get(loop.loopHead)==null) {
+			Log.error("Could not compute the dominator relation for loop at "+loop.loopHead.getLabel());
+			return new HashSet<BasicBlock>();
+		}
+		
+		
 		return mustReach.get(loop.loopHead);	
 	}
 	
