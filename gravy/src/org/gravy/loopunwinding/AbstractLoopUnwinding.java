@@ -205,15 +205,6 @@ public abstract class AbstractLoopUnwinding {
 	}
 	
 	
-	private HashSet<BasicBlock> mustBeReachedByLoopHead_old (LoopInfo loop) {
-		HashSet<BasicBlock> mustbe = new HashSet<BasicBlock>();
-		//should be sufficient to mark the loophead as non-clone
-		//because if any block that shares the same set of executions
-		//is infeasible, this one must be infeasible as well.
-		mustbe.add(loop.loopHead); 
-		return mustbe;
-	}
-	
 
 	protected void unwind(LoopInfo loop, int unwindings) {
 		for (LoopInfo nest : new LinkedList<LoopInfo>(loop.nestedLoops)) {
@@ -244,8 +235,7 @@ public abstract class AbstractLoopUnwinding {
 			// the clones NoCode blocks.
 			if (dontVerifyClones) {
 				markAsClone(clone);
-			}
-			
+			}			
 			clonemap.put(b, clone);
 		}
 
@@ -274,6 +264,10 @@ public abstract class AbstractLoopUnwinding {
 
 		// now redirect all back edges to the original loop head.
 		for (BasicBlock b : loop.loopingPred) {
+			if (!clonemap.containsKey(b)) {
+				System.err.println("something fishy with that loop!");
+				continue;
+			}
 			BasicBlock clone = clonemap.get(b);
 			clone.disconnectFromSuccessor(cloneHead);
 			clone.connectToSuccessor(loop.loopHead);

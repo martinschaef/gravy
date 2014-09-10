@@ -3,12 +3,8 @@
  */
 package org.gravy.checker;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
-import java.util.LinkedList;
 
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
@@ -38,6 +34,8 @@ public class InfeasibleCodeChecker extends
 	public InfeasibleCodeChecker(AbstractControlFlowFactory cff,
 			CfgProcedure p) {
 		super(cff, p);
+		
+//		p.toDot("./"+p.getProcedureName()+".dot");
 		
 		p.pruneUnreachableBlocks();
 		
