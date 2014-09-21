@@ -102,11 +102,14 @@ public class PrincessProver implements Prover {
 	private SimpleAPI api;
 
 	public PrincessProver() {
+		ap.util.Debug.enableAllAssertions(false);
 		api = SimpleAPI.spawn();
+//		api = SimpleAPI.spawnWithScalaLog();
 		// api = SimpleAPI.spawnWithAssertions();
 	}
 
 	public PrincessProver(String basename) {
+		ap.util.Debug.enableAllAssertions(false);
 		api = SimpleAPI.spawnWithLog(basename);
 	}
 
