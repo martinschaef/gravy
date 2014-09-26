@@ -60,6 +60,7 @@ public class AbstractTransitionRelation {
 
 	
 	protected Prover prover;
+	protected CfgProcedure procedure;
 	// TODO: bad idea to use HashMap<Integer, ProverExpr> because
 	// we want to be able to iterate over the iterations of a variable
 	protected HashMap<CfgVariable, SortedMap<Integer, ProverExpr>> proverVariables = new HashMap<CfgVariable, SortedMap<Integer, ProverExpr>>();
@@ -87,10 +88,23 @@ public class AbstractTransitionRelation {
 	public AbstractTransitionRelation(CfgProcedure cfg, AbstractControlFlowFactory cff, Prover p) {
 		this.prover = p;
 		this.controlFlowFactory = cff;
+		this.procedure = cfg;
 		this.hasse = new HasseDiagram(cfg);
-		this.procedureName = cfg.getProcedureName();
+		this.procedureName = cfg.getProcedureName();		
 	}
 
+	public Prover getProver() {
+		return this.prover;
+	}
+	
+	public AbstractControlFlowFactory getControlFlowFactory() {
+		return this.controlFlowFactory;
+	}
+	
+	public CfgProcedure getProcedure() {
+		return this.procedure;
+	}
+	
 	/**
 	 * 
 	 * @return
@@ -319,6 +333,8 @@ public class AbstractTransitionRelation {
 		}
 	}
 
+	public HashMap<ProverExpr, CfgStatement> pe2StmtMap = new HashMap<ProverExpr, CfgStatement>();
+	
 	protected List<ProverExpr> statements2proverExpression(List<CfgStatement> stmts) {
 		LinkedList<ProverExpr> res = new LinkedList<ProverExpr>(); 
 		for (CfgStatement s : stmts) {
@@ -334,7 +350,9 @@ public class AbstractTransitionRelation {
 				//do nothing
 				continue;
 			}
-			res.add(statement2proverExpression(s));
+			ProverExpr pe = statement2proverExpression(s);
+			this.pe2StmtMap.put(pe, s);
+			res.add(pe);
 		}
 		return res;
 	}
