@@ -1,5 +1,6 @@
 package org.gravy.verificationcondition;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.List;
@@ -11,6 +12,7 @@ import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.expression.CfgExpression;
+import boogie.controlflow.statement.CfgStatement;
 import boogie.controlflow.util.HasseDiagram;
 import boogie.controlflow.util.PartialBlockOrderNode;
 
@@ -23,6 +25,7 @@ public class FaultLocalizationTransitionRelation extends
 
 	public LinkedList<ProverExpr> obligations = new LinkedList<ProverExpr>();
 	
+	public HashMap<CfgStatement, BasicBlock> stmtOriginMap = new HashMap<CfgStatement, BasicBlock>(); 
 	
 	public FaultLocalizationTransitionRelation(CfgProcedure cfg,
 			AbstractControlFlowFactory cff, Prover p) {
@@ -48,12 +51,12 @@ public class FaultLocalizationTransitionRelation extends
 		this.ensures = this.prover.mkAnd(post);
 
 
-		lala(cfg);
+		computeSliceVC(cfg);
 
 		finalizeAxioms();
 	}
 
-	private void lala(CfgProcedure cfg) {
+	private void computeSliceVC(CfgProcedure cfg) {
 		HasseDiagram hd = new HasseDiagram(cfg);
 		PartialBlockOrderNode pon = hd.findNode(cfg.getRootNode());
 
@@ -63,7 +66,10 @@ public class FaultLocalizationTransitionRelation extends
 		while (!todo.isEmpty()) {
 			BasicBlock current = todo.pop();
 			obligations.addAll(statements2proverExpression(current.getStatements()));
-			BasicBlock next = bar(current, pon.getElements());
+			for (CfgStatement stmt : current.getStatements()) {
+				this.stmtOriginMap.put(stmt, current);
+			}
+			BasicBlock next = computeSubgraphVC(current, pon.getElements());
 			if (next!=null) {
 				todo.add(next);
 			}
@@ -71,7 +77,7 @@ public class FaultLocalizationTransitionRelation extends
 		
 	}
 
-	private BasicBlock bar(BasicBlock b, HashSet<BasicBlock> mustpass ) {
+	private BasicBlock computeSubgraphVC(BasicBlock b, HashSet<BasicBlock> mustpass ) {
 		this.lastMustPass = null;
 		if (b.getSuccessors().size()==1 ) {
 			BasicBlock next = b.getSuccessors().iterator().next();
