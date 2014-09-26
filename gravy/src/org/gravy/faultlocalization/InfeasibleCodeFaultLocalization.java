@@ -3,6 +3,7 @@
  */
 package org.gravy.faultlocalization;
 
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map.Entry;
@@ -18,6 +19,7 @@ import org.gravy.verificationcondition.FaultLocalizationTransitionRelation;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
+import boogie.controlflow.statement.CfgStatement;
 
 /**
  * @author schaef
@@ -43,7 +45,9 @@ public class InfeasibleCodeFaultLocalization {
 	 * @param tr
 	 * @param component
 	 */
-	public static void localizeFault(AbstractTransitionRelation tr, Set<BasicBlock> component) {		
+	public static HashMap<CfgStatement, ProverExpr> localizeFault(AbstractTransitionRelation tr, Set<BasicBlock> component) {		
+		//TODO: check if this contains a noverify tag and ignore it. 
+		
 		CfgProcedure slice = tr.getProcedure().computeSlice(getSubprog(component), tr.getProcedure().getRootNode());
 		
 		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();
@@ -85,14 +89,32 @@ public class InfeasibleCodeFaultLocalization {
 
         //debug code
         {
-                System.err.println("#interpolants: "+ interpolants.length + " / #assertions:");
-                for (int i=0; i<partition-1; i++) {                        
-                		System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
-                        System.err.println("\tInterpolant "+i+":"+interpolants[i]);
-                }
+//                System.err.println("#interpolants: "+ interpolants.length + " / #assertions:");
+//                for (int i=0; i<partition-1; i++) {                        
+//                		System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
+//                        System.err.println("\tInterpolant "+i+":"+interpolants[i]);
+//                }
         }
-        		
-		System.err.println("Check subprog " + res); 
+        
+        HashMap<CfgStatement, ProverExpr> interestingStatements = new HashMap<CfgStatement, ProverExpr>();
+        ProverExpr currentInterpolant = interpolants[0];
+        for (int i=1; i<interpolants.length; i++) {
+        	if (!interpolants[i].equals(currentInterpolant)) {
+        		currentInterpolant = interpolants[i];        		
+        		CfgStatement statement = sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i));
+        		if (statement==null) {
+        			//TODO:
+        			statement = sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i-1));
+        		}
+        		interestingStatements.put(statement, currentInterpolant);
+        		System.err.println("Interesting Stmt: ");
+        		System.err.println("\t"+statement);
+        		System.err.println("with interpolant: "+interpolants[i]);        		
+        	}
+        }
+        System.err.println("============");
+        
+        return interestingStatements;
 	}
 	
 	/**
