@@ -11,7 +11,7 @@ import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
 import org.gravy.report.Report;
 import org.gravy.reportprinter.DefaultGraVyReportPrinter;
-import org.gravy.reportprinter.DefaultInfeasibleCodeReportPrinter;
+import org.gravy.reportprinter.InterpolatingInfeasibleCodeReportPrinter;
 import org.gravy.reportprinter.ReportPrinter;
 import org.gravy.util.Log;
 
@@ -51,7 +51,7 @@ public class ProgramAnalysis {
 			break;
 		}
 		case 1: {
-			rp = new DefaultInfeasibleCodeReportPrinter();
+			rp = new InterpolatingInfeasibleCodeReportPrinter();
 			break;
 		}		
 		default: {

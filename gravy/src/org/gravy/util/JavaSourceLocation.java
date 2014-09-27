@@ -23,6 +23,7 @@ public class JavaSourceLocation {
 	public String comment = "";
 	public boolean isCloned = false;
 	public boolean isNoVerify = false;
+	public boolean inInfeasibleBlock = false;
 
 	@Override
 	public boolean equals(Object other) {

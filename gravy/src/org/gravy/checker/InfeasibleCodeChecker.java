@@ -7,11 +7,10 @@ import java.util.HashSet;
 import java.util.LinkedHashMap;
 
 import org.gravy.callunwinding.CallUnwinding;
-import org.gravy.faultlocalization.InfeasibleCodeFaultLocalization;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
-import org.gravy.report.InfeasibleReport;
+import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
@@ -99,11 +98,7 @@ public class InfeasibleCodeChecker extends
 		infeasibleBlocks.removeAll(feasibleBlocks);
 		
 		
-		if (infeasibleBlocks.size()>0) {
-			InfeasibleCodeFaultLocalization.localizeFaults(tr, infeasibleBlocks);
-		}
-		
-		return new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
+		return new InterpolationInfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
 	}
 		
 	

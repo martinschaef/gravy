@@ -17,6 +17,7 @@ import org.gravy.util.JavaSourceLocation;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.FaultLocalizationTransitionRelation;
 
+import util.Log;
 import boogie.ProgramFactory;
 import boogie.ast.Attribute;
 import boogie.ast.NamedAttribute;
@@ -40,12 +41,23 @@ public class InfeasibleCodeFaultLocalization {
 	 * @param tr
 	 * @param infeasibleBlocks
 	 */
-	public static void localizeFaults(AbstractTransitionRelation tr,
+	public static LinkedList<HashMap<CfgStatement, JavaSourceLocation>> localizeFaults(AbstractTransitionRelation tr,
 			Set<BasicBlock> infeasibleBlocks) {
+		
+		LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = new LinkedList<HashMap<CfgStatement, JavaSourceLocation>>();
+		
 		LinkedList<HashSet<BasicBlock>> components = findConnectedComponents(infeasibleBlocks);
 		for (HashSet<BasicBlock> cmp : components) {
-			localizeFault(tr, cmp);
+			try {
+				HashMap<CfgStatement, JavaSourceLocation> res = localizeFault(tr, cmp);
+				if (res!=null && !res.isEmpty()) {
+					reports.add(res);
+				}
+			} catch (Throwable e) {
+				e.printStackTrace();
+			}
 		}
+		return reports;
 	}
 
 	/**
@@ -104,12 +116,12 @@ public class InfeasibleCodeFaultLocalization {
 
 		// debug code
 		{
-			 System.err.println("#interpolants: "+ interpolants.length +
-			 " / #assertions:");
-			 for (int i=0; i<partition-1; i++) {
-			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
-			 System.err.println("\tInterpolant "+i+":"+interpolants[i]);
-			 }
+//			 System.err.println("#interpolants: "+ interpolants.length +
+//			 " / #assertions:");
+//			 for (int i=0; i<partition-1; i++) {
+//			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
+//			 System.err.println("\tInterpolant "+i+":"+interpolants[i]);
+//			 }
 		}
 
 		HashMap<CfgStatement, JavaSourceLocation> interestingStatements = new HashMap<CfgStatement, JavaSourceLocation>();
@@ -166,10 +178,32 @@ public class InfeasibleCodeFaultLocalization {
 						}
 					}
 				}
-				interestingStatements.put(statement, loc);
+				
+				if (loc!=null) {
+					if (origin!=null && containsNamedAttribute(origin, ProgramFactory.Cloned)) {
+						loc.isCloned = true;
+					}
+					
+					if (origin!=null) {
+						for (BasicBlock b : component) {
+							if (b.getLabel().equals(origin.getLabel())) {
+								//compare them by name because we cloned them, so they are not
+								//the same by reference.
+								loc.inInfeasibleBlock = true;
+								break;
+							} else {
+								//do nothing
+							}
+						}
+					}
+				}
+				
 				System.err.println("Interesting Stmt: ");
 				if (loc != null) {
 					System.err.print("l:" + loc.StartLine + "," + loc.StartCol);
+					interestingStatements.put(statement, loc);
+				} else {
+					Log.debug("dropped stmt because no location found "+statement);
 				}
 				System.err.println("\t" + statement);
 				System.err.println("with interpolant: " + interpolants[i]);
