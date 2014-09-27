@@ -138,6 +138,10 @@ public class InfeasibleCodeFaultLocalization {
 				}
 
 				BasicBlock origin = sliceTr.stmtOriginMap.get(statement);
+				if (origin == null) {
+					Log.error("could not find statement " + statement +" in "+sliceTr.getProcedureName() +"\n" );
+					continue;
+				}
 				// if (origin==null || containsNamedAttribute(origin,
 				// ProgramFactory.Cloned)) {
 				// continue;
@@ -155,13 +159,13 @@ public class InfeasibleCodeFaultLocalization {
 						// probably not a good pick if the boogie file came from
 						// elsewhere.
 						int pos = origin.getStatements().indexOf(statement);
-						if (origin.getStatements().size()<=pos+1) {
-							pos--; //only if there is no further statement pick the 
-							//predecessor
-						} else {
+						if (pos+1<origin.getStatements().size()) {
 							pos++; //if its an assume without attribute
 							//pick the successor.
-						}
+						} else if (pos>0) {
+							pos--; //only if there is no further statement pick the 
+							//predecessor
+						}						
 						loc = praseLocationTags(origin.getStatements()
 								.get(pos).getAttributes());
 					} else {
@@ -198,18 +202,18 @@ public class InfeasibleCodeFaultLocalization {
 					}
 				}
 				
-				System.err.println("Interesting Stmt: ");
+//				System.err.println("Interesting Stmt: ");
 				if (loc != null) {
-					System.err.print("l:" + loc.StartLine + "," + loc.StartCol);
+//					System.err.print("l:" + loc.StartLine + "," + loc.StartCol);
 					interestingStatements.put(statement, loc);
 				} else {
 					Log.debug("dropped stmt because no location found "+statement);
 				}
-				System.err.println("\t" + statement);
-				System.err.println("with interpolant: " + interpolants[i]);
+//				System.err.println("\t" + statement);
+//				System.err.println("with interpolant: " + interpolants[i]);
 			}
 		}
-		System.err.println("============");
+//		System.err.println("============");
 
 		prover.shutdown();
 
