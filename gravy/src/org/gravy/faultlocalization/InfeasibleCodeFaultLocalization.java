@@ -42,18 +42,20 @@ public class InfeasibleCodeFaultLocalization {
 	 * @param tr
 	 * @param infeasibleBlocks
 	 */
-	public static LinkedList<HashMap<CfgStatement, JavaSourceLocation>> localizeFaults(AbstractTransitionRelation tr,
-			Set<BasicBlock> infeasibleBlocks) {
-		
-//		for (BasicBlock b: infeasibleBlocks) System.err.println(">>"+b.getLabel());
-		
+	public static LinkedList<HashMap<CfgStatement, JavaSourceLocation>> localizeFaults(
+			AbstractTransitionRelation tr, Set<BasicBlock> infeasibleBlocks) {
+
+		// for (BasicBlock b: infeasibleBlocks)
+		// System.err.println(">>"+b.getLabel());
+
 		LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = new LinkedList<HashMap<CfgStatement, JavaSourceLocation>>();
-		
+
 		LinkedList<HashSet<BasicBlock>> components = findConnectedComponents(infeasibleBlocks);
 		for (HashSet<BasicBlock> cmp : components) {
 			try {
-				HashMap<CfgStatement, JavaSourceLocation> res = localizeFault(tr, cmp);
-				if (res!=null && !res.isEmpty()) {
+				HashMap<CfgStatement, JavaSourceLocation> res = localizeFault(
+						tr, cmp);
+				if (res != null && !res.isEmpty()) {
 					reports.add(res);
 				}
 			} catch (Throwable e) {
@@ -81,23 +83,20 @@ public class InfeasibleCodeFaultLocalization {
 		CfgProcedure slice = tr.getProcedure().computeSlice(
 				getSubprog(component), tr.getProcedure().getRootNode());
 
-		
-		//TODO do I have to recompute SSA?
+		// TODO do I have to recompute SSA?
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.updateBlockSSA(slice);
 
-//		slice.pruneUnreachableBlocks();
-		
-		
-//		tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+component.hashCode()+".dot");
-//		slice.toDot("./slice_"+slice.getProcedureName()+component.hashCode()+".dot");
-		
+		// slice.pruneUnreachableBlocks();
+
+		// tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+component.hashCode()+".dot");
+		// slice.toDot("./slice_"+slice.getProcedureName()+component.hashCode()+".dot");
+
 		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();
 		Prover prover = pf.spawn();
 		prover.setConstructProofs(true);
 		FaultLocalizationTransitionRelation sliceTr = new FaultLocalizationTransitionRelation(
 				slice, tr.getControlFlowFactory(), prover);
-
 
 		// prover.addAssertion(sliceTr.getEnsures());
 		//
@@ -106,7 +105,8 @@ public class InfeasibleCodeFaultLocalization {
 			prover.addAssertion(entry.getValue());
 		}
 
-		if (sliceTr.getRequires()!=null) prover.addAssertion(sliceTr.getRequires());
+		if (sliceTr.getRequires() != null)
+			prover.addAssertion(sliceTr.getRequires());
 
 		int partition = 0;
 		prover.setPartitionNumber(partition);
@@ -116,12 +116,12 @@ public class InfeasibleCodeFaultLocalization {
 			prover.setPartitionNumber(++partition);
 		}
 
-		if (sliceTr.getEnsures()!=null) {
+		if (sliceTr.getEnsures() != null) {
 			prover.addAssertion(sliceTr.getEnsures());
-			
+
 		}
 		prover.setPartitionNumber(++partition);
-		
+
 		ProverResult res = prover.checkSat(true);
 		if (res != ProverResult.Unsat) {
 			throw new RuntimeException("Fault Localization failed!");
@@ -144,10 +144,13 @@ public class InfeasibleCodeFaultLocalization {
 //			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
 //			 }
 		}
-		
+
 		boolean allInfeasibleCloned = true;
 		boolean anyCloned = false;
+
+		JavaSourceLocation maxLoc = null;
 		
+//		System.err.println("\t\t **");
 		HashMap<CfgStatement, JavaSourceLocation> interestingStatements = new HashMap<CfgStatement, JavaSourceLocation>();
 		ProverExpr currentInterpolant = interpolants[0];
 		for (int i = 1; i < interpolants.length; i++) {
@@ -164,7 +167,8 @@ public class InfeasibleCodeFaultLocalization {
 
 				BasicBlock origin = sliceTr.stmtOriginMap.get(statement);
 				if (origin == null) {
-					Log.error("could not find statement " + statement +" in "+sliceTr.getProcedureName() +"\n" );
+					Log.error("could not find statement " + statement + " in "
+							+ sliceTr.getProcedureName() + "\n");
 					continue;
 				}
 				// if (origin==null || containsNamedAttribute(origin,
@@ -173,94 +177,163 @@ public class InfeasibleCodeFaultLocalization {
 				// }
 
 				JavaSourceLocation loc = null;
-				
-				if (statement instanceof CfgAssertStatement
-						|| statement instanceof CfgAssumeStatement) {
-					if (statement instanceof CfgAssumeStatement
-							&& (statement.getAttributes() == null 
-							|| statement.getAttributes().length == 0)) {
-						// this is a special case when a jar2bpl if statement is
-						// translated.
-						// probably not a good pick if the boogie file came from
-						// elsewhere.
-						int pos = origin.getStatements().indexOf(statement);
-						if (pos+1<origin.getStatements().size()) {
-							pos++; //if its an assume without attribute
-							//pick the successor.
-						} else if (pos>0) {
-							pos--; //only if there is no further statement pick the 
-							//predecessor
-						}						
-						loc = praseLocationTags(origin.getStatements()
-								.get(pos).getAttributes());
-					} else {
-						loc = praseLocationTags(statement.getAttributes());
-					}
-				} else {
-					//if its a statement without location attributes
-					//go backwards until we find the last location attibute.
+
+				if (containsNamedAttribute(statement,
+						ProgramFactory.GeneratedThenBlock)
+						|| containsNamedAttribute(statement,
+								ProgramFactory.GeneratedElseBlock)) {
 					int pos = origin.getStatements().indexOf(statement);
-					
-					while (pos>=0) {
-						CfgStatement st = origin.getStatements()
-								.get(pos);
+
+					while (pos < origin.getStatements().size()) {
+						CfgStatement st = origin.getStatements().get(pos);
+//						System.err.println("\t"+st);
 						loc = praseLocationTags(st.getAttributes());
-						if (loc!=null) {
+						if (loc != null) {
 							break;
 						}
-						pos--;						
+						pos++;
 					}
+//					System.err.println("FWD");
+				} else {
+					// if its a statement without location attributes
+					// go backwards until we find the last location attibute.
+					int pos = origin.getStatements().indexOf(statement);
+
+					while (pos >= 0) {
+						CfgStatement st = origin.getStatements().get(pos);
+						loc = praseLocationTags(st.getAttributes());
+						if (loc != null) {
+							break;
+						}
+						pos--;
+					}
+					
+					if (loc == null) {
+						//then try it in the other direction.
+						pos = origin.getStatements().indexOf(statement);
+
+						while (pos < origin.getStatements().size()) {
+							CfgStatement st = origin.getStatements().get(pos);
+//							System.err.println("\t"+st);
+							loc = praseLocationTags(st.getAttributes());
+							if (loc != null) {
+								break;
+							}
+							pos++;
+						}						
+					}
+					
+//					System.err.println("BWD");
 				}
 				
-				if (loc!=null) {
-					if (origin!=null && containsNamedAttribute(origin, ProgramFactory.Cloned)) {
+//				if (statement instanceof CfgAssertStatement
+//						|| statement instanceof CfgAssumeStatement) {
+//					if (statement instanceof CfgAssumeStatement
+//							&& (statement.getAttributes() == null || statement
+//									.getAttributes().length == 0)) {
+//						// this is a special case when a jar2bpl if statement is
+//						// translated.
+//						// probably not a good pick if the boogie file came from
+//						// elsewhere.
+//
+//						
+//
+//						int pos = origin.getStatements().indexOf(statement);
+//						if (pos + 1 < origin.getStatements().size()) {
+//							pos++; // if its an assume without attribute
+//							// pick the successor.
+//						} else if (pos > 0) {
+//							pos--; // only if there is no further statement pick
+//									// the
+//							// predecessor
+//						}
+//						loc = praseLocationTags(origin.getStatements().get(pos)
+//								.getAttributes());
+//					} else {
+//						loc = praseLocationTags(statement.getAttributes());
+//					}
+//				} else {
+//					// if its a statement without location attributes
+//					// go backwards until we find the last location attibute.
+//					int pos = origin.getStatements().indexOf(statement);
+//
+//					while (pos >= 0) {
+//						CfgStatement st = origin.getStatements().get(pos);
+//						loc = praseLocationTags(st.getAttributes());
+//						if (loc != null) {
+//							break;
+//						}
+//						pos--;
+//					}
+//				}
+
+				if (loc != null) {
+					if (origin != null
+							&& containsNamedAttribute(origin,
+									ProgramFactory.Cloned)) {
 						loc.isCloned = true;
 						anyCloned = true;
 					}
+
+					if (origin != null
+							&& containsNamedAttribute(origin,
+									ProgramFactory.NoVerifyTag)) {
+						loc.isNoVerify = true;
+					}					
+					
 					
 					
 					for (BasicBlock b : component) {
 						if (b.getLabel().equals(origin.getLabel())) {
-							//compare them by name because we cloned them, so they are not
-							//the same by reference.
+							// compare them by name because we cloned them, so
+							// they are not
+							// the same by reference.
 							loc.inInfeasibleBlock = true;
 							break;
 						} else {
-							//do nothing
+							// do nothing
 						}
 					}
-					
-				} else {
-					System.err.println("no location tag "+statement);		
-				}
-				
-//				System.err.println("Interesting Stmt: ");
-				if (loc != null) {
-					
-//					System.err.println(statement + " "+loc.inInfeasibleBlock+"  "+loc.isCloned + " "+ origin.getLabel());
-					
+
 					if (loc.inInfeasibleBlock && !loc.isCloned) {
 						allInfeasibleCloned = false;
-					} else {
-						
 					}
-					
-//					System.err.println("l:" + loc.StartLine + "," + loc.isCloned+ "," + loc.isNoVerify);
+
+					if (maxLoc==null) {
+						maxLoc = loc;
+					} else {
+						if (loc.StartLine>maxLoc.StartLine) {
+							maxLoc = loc;
+						} else if (loc.StartLine==maxLoc.StartLine) {
+							maxLoc.isNoVerify = maxLoc.isNoVerify || loc.isNoVerify; 
+						}
+					}
 					interestingStatements.put(statement, loc);
+
 				} else {
-					Log.debug("dropped stmt because no location found "+statement);
+					Log.error("no location tag " + statement + " in ");
+					Log.error(origin);
+					continue;
 				}
-//				System.err.println("\t" + statement);
-//				System.err.println("with interpolant: " + interpolants[i]);
+
+				// System.err.println("\t" + statement);
+				// System.err.println("with interpolant: " + interpolants[i]);
 			}
 		}
-//		System.err.println("============");
+		// System.err.println("============");
 
 		prover.shutdown();
 
-		//TODO:
-		if (anyCloned && allInfeasibleCloned) interestingStatements.clear();
+		// TODO:
+		if (anyCloned && allInfeasibleCloned)
+			interestingStatements.clear();
 		
+		if (maxLoc!=null && maxLoc.isNoVerify) {
+			//TODO: this is sort of a hack that helps to suppress
+			//strange try/catch false positives.
+			interestingStatements.clear();
+		}
+
 		return interestingStatements;
 	}
 
@@ -272,20 +345,25 @@ public class InfeasibleCodeFaultLocalization {
 
 	private static boolean containsNamedAttribute(BasicBlock b, String name) {
 		for (CfgStatement s : b.getStatements()) {
-			if (s.getAttributes() != null) {
-				for (Attribute attr : s.getAttributes()) {
-					if (attr instanceof NamedAttribute) {
-						NamedAttribute na = (NamedAttribute) attr;
-						if (na.getName().equals(name)) {
-							return true;
-						}
+			if (containsNamedAttribute(s, name)) return true; 
+		}
+		return false;
+	}
+
+	private static boolean containsNamedAttribute(CfgStatement s, String name) {
+		if (s.getAttributes() != null) {
+			for (Attribute attr : s.getAttributes()) {
+				if (attr instanceof NamedAttribute) {
+					NamedAttribute na = (NamedAttribute) attr;
+					if (na.getName().equals(name)) {
+						return true;
 					}
 				}
 			}
 		}
 		return false;
-	}
-
+	}	
+	
 	/**
 	 * Collect all blocks that must can reach or can be reached by the elements
 	 * in component
