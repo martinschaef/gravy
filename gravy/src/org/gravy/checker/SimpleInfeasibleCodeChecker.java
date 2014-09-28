@@ -50,7 +50,7 @@ public class SimpleInfeasibleCodeChecker extends
 		p.pruneUnreachableBlocks();
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
-		ssa.recomputeSSA(p);
+		ssa.computeSSA(p);
 
 		p.pruneUnreachableBlocks();
 		

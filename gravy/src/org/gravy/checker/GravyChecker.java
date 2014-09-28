@@ -70,7 +70,7 @@ public class GravyChecker extends AbstractChecker {
 		turnAssertionsIntoConditionals(p);
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
-		ssa.recomputeSSA(p);
+		ssa.computeSSA(p);
 
 		p.pruneUnreachableBlocks();
 		

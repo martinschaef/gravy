@@ -13,6 +13,7 @@ import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
 import org.gravy.prover.ProverResult;
+import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.util.JavaSourceLocation;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.FaultLocalizationTransitionRelation;
@@ -80,6 +81,10 @@ public class InfeasibleCodeFaultLocalization {
 
 		
 		//TODO do I have to recompute SSA?
+		SingleStaticAssignment ssa = new SingleStaticAssignment();
+		ssa.updateBlockSSA(slice);
+
+//		slice.pruneUnreachableBlocks();
 		
 //		slice.toDot("./slice_"+slice.getProcedureName()+component.hashCode()+".dot");
 		
@@ -88,7 +93,6 @@ public class InfeasibleCodeFaultLocalization {
 		prover.setConstructProofs(true);
 		FaultLocalizationTransitionRelation sliceTr = new FaultLocalizationTransitionRelation(
 				slice, tr.getControlFlowFactory(), prover);
-
 
 
 		// prover.addAssertion(sliceTr.getEnsures());
@@ -124,13 +128,13 @@ public class InfeasibleCodeFaultLocalization {
 
 		// debug code
 		{
-			 System.err.println("#interpolants: "+ interpolants.length +
-			 " / #assertions: ======================");
-			 for (int i=0; i<interpolants.length; i++) {
-			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
-			 System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
-			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
-			 }
+//			 System.err.println("#interpolants: "+ interpolants.length +
+//			 " / #assertions: ======================");
+//			 for (int i=0; i<interpolants.length; i++) {
+//			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
+//			 System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
+//			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
+//			 }
 		}
 		
 		boolean allInfeasibleCloned = true;
@@ -143,8 +147,6 @@ public class InfeasibleCodeFaultLocalization {
 				currentInterpolant = interpolants[i];
 				CfgStatement statement = sliceTr.pe2StmtMap
 						.get(sliceTr.obligations.get(i));
-				
-//				System.err.println(statement );
 				
 				if (statement == null) {
 					// TODO:
@@ -222,6 +224,8 @@ public class InfeasibleCodeFaultLocalization {
 				
 //				System.err.println("Interesting Stmt: ");
 				if (loc != null) {
+					
+//					System.err.println(statement + " "+loc.inInfeasibleBlock+"  "+loc.isCloned);
 					
 					if (loc.inInfeasibleBlock && !loc.isCloned) {
 						allInfeasibleCloned = false;

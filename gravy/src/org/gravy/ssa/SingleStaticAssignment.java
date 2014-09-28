@@ -39,7 +39,12 @@ public class SingleStaticAssignment {
 				
 	}
 	
-	public void recomputeSSA(CfgProcedure p) {		
+	/**
+	 * computes an SSA version of p. This step also introduces blocks
+	 * for frame conditions and a unified exit.
+	 * @param p
+	 */
+	public void computeSSA(CfgProcedure p) {		
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		LinkedList<BasicBlock> done = new LinkedList<BasicBlock>();
 
@@ -100,10 +105,57 @@ public class SingleStaticAssignment {
 				}			
 			}		
 		}
+
+		updateBlockSSA(p);		
+		
+		//IMPORTANT: for some of the later analysis set we must be
+		//able to assume that the Exit node does not contain any
+		//statements. Thus, we create a fresh block here.
+		if (p.getExitNode().getLabel()!="$UnifiedExit") {
+			BasicBlock finalUnifiedExit = new BasicBlock(p.getExitNode().getLocationTag(), "$UnifiedExit");
+			//connect each block that does not have a successor to the unified exit
+			for (BasicBlock b : done) {
+				if (b.getSuccessors().size() == 0) {
+					b.connectToSuccessor(finalUnifiedExit);					
+				}
+
+				{
+					HashMap<CfgVariable, Integer> offset = new HashMap<CfgVariable, Integer>();
+					for (BasicBlock pred : finalUnifiedExit.getPredecessors()) {
+						mergeSSAOffsets(offset, pred.getLocalIncarnationMap());
+					}
+					for (BasicBlock pred : new HashSet<BasicBlock>(
+							finalUnifiedExit.getPredecessors())) {
+						addFrameCondition(pred, offset);
+					}
+					recomputLocalSSA(finalUnifiedExit, offset);					
+				}
+				
+			}
+			//Now do the SSA for the postcondition using the offset of
+			//the unified exit.
+			for (CfgExpression expr : p.getEnsures()) {
+				recomputLocalSSA(expr, finalUnifiedExit.getLocalIncarnationMap());	
+			}
+			
+
+			p.setExitNode(finalUnifiedExit);
+		}
+				
+		return;
+	}
+
+	/**
+	 * updates the SSA tables of each block.
+	 * NOTE: use computeSSA instead if you are not sure if there is a unified exit
+	 * of the frame conditions haven't been created yet.
+	 * @param p
+	 */
+	public void updateBlockSSA(CfgProcedure p) {
 		Log.debug("------ recomute the ssa");
 		//Do the actual SSA
-		todo = new LinkedList<BasicBlock>();
-		done = new LinkedList<BasicBlock>();		
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+		LinkedList<BasicBlock> done = new LinkedList<BasicBlock>();		
 		todo.add(p.getRootNode());
 
 		//do SSA on the precondition first.
@@ -157,44 +209,9 @@ public class SingleStaticAssignment {
 					todo.addLast(next);
 				}
 			}
-		}
-		//IMPORTANT: for some of the later analysis set we must be
-		//able to assume that the Exit node does not contain any
-		//statements. Thus, we create a fresh block here.
-		if (p.getExitNode().getLabel()!="$UnifiedExit") {
-			BasicBlock finalUnifiedExit = new BasicBlock(p.getExitNode().getLocationTag(), "$UnifiedExit");
-			//connect each block that does not have a successor to the unified exit
-			for (BasicBlock b : done) {
-				if (b.getSuccessors().size() == 0) {
-					b.connectToSuccessor(finalUnifiedExit);					
-				}
-
-				{
-					HashMap<CfgVariable, Integer> offset = new HashMap<CfgVariable, Integer>();
-					for (BasicBlock pred : finalUnifiedExit.getPredecessors()) {
-						mergeSSAOffsets(offset, pred.getLocalIncarnationMap());
-					}
-					for (BasicBlock pred : new HashSet<BasicBlock>(
-							finalUnifiedExit.getPredecessors())) {
-						addFrameCondition(pred, offset);
-					}
-					recomputLocalSSA(finalUnifiedExit, offset);					
-				}
-				
-			}
-			//Now do the SSA for the postcondition using the offset of
-			//the unified exit.
-			for (CfgExpression expr : p.getEnsures()) {
-				recomputLocalSSA(expr, finalUnifiedExit.getLocalIncarnationMap());	
-			}
-			
-
-			p.setExitNode(finalUnifiedExit);
-		}
-				
-		return;
+		}		
 	}
-
+	
 	private void mergeSSAOffsets(HashMap<CfgVariable, Integer> successorOffset,
 			HashMap<CfgVariable, Integer> predecessorOffset) {
 		for (Entry<CfgVariable, Integer> entry : predecessorOffset.entrySet()) {
