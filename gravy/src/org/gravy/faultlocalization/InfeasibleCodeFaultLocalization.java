@@ -45,6 +45,8 @@ public class InfeasibleCodeFaultLocalization {
 	public static LinkedList<HashMap<CfgStatement, JavaSourceLocation>> localizeFaults(AbstractTransitionRelation tr,
 			Set<BasicBlock> infeasibleBlocks) {
 		
+//		for (BasicBlock b: infeasibleBlocks) System.err.println(">>"+b.getLabel());
+		
 		LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = new LinkedList<HashMap<CfgStatement, JavaSourceLocation>>();
 		
 		LinkedList<HashSet<BasicBlock>> components = findConnectedComponents(infeasibleBlocks);
@@ -86,6 +88,8 @@ public class InfeasibleCodeFaultLocalization {
 
 //		slice.pruneUnreachableBlocks();
 		
+		
+//		tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+component.hashCode()+".dot");
 //		slice.toDot("./slice_"+slice.getProcedureName()+component.hashCode()+".dot");
 		
 		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();
@@ -128,13 +132,13 @@ public class InfeasibleCodeFaultLocalization {
 
 		// debug code
 		{
-//			 System.err.println("#interpolants: "+ interpolants.length +
-//			 " / #assertions: ======================");
-//			 for (int i=0; i<interpolants.length; i++) {
-//			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
-//			 System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
-//			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
-//			 }
+			 System.err.println("#interpolants: "+ interpolants.length +
+			 " / #assertions: ======================");
+			 for (int i=0; i<interpolants.length; i++) {
+			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
+			 System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
+			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
+			 }
 		}
 		
 		boolean allInfeasibleCloned = true;
@@ -148,6 +152,7 @@ public class InfeasibleCodeFaultLocalization {
 				CfgStatement statement = sliceTr.pe2StmtMap
 						.get(sliceTr.obligations.get(i));
 				
+				System.err.println("*****"+statement);
 				if (statement == null) {
 					// TODO:
 					statement = sliceTr.pe2StmtMap.get(sliceTr.obligations
@@ -225,7 +230,7 @@ public class InfeasibleCodeFaultLocalization {
 //				System.err.println("Interesting Stmt: ");
 				if (loc != null) {
 					
-//					System.err.println(statement + " "+loc.inInfeasibleBlock+"  "+loc.isCloned);
+					System.err.println(statement + " "+loc.inInfeasibleBlock+"  "+loc.isCloned);
 					
 					if (loc.inInfeasibleBlock && !loc.isCloned) {
 						allInfeasibleCloned = false;
