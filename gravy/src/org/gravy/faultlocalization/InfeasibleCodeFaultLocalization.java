@@ -116,7 +116,11 @@ public class InfeasibleCodeFaultLocalization {
 			prover.setPartitionNumber(++partition);
 		}
 
-		if (sliceTr.getEnsures()!=null) prover.addAssertion(sliceTr.getEnsures());
+		if (sliceTr.getEnsures()!=null) {
+			prover.addAssertion(sliceTr.getEnsures());
+			
+		}
+		prover.setPartitionNumber(++partition);
 		
 		ProverResult res = prover.checkSat(true);
 		if (res != ProverResult.Unsat) {
@@ -132,13 +136,13 @@ public class InfeasibleCodeFaultLocalization {
 
 		// debug code
 		{
-			 System.err.println("#interpolants: "+ interpolants.length +
-			 " / #assertions: ======================");
-			 for (int i=0; i<interpolants.length; i++) {
-			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
-			 System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
-			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
-			 }
+//			 System.err.println("#interpolants: "+ interpolants.length +
+//			 " / #assertions: ======================");
+//			 for (int i=0; i<interpolants.length; i++) {
+//			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
+//			 System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
+//			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
+//			 }
 		}
 		
 		boolean allInfeasibleCloned = true;
@@ -152,7 +156,6 @@ public class InfeasibleCodeFaultLocalization {
 				CfgStatement statement = sliceTr.pe2StmtMap
 						.get(sliceTr.obligations.get(i));
 				
-				System.err.println("*****"+statement);
 				if (statement == null) {
 					// TODO:
 					statement = sliceTr.pe2StmtMap.get(sliceTr.obligations
@@ -197,13 +200,15 @@ public class InfeasibleCodeFaultLocalization {
 					//if its a statement without location attributes
 					//go backwards until we find the last location attibute.
 					int pos = origin.getStatements().indexOf(statement);
-					while (pos>0) {
-						loc = praseLocationTags(origin.getStatements()
-								.get(pos).getAttributes());
+					
+					while (pos>=0) {
+						CfgStatement st = origin.getStatements()
+								.get(pos);
+						loc = praseLocationTags(st.getAttributes());
 						if (loc!=null) {
 							break;
 						}
-						pos--;
+						pos--;						
 					}
 				}
 				
@@ -225,12 +230,14 @@ public class InfeasibleCodeFaultLocalization {
 						}
 					}
 					
+				} else {
+					System.err.println("no location tag "+statement);		
 				}
 				
 //				System.err.println("Interesting Stmt: ");
 				if (loc != null) {
 					
-					System.err.println(statement + " "+loc.inInfeasibleBlock+"  "+loc.isCloned);
+//					System.err.println(statement + " "+loc.inInfeasibleBlock+"  "+loc.isCloned + " "+ origin.getLabel());
 					
 					if (loc.inInfeasibleBlock && !loc.isCloned) {
 						allInfeasibleCloned = false;

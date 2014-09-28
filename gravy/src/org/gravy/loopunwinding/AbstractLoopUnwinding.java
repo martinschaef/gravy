@@ -214,6 +214,8 @@ public abstract class AbstractLoopUnwinding {
 		}
 		loop.refreshLoopBody(); //TODO: test
 		
+		HashSet<BasicBlock> mustset = mustBeReachedByLoopHead(loop);
+		
 		if (unwindings <= 0) {
 			eliminate(loop);
 			return;
@@ -233,7 +235,8 @@ public abstract class AbstractLoopUnwinding {
 			// TODO: not sure if this is the right condition. Eventually,
 			// if we want to do abstract unwinding, we have to make
 			// the clones NoCode blocks.
-			if (dontVerifyClones) {
+			if (dontVerifyClones && (!mustset.contains(b) 
+					|| loop.isNestedLoop)) {
 				markAsClone(clone);
 			}			
 			clonemap.put(b, clone);

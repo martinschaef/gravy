@@ -9,11 +9,11 @@ type intArrHeap_type = [ref][int]int;
 const unique $type : Field javaType;
 const unique $alloc : Field bool;
 const unique $null : ref;
-const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",-1,-1,-1,-1 } unique java.lang.Object : javaType extends  complete;
-const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",-1,-1,-1,-1 } unique TruePositive06 : javaType extends  unique java.lang.Object complete;
-const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",-1,-1,-1,-1 } unique java.io.Serializable : javaType extends  unique java.lang.Object complete;
-const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",-1,-1,-1,-1 } unique java.lang.Comparable : javaType extends  unique java.lang.Object complete;
-const { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",-1,-1,-1,-1 } unique java.lang.Character : javaType extends  unique java.lang.Comparable, unique java.io.Serializable, unique java.lang.Object complete;
+const { :sourceloc "a",-1,-1,-1,-1 } unique java.lang.Object : javaType extends  complete;
+const { :sourceloc "a",-1,-1,-1,-1 } unique TruePositive06 : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "a",-1,-1,-1,-1 } unique java.io.Serializable : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "a",-1,-1,-1,-1 } unique java.lang.Comparable : javaType extends  unique java.lang.Object complete;
+const { :sourceloc "a",-1,-1,-1,-1 } unique java.lang.Character : javaType extends  unique java.lang.Comparable, unique java.io.Serializable, unique java.lang.Object complete;
 var $heap : $heap_type;
 var $intArrayType : javaType;
 var $charArrayType : javaType;
@@ -72,170 +72,65 @@ var ret2 : int;
 var temp$510 : int;    
 var temp$27 : int;    
 var temp$49 : int;
-    assume { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",-1,-1,-1,-1 } $this != $null;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",6,2,15,2 } true;
+    assume { :sourceloc "a",-1,-1,-1,-1 } $this != $null;
+    assert { :sourceloc "a",6,2,15,2 } true;
     this1 := $this;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",7,9,7,18 } true;
+    assert { :sourceloc "a",7,9,7,18 } true;
     ret2 := 0;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,14,8,20 } true;
+    assert { :sourceloc "a",8,14,8,20 } true;
     i3 := 0;
   block1:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,23,8,26 } true;
+    assert { :sourceloc "a",8,23,8,26 } true;
     if (i3 < 10) {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,23,8,26 } { :comment "thenblock" } true;
+        assert { :sourceloc "a",8,23,8,26 } { :comment "thenblock" } true;
         goto block2;
     } else {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,23,8,26 } { :comment "elseblock" } true;
+        assert { :sourceloc "a",8,23,8,26 } { :comment "elseblock" } true;
     }
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,23,8,26 } true;
+    assert { :sourceloc "a",8,23,8,26 } true;
     goto block3;
   block2:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,18,10,24 } true;
+    assert { :sourceloc "a",10,18,10,24 } true;
     j4 := 0;
   block4:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,27,10,30 } true;
+    assert { :sourceloc "a",10,27,10,30 } true;
     if (j4 < 10) {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,27,10,30 } { :comment "thenblock" } true;
+        assert { :sourceloc "a",10,27,10,30 } { :comment "thenblock" } true;
         goto block5;
     } else {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,27,10,30 } { :comment "elseblock" } true;
+        assert { :sourceloc "a",10,27,10,30 } { :comment "elseblock" } true;
     }
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,27,10,30 } true;
+    assert { :sourceloc "a",10,27,10,30 } true;
     goto block6;
   block5:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",11,17,11,22 } true;
+    assert { :sourceloc "a",11,17,11,22 } true;
     temp$05 := ret2;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",11,17,11,19 } true;
+    assert { :sourceloc "a",11,17,11,19 } true;
     temp$16 := temp$05 + 1;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",11,17,11,19 } true;
+    assert { :sourceloc "a",11,17,11,19 } true;
     ret2 := temp$16;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,33,10,35 } true;
+    assert { :sourceloc "a",10,33,10,35 } true;
     temp$27 := i3;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,33,10,33 } true;
+    assert { :sourceloc "a",10,33,10,33 } true;
     temp$38 := temp$27 + 1;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,33,10,33 } true;
+    assert { :sourceloc "a",10,33,10,33 } true;
     i3 := temp$38;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",10,13,12,13 } true;
+    assert { :sourceloc "a",10,13,12,13 } true;
     goto block4;
   block6:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,29,8,31 } true;
+    assert { :sourceloc "a",8,29,8,31 } true;
     temp$49 := i3;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,29,8,29 } true;
+    assert { :sourceloc "a",8,29,8,29 } true;
     temp$510 := temp$49 + 1;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,29,8,29 } true;
+    assert { :sourceloc "a",8,29,8,29 } true;
     i3 := temp$510;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",8,9,13,9 } true;
+    assert { :sourceloc "a",8,9,13,9 } true;
     goto block1;
   block3:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",14,4,14,14 } true;
+    assert { :sourceloc "a",14,4,14,14 } true;
     $return := ret2;
     return;
 }
 
-
-implementation void$TruePositive06$foo$1890($this:ref, $in_parameter__0:ref) returns ($exception:ref){
-    
-var temp$823 : int;    
-var temp$419 : int;    
-var temp$116 : int;    
-var temp$722 : ref;    
-var temp$520 : int;    
-var j14 : int;    
-var $fakelocal_0 : ref;    
-var this11 : ref;    
-var temp$1025 : int;    
-var temp$015 : int;    
-var temp$924 : int;    
-var temp$217 : ref;    
-var temp$318 : ref;    
-var temp12 : ref;    
-var end13 : int;
-    assume { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",-1,-1,-1,-1 } $this != $null;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",26,2,36,2 } true;
-    this11 := $this;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",26,18,26,28 } true;
-    temp12 := $in_parameter__0;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",27,3,27,15 } true;
-    end13 := -1;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",28,3,28,22 } true;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",28,3,28,22 } temp12 != $null;
-    j14 := $arrSizeHeap[temp12];
-  block7:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",30,4,30,7 } true;
-    temp$015 := j14;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",30,4,30,4 } true;
-    temp$116 := temp$015 + -1;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",30,4,30,4 } true;
-    j14 := temp$116;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,31,31,54 } true;
-    call $fakelocal_0 := $new(java.lang.Character);
-    temp$217 := $fakelocal_0;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,31,31,54 } true;
-    temp$318 := temp12;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,31,31,54 } true;
-    temp$419 := j14;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,31,31,54 } true;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,31,31,54 } temp$419 < $arrSizeHeap[temp$318] && temp$419 >= 0;
-    temp$520 := $intArrHeap[temp$318][temp$419];
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } true;
-    call $exception := void$java.lang.Character$$la$init$ra$$1621(temp$217, temp$520);
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } true;
-    temp$722 := temp12;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } true;
-    temp$823 := j14;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } true;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } temp$823 < $arrSizeHeap[temp$722] && temp$823 >= 0;
-    temp$924 := $intArrHeap[temp$722][temp$823];
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } true;
-    call temp$1025, $exception := boolean$java.lang.Character$isLetterOrDigit$1668(temp$924);
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } true;
-    if (temp$1025 == 0) {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } { :comment "thenblock" } true;
-        goto block8;
-    } else {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } { :comment "elseblock" } true;
-    }
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",31,8,31,29 } true;
-    goto block9;
-  block9:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",32,5,32,7 } true;
-    end13 := j14;
-  block8:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",34,12,34,20 } true;
-    if (end13 == -1) {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",34,12,34,20 } { :comment "thenblock" } true;
-        goto block10;
-    } else {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",34,12,34,20 } { :comment "elseblock" } true;
-    }
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",34,12,34,20 } true;
-    goto block11;
-  block10:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",34,25,34,30 } true;
-    if (j14 >= 0) {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",34,25,34,30 } { :comment "thenblock" } true;
-        goto block7;
-    } else {
-        assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",34,25,34,30 } { :comment "elseblock" } true;
-    }
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",34,25,34,30 } true;
-    goto block11;
-  block11:
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",35,3,35,3 } true;
-    return;
-}
-
-
-implementation void$TruePositive06$$la$init$ra$$1891($this:ref) returns ($exception:ref){
-    
-var this26 : ref;
-    assume { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",-1,-1,-1,-1 } $this != $null;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",1,-1,-1,-1 } true;
-    this26 := $this;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",1,-1,-1,-1 } true;
-    call $exception := void$java.lang.Object$$la$init$ra$$38(this26);
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp06/TruePositive06.java",1,-1,-1,-1 } true;
-    return;
-}
 
 
