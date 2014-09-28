@@ -133,7 +133,12 @@ public class FaultLocalizationTransitionRelation extends
 		List<ProverExpr> stmts = statements2proverExpression(b.getStatements());
 		stmts.add(post);
 		ProverExpr[] conj = stmts.toArray(new ProverExpr[stmts.size()]);
+		
+		for (CfgStatement stmt : b.getStatements()) {
+			this.stmtOriginMap.put(stmt, b);
+		}
 
+		
 		return this.prover.mkAnd(conj);
 	}
 	

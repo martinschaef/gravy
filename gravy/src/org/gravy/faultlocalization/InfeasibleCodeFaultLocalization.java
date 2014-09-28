@@ -84,7 +84,7 @@ public class InfeasibleCodeFaultLocalization {
 		FaultLocalizationTransitionRelation sliceTr = new FaultLocalizationTransitionRelation(
 				slice, tr.getControlFlowFactory(), prover);
 
-		int partition = 0;
+
 
 		// prover.addAssertion(sliceTr.getEnsures());
 		//
@@ -93,15 +93,18 @@ public class InfeasibleCodeFaultLocalization {
 			prover.addAssertion(entry.getValue());
 		}
 
-		prover.addAssertion(sliceTr.getRequires());
+		if (sliceTr.getRequires()!=null) prover.addAssertion(sliceTr.getRequires());
 
-		prover.setPartitionNumber(partition++);
+		int partition = 0;
+		prover.setPartitionNumber(partition);
 
 		for (ProverExpr assertion : sliceTr.obligations) {
 			prover.addAssertion(assertion);
-			prover.setPartitionNumber(partition++);
+			prover.setPartitionNumber(++partition);
 		}
 
+		if (sliceTr.getEnsures()!=null) prover.addAssertion(sliceTr.getEnsures());
+		
 		ProverResult res = prover.checkSat(true);
 		if (res != ProverResult.Unsat) {
 			throw new RuntimeException("Fault Localization failed!");
@@ -116,14 +119,17 @@ public class InfeasibleCodeFaultLocalization {
 
 		// debug code
 		{
-//			 System.err.println("#interpolants: "+ interpolants.length +
-//			 " / #assertions:");
-//			 for (int i=0; i<partition-1; i++) {
-//			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
-//			 System.err.println("\tInterpolant "+i+":"+interpolants[i]);
-//			 }
+			 System.err.println("#interpolants: "+ interpolants.length +
+			 " / #assertions: ======================");
+			 for (int i=0; i<interpolants.length; i++) {
+			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
+			 System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
+			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
+			 }
 		}
-
+		
+		boolean allInfeasibleCloned = true;
+		
 		HashMap<CfgStatement, JavaSourceLocation> interestingStatements = new HashMap<CfgStatement, JavaSourceLocation>();
 		ProverExpr currentInterpolant = interpolants[0];
 		for (int i = 1; i < interpolants.length; i++) {
@@ -131,6 +137,9 @@ public class InfeasibleCodeFaultLocalization {
 				currentInterpolant = interpolants[i];
 				CfgStatement statement = sliceTr.pe2StmtMap
 						.get(sliceTr.obligations.get(i));
+				
+//				System.err.println(statement );
+				
 				if (statement == null) {
 					// TODO:
 					statement = sliceTr.pe2StmtMap.get(sliceTr.obligations
@@ -148,12 +157,12 @@ public class InfeasibleCodeFaultLocalization {
 				// }
 
 				JavaSourceLocation loc = null;
-
+				
 				if (statement instanceof CfgAssertStatement
 						|| statement instanceof CfgAssumeStatement) {
 					if (statement instanceof CfgAssumeStatement
-							&& statement.getAttributes() == null
-							|| statement.getAttributes().length == 0) {
+							&& (statement.getAttributes() == null 
+							|| statement.getAttributes().length == 0)) {
 						// this is a special case when a jar2bpl if statement is
 						// translated.
 						// probably not a good pick if the boogie file came from
@@ -172,14 +181,16 @@ public class InfeasibleCodeFaultLocalization {
 						loc = praseLocationTags(statement.getAttributes());
 					}
 				} else {
-					if (origin != null) {
-						int pos = origin.getStatements().indexOf(statement);
-						if (pos > 0
-								&& (origin.getStatements().get(pos - 1) instanceof CfgAssertStatement || origin
-										.getStatements().get(pos - 1) instanceof CfgAssumeStatement)) {
-							loc = praseLocationTags(origin.getStatements()
-									.get(pos - 1).getAttributes());
+					//if its a statement without location attributes
+					//go backwards until we find the last location attibute.
+					int pos = origin.getStatements().indexOf(statement);
+					while (pos>0) {
+						loc = praseLocationTags(origin.getStatements()
+								.get(pos).getAttributes());
+						if (loc!=null) {
+							break;
 						}
+						pos--;
 					}
 				}
 				
@@ -188,23 +199,30 @@ public class InfeasibleCodeFaultLocalization {
 						loc.isCloned = true;
 					}
 					
-					if (origin!=null) {
-						for (BasicBlock b : component) {
-							if (b.getLabel().equals(origin.getLabel())) {
-								//compare them by name because we cloned them, so they are not
-								//the same by reference.
-								loc.inInfeasibleBlock = true;
-								break;
-							} else {
-								//do nothing
-							}
+					
+					for (BasicBlock b : component) {
+						if (b.getLabel().equals(origin.getLabel())) {
+							//compare them by name because we cloned them, so they are not
+							//the same by reference.
+							loc.inInfeasibleBlock = true;
+							break;
+						} else {
+							//do nothing
 						}
 					}
+					
 				}
 				
 //				System.err.println("Interesting Stmt: ");
 				if (loc != null) {
-//					System.err.print("l:" + loc.StartLine + "," + loc.StartCol);
+					
+					if (loc.inInfeasibleBlock && !loc.isCloned) {
+						allInfeasibleCloned = false;
+					} else {
+						
+					}
+					
+//					System.err.println("l:" + loc.StartLine + "," + loc.isCloned+ "," + loc.isNoVerify);
 					interestingStatements.put(statement, loc);
 				} else {
 					Log.debug("dropped stmt because no location found "+statement);
@@ -217,6 +235,9 @@ public class InfeasibleCodeFaultLocalization {
 
 		prover.shutdown();
 
+		//TODO:
+		if (allInfeasibleCloned) interestingStatements.clear();
+		
 		return interestingStatements;
 	}
 
