@@ -78,6 +78,11 @@ public class InfeasibleCodeFaultLocalization {
 		CfgProcedure slice = tr.getProcedure().computeSlice(
 				getSubprog(component), tr.getProcedure().getRootNode());
 
+		
+		//TODO do I have to recompute SSA?
+		
+//		slice.toDot("./slice_"+slice.getProcedureName()+component.hashCode()+".dot");
+		
 		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();
 		Prover prover = pf.spawn();
 		prover.setConstructProofs(true);
@@ -129,6 +134,7 @@ public class InfeasibleCodeFaultLocalization {
 		}
 		
 		boolean allInfeasibleCloned = true;
+		boolean anyCloned = false;
 		
 		HashMap<CfgStatement, JavaSourceLocation> interestingStatements = new HashMap<CfgStatement, JavaSourceLocation>();
 		ProverExpr currentInterpolant = interpolants[0];
@@ -197,6 +203,7 @@ public class InfeasibleCodeFaultLocalization {
 				if (loc!=null) {
 					if (origin!=null && containsNamedAttribute(origin, ProgramFactory.Cloned)) {
 						loc.isCloned = true;
+						anyCloned = true;
 					}
 					
 					
@@ -236,7 +243,7 @@ public class InfeasibleCodeFaultLocalization {
 		prover.shutdown();
 
 		//TODO:
-		if (allInfeasibleCloned) interestingStatements.clear();
+		if (anyCloned && allInfeasibleCloned) interestingStatements.clear();
 		
 		return interestingStatements;
 	}
