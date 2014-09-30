@@ -25,8 +25,6 @@ import boogie.ast.NamedAttribute;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
-import boogie.controlflow.statement.CfgAssertStatement;
-import boogie.controlflow.statement.CfgAssumeStatement;
 import boogie.controlflow.statement.CfgStatement;
 
 /**
@@ -226,46 +224,6 @@ public class InfeasibleCodeFaultLocalization {
 //					System.err.println("BWD");
 				}
 				
-//				if (statement instanceof CfgAssertStatement
-//						|| statement instanceof CfgAssumeStatement) {
-//					if (statement instanceof CfgAssumeStatement
-//							&& (statement.getAttributes() == null || statement
-//									.getAttributes().length == 0)) {
-//						// this is a special case when a jar2bpl if statement is
-//						// translated.
-//						// probably not a good pick if the boogie file came from
-//						// elsewhere.
-//
-//						
-//
-//						int pos = origin.getStatements().indexOf(statement);
-//						if (pos + 1 < origin.getStatements().size()) {
-//							pos++; // if its an assume without attribute
-//							// pick the successor.
-//						} else if (pos > 0) {
-//							pos--; // only if there is no further statement pick
-//									// the
-//							// predecessor
-//						}
-//						loc = praseLocationTags(origin.getStatements().get(pos)
-//								.getAttributes());
-//					} else {
-//						loc = praseLocationTags(statement.getAttributes());
-//					}
-//				} else {
-//					// if its a statement without location attributes
-//					// go backwards until we find the last location attibute.
-//					int pos = origin.getStatements().indexOf(statement);
-//
-//					while (pos >= 0) {
-//						CfgStatement st = origin.getStatements().get(pos);
-//						loc = praseLocationTags(st.getAttributes());
-//						if (loc != null) {
-//							break;
-//						}
-//						pos--;
-//					}
-//				}
 
 				if (loc != null) {
 					if (origin != null
