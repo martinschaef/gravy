@@ -45,11 +45,7 @@ public class ProgramAnalysis {
 			runFullProgramAnalysis(pf, getDefaultReportPrinter());			
 		} catch (Throwable e) {
 			throw new RuntimeException(e.toString());
-		} finally {
-			GlobalsCache.resetInstance();
-			Options.resetInstance();
-			Statistics.resetInstance();
-		}
+		} 
 	}
 	
 	private static ReportPrinter getDefaultReportPrinter() {
@@ -73,7 +69,12 @@ public class ProgramAnalysis {
 	}
 	
 	
-	public static void runFullProgramAnalysis(ProgramFactory pf, ReportPrinter rp) {		
+	public static void runFullProgramAnalysis(ProgramFactory pf, ReportPrinter rp) {
+		
+		if (Options.v().stopTime) {
+			Log.info("logging statistics");
+		}
+		
 		GlobalsCache.v().setProgramFactory(pf);
 		TypeChecker tc = new TypeChecker(pf.getASTRoot());
 		DefaultControlFlowFactory cff = new DefaultControlFlowFactory(pf.getASTRoot(), tc);
@@ -92,7 +93,7 @@ public class ProgramAnalysis {
 				
 				Report report = analyzeProcedure(p, cff);
 				
-				if (Options.v().stopTime) {
+				if (Options.v().stopTime) {					
 					Long t = sw.getTime();
 					int lines = countStatementsForStatistics(p);
 					Statistics.v().writeCheckerStats(p.getProcedureName(), lines, t.doubleValue(), report);
@@ -120,7 +121,7 @@ public class ProgramAnalysis {
 			} catch (Exception e) {
 				e.printStackTrace();
 				break;
-			}
+			} 
 		}
 
 		if (Options.v().getDebugMode()) {
@@ -131,6 +132,9 @@ public class ProgramAnalysis {
 		Log.info("Total Timeouts after " + Options.v().getTimeOut()
 				+ "ms: " + timeouts);
 				
+		GlobalsCache.resetInstance();
+		Options.resetInstance();
+		Statistics.resetInstance();
 	}
 	
 	private static int countStatementsForStatistics(CfgProcedure p) {

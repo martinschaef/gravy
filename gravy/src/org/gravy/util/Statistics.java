@@ -36,6 +36,8 @@ public class Statistics {
 				try {
 					if (instance.checkerBuffer!=null) instance.checkerBuffer.close();
 					if (instance.faultLocBuffer!=null) instance.faultLocBuffer.close();
+					instance.cfw.close();
+					instance.ffw.close();
 				} catch (IOException e) {
 					e.printStackTrace();
 				}
@@ -47,17 +49,21 @@ public class Statistics {
 	
 	private BufferedWriter checkerBuffer = null;
 	private BufferedWriter faultLocBuffer = null;
+	private FileWriter cfw ;
+	private FileWriter ffw;
 	
 	public void setLogFilePrefix(String s) throws Throwable {
+		
 		File checkerLog = new File(s+"_checker.csv");
 		File faultLocLog = new File(s+"_faultloc.csv");
 		try {
-			FileWriter cfw = new FileWriter(checkerLog.getAbsoluteFile());
-			FileWriter ffw = new FileWriter(faultLocLog.getAbsoluteFile());
+			cfw = new FileWriter(checkerLog.getAbsoluteFile());
+			ffw = new FileWriter(faultLocLog.getAbsoluteFile());
 			this.checkerBuffer = new BufferedWriter(cfw);
 			this.faultLocBuffer = new BufferedWriter(ffw);
 			
 		} catch (Throwable e) {
+			e.printStackTrace();
 			throw e;
 		}
 	}	
@@ -65,6 +71,7 @@ public class Statistics {
 	public void writeCheckerStats(String procname, Integer lines, Double millisecs, Report report) {
 		if (this.checkerBuffer!=null) {
 			try {
+				
 				this.checkerBuffer.write(procname);
 				this.checkerBuffer.write(", ");				
 				this.checkerBuffer.write(lines.toString());
@@ -78,7 +85,7 @@ public class Statistics {
 				} else {
 					this.checkerBuffer.write(", -1");
 				}
-				this.checkerBuffer.write("\n");
+				this.checkerBuffer.write("\n");				
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
