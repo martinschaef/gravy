@@ -34,7 +34,7 @@ public class ProgramAnalysis {
 	
 	private static long timeouts = 0;
 		
-	public static void runProgramAnalysis(String boogieFileName) throws Throwable {
+	public static void runProgramAnalysis(String boogieFileName) throws Exception {
 		ProgramFactory pf;
 		try {
 			if (Options.v().stopTime) {
@@ -44,7 +44,7 @@ public class ProgramAnalysis {
 			Log.info("Parsed "+ boogieFileName + ": "+ (pf.getASTRoot()!=null));								
 			runFullProgramAnalysis(pf, getDefaultReportPrinter());			
 		} catch (Throwable e) {
-			throw e;
+			throw new RuntimeException(e.toString());
 		} finally {
 			GlobalsCache.resetInstance();
 			Options.resetInstance();
