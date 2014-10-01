@@ -23,14 +23,31 @@ public class InterpolationInfeasibleReport extends Report {
 
 	private LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = new LinkedList<HashMap<CfgStatement, JavaSourceLocation>>();
 	
+	private Set<BasicBlock> infeasibleBlocks;
+	private AbstractTransitionRelation tr;
+	
 	public InterpolationInfeasibleReport(AbstractControlFlowFactory cff,
 			AbstractTransitionRelation tr, Set<BasicBlock> feasibleBlocks,
 			Set<BasicBlock> infeasibleBlocks) {
-		this.reports = InfeasibleCodeFaultLocalization.localizeFaults(tr, infeasibleBlocks);
+		this.infeasibleBlocks = infeasibleBlocks;
+		this.hasInfeasibleBlocks = this.infeasibleBlocks.size()>0;
+		this.tr = tr;
 	}	
 	
+	public boolean hasInfeasibleBlocks;
+
 	public LinkedList<HashMap<CfgStatement, JavaSourceLocation>> getReports() {
 		return this.reports;
 	}
+	
+	@Override
+	public void update() {
+		if (this.tr!=null && this.infeasibleBlocks!=null) {
+			this.reports = InfeasibleCodeFaultLocalization.localizeFaults(tr, infeasibleBlocks);
+			this.tr=null;
+			this.infeasibleBlocks=null;
+		}
+	}
+	
 	
 }

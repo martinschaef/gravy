@@ -23,6 +23,12 @@ import boogie.controlflow.statement.CfgStatement;
  */
 public class Report {
 
+	/**
+	 * this is only for the interpolation stuff to make sure that the 
+	 * fault localization does not get killed by a timeout.
+	 */
+	public void update() {}
+	
 	public Report() {
 	}
 	

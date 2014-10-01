@@ -33,6 +33,8 @@ import boogie.controlflow.statement.CfgStatement;
  */
 public class InfeasibleCodeFaultLocalization {
 
+	public static Integer DEBUG_ProofObligations = 0;
+	public static Integer DEBUG_AbstractTrace = 0;
 	/**
 	 * Applies fault localization to a set of (not necessarily connected)
 	 * infeasible blocks.
@@ -71,6 +73,8 @@ public class InfeasibleCodeFaultLocalization {
 	 */
 	public static HashMap<CfgStatement, JavaSourceLocation> localizeFault(
 			AbstractTransitionRelation tr, Set<BasicBlock> component) {
+		DEBUG_AbstractTrace = 0;
+		DEBUG_ProofObligations = 0;
 		// TODO: check if this contains a noverify tag and ignore it.
 		for (BasicBlock b : component) {
 			if (containsNamedAttribute(b, ProgramFactory.NoVerifyTag)) {
@@ -124,7 +128,7 @@ public class InfeasibleCodeFaultLocalization {
 		if (res != ProverResult.Unsat) {
 			throw new RuntimeException("Fault Localization failed!");
 		}
-
+		DEBUG_ProofObligations = partition;
 		int[][] ordering = new int[partition][1];
 		for (int i = 0; i < partition; i++) {
 			ordering[i][0] = i;
@@ -165,7 +169,7 @@ public class InfeasibleCodeFaultLocalization {
 
 				BasicBlock origin = sliceTr.stmtOriginMap.get(statement);
 				if (origin == null) {
-					Log.error("could not find statement " + statement + " in "
+					Log.debug("could not find statement " + statement + " in "
 							+ sliceTr.getProcedureName() + "\n");
 					continue;
 				}
@@ -269,8 +273,8 @@ public class InfeasibleCodeFaultLocalization {
 					interestingStatements.put(statement, loc);
 
 				} else {
-					Log.error("no location tag " + statement + " in ");
-					Log.error(origin);
+					Log.debug("no location tag " + statement + " in ");
+					Log.debug(origin);
 					continue;
 				}
 
@@ -291,7 +295,7 @@ public class InfeasibleCodeFaultLocalization {
 			//strange try/catch false positives.
 			interestingStatements.clear();
 		}
-
+		DEBUG_AbstractTrace = interestingStatements.size();
 		return interestingStatements;
 	}
 

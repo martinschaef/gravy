@@ -28,7 +28,7 @@ public class Main {
 		} catch (CmdLineException e) {
 			Log.error(e.getMessage());			
 			parser.printUsage(System.err);
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			Log.error("Could not parse "+options.getBoogieFile());
 			Log.error(e.toString());
 			e.printStackTrace();

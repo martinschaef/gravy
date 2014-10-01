@@ -1,5 +1,7 @@
 package org.gravy;
 
+import java.util.HashSet;
+import java.util.LinkedList;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.Future;
@@ -14,10 +16,13 @@ import org.gravy.reportprinter.DefaultGraVyReportPrinter;
 import org.gravy.reportprinter.InterpolatingInfeasibleCodeReportPrinter;
 import org.gravy.reportprinter.ReportPrinter;
 import org.gravy.util.Log;
+import org.gravy.util.Statistics;
+import org.gravy.util.StopWatch;
 
 import typechecker.TypeChecker;
 import boogie.ProgramFactory;
 import boogie.controlflow.AbstractControlFlowFactory;
+import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.DefaultControlFlowFactory;
 
@@ -29,17 +34,21 @@ public class ProgramAnalysis {
 	
 	private static long timeouts = 0;
 		
-	public static void runProgramAnalysis(String boogieFileName) throws Exception {
+	public static void runProgramAnalysis(String boogieFileName) throws Throwable {
 		ProgramFactory pf;
 		try {
+			if (Options.v().stopTime) {
+				Statistics.v().setLogFilePrefix(boogieFileName);
+			}
 			pf = new ProgramFactory(boogieFileName);
 			Log.info("Parsed "+ boogieFileName + ": "+ (pf.getASTRoot()!=null));								
 			runFullProgramAnalysis(pf, getDefaultReportPrinter());			
-		} catch (Exception e) {
+		} catch (Throwable e) {
 			throw e;
 		} finally {
 			GlobalsCache.resetInstance();
 			Options.resetInstance();
+			Statistics.resetInstance();
 		}
 	}
 	
@@ -69,16 +78,42 @@ public class ProgramAnalysis {
 		TypeChecker tc = new TypeChecker(pf.getASTRoot());
 		DefaultControlFlowFactory cff = new DefaultControlFlowFactory(pf.getASTRoot(), tc);
 
-		if (Options.v().getDebugMode()) {
-			cff.toFile("unstructured.bpl");
-		}
+//		if (Options.v().getDebugMode()) {
+//			cff.toFile("unstructured.bpl");
+//		}
 
 		for (CfgProcedure p : cff.getProcedureCFGs()) {
 			if (p.getRootNode()==null) continue;
 			try {				
+				StopWatch sw = null;
+				if (Options.v().stopTime) {
+					sw = StopWatch.getInstanceAndStart();					
+				}
+				
 				Report report = analyzeProcedure(p, cff);
 				
+				if (Options.v().stopTime) {
+					Long t = sw.getTime();
+					int lines = countStatementsForStatistics(p);
+					Statistics.v().writeCheckerStats(p.getProcedureName(), lines, t.doubleValue(), report);
+					sw.stop();
+					
+				}
+				
+				
 				if (report!=null) {
+					sw = null;
+					if (Options.v().stopTime) {
+						sw = StopWatch.getInstanceAndStart();					
+					}					
+					report.update(); //do the interpolation based fault localization here to avoid timeouts.
+					if (Options.v().stopTime) {
+						Long t = sw.getTime();
+						Statistics.v().writeFaultLocalizationStats(p.getProcedureName(), t.doubleValue());
+						sw.stop();
+					}
+					
+					
 					rp.printReport(report);
 				}
 						
@@ -96,6 +131,28 @@ public class ProgramAnalysis {
 		Log.info("Total Timeouts after " + Options.v().getTimeOut()
 				+ "ms: " + timeouts);
 				
+	}
+	
+	private static int countStatementsForStatistics(CfgProcedure p) {
+		int total = 0;
+		try {
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		todo.add(p.getRootNode());
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();
+			total+=current.getStatements().size();
+			done.add(current);
+			for (BasicBlock next : current.getSuccessors()) {
+				if (!done.contains(next) && !todo.contains(next)) {
+					todo.add(next);
+				}
+			}
+		}
+		} catch (Throwable e) {
+			
+		}
+		return total;
 	}
 	
 	private static Report analyzeProcedure(CfgProcedure p, AbstractControlFlowFactory cff) {

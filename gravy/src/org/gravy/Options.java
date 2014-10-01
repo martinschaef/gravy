@@ -47,6 +47,9 @@ public class Options {
 		return timeOut;
 	}
 
+	public boolean stopTime = false;
+	
+	
 	
 	@Option(name = "-unwind", usage = "Number of loop unwindings. Default: -1 means use havoc instead of unwindings")
 	private int unwindings = -1; //-1 means no unwindings
