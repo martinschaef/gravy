@@ -14,6 +14,7 @@ import org.gravy.prover.ProverExpr;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
+import org.gravy.util.Statistics;
 import org.gravy.util.StopWatch;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
@@ -76,6 +77,8 @@ public class InfeasibleCodeChecker extends
 		// track of the remaining uncovered blocks
 		LinkedHashMap<ProverExpr, ProverExpr> ineffFlags = new LinkedHashMap<ProverExpr, ProverExpr>();
 
+		Statistics.HACK_effectualSetSize = tr.getEffectualSet().size();
+		
 		for (BasicBlock block : tr.getEffectualSet()) {
 			ProverExpr v = tr.getReachabilityVariables().get(block);
 			ineffFlags.put(v, prover.mkVariable("" + v + "_flag",

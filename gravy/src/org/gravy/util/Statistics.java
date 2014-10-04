@@ -17,6 +17,9 @@ import org.gravy.report.Report;
  *
  */
 public class Statistics {
+	
+	public static Integer HACK_effectualSetSize = 0;
+	
 
 	private static Statistics instance = null;
 	
@@ -85,6 +88,8 @@ public class Statistics {
 				} else {
 					this.checkerBuffer.write(", -1");
 				}
+				this.checkerBuffer.write(", ");				
+				this.checkerBuffer.write(Statistics.HACK_effectualSetSize);
 				this.checkerBuffer.write("\n");				
 			} catch (IOException e) {
 				e.printStackTrace();
