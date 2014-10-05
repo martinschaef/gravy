@@ -6,8 +6,14 @@ package org.gravy.report;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.Set;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
-import org.gravy.faultlocalization.InfeasibleCodeFaultLocalization;
+import org.gravy.Options;
+import org.gravy.faultlocalization.FaultLocalizationThread;
 import org.gravy.util.JavaSourceLocation;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
@@ -23,8 +29,11 @@ public class InterpolationInfeasibleReport extends Report {
 
 	private LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = new LinkedList<HashMap<CfgStatement, JavaSourceLocation>>();
 	
+	public boolean timeout = false;
+	
 	private Set<BasicBlock> infeasibleBlocks;
 	private AbstractTransitionRelation tr;
+	private FaultLocalizationThread flt = null;
 	
 	public InterpolationInfeasibleReport(AbstractControlFlowFactory cff,
 			AbstractTransitionRelation tr, Set<BasicBlock> feasibleBlocks,
@@ -32,6 +41,7 @@ public class InterpolationInfeasibleReport extends Report {
 		this.infeasibleBlocks = infeasibleBlocks;
 		this.hasInfeasibleBlocks = this.infeasibleBlocks.size()>0;
 		this.tr = tr;
+		flt = new FaultLocalizationThread(cff, tr, feasibleBlocks, infeasibleBlocks);
 	}	
 	
 	public boolean hasInfeasibleBlocks;
@@ -42,10 +52,29 @@ public class InterpolationInfeasibleReport extends Report {
 	
 	@Override
 	public void update() {
-		if (this.tr!=null && this.infeasibleBlocks!=null) {
-			this.reports = InfeasibleCodeFaultLocalization.localizeFaults(tr, infeasibleBlocks);
-			this.tr=null;
-			this.infeasibleBlocks=null;
+		if (this.flt!=null && this.tr!=null && this.infeasibleBlocks!=null) {
+			ExecutorService executor = Executors.newSingleThreadExecutor();	
+			
+			final Future<?> future = executor.submit(flt);
+
+			try {
+				// start thread and wait xx seconds			
+				future.get(Options.v().getTimeOut(),
+						TimeUnit.MILLISECONDS);				
+			} catch (TimeoutException e) {
+				this.timeout=true;
+				this.reports=null;
+			} catch (OutOfMemoryError e) {
+				this.reports=null;
+				throw e;
+			} catch (Throwable e) {
+				e.printStackTrace();
+				this.reports=null;
+			} finally {
+				this.flt = null;
+				this.tr=null;
+				this.infeasibleBlocks=null;
+			}
 		}
 	}
 	

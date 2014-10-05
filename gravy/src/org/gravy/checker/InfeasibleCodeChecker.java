@@ -56,7 +56,7 @@ public class InfeasibleCodeChecker extends
 		p.pruneUnreachableBlocks();
 		
 		
-		p.toFile("./"+p.getProcedureName()+".bpl");
+//		p.toFile("./"+p.getProcedureName()+".bpl");
 //		p.toDot("./"+p.getProcedureName()+"_lf.dot");
 	}
 
@@ -99,8 +99,6 @@ public class InfeasibleCodeChecker extends
 		
 		infeasibleBlocks = new HashSet<BasicBlock>(tr.getReachabilityVariables().keySet());
 		infeasibleBlocks.removeAll(feasibleBlocks);
-		
-		for (BasicBlock b : infeasibleBlocks) System.err.println(b.getLabel());
 		
 		return new InterpolationInfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
 	}

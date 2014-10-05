@@ -53,10 +53,10 @@ public class InfeasibleCodeFaultLocalization {
 		LinkedList<HashSet<BasicBlock>> components = findConnectedComponents(infeasibleBlocks);
 		for (HashSet<BasicBlock> cmp : components) {
 			try {
-				System.err.println("Start fault localization ...");
+//				System.err.println("Start fault localization ...");
 				HashMap<CfgStatement, JavaSourceLocation> res = localizeFault(
 						tr, cmp);
-				System.err.println("\t\t...done");
+//				System.err.println("\t\t...done");
 				if (res != null && !res.isEmpty()) {					
 					reports.add(res);
 				}

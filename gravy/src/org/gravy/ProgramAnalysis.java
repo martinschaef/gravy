@@ -11,6 +11,7 @@ import java.util.concurrent.TimeoutException;
 import org.gravy.checker.AbstractChecker;
 import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
+import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.reportprinter.DefaultGraVyReportPrinter;
 import org.gravy.reportprinter.InterpolatingInfeasibleCodeReportPrinter;
@@ -110,7 +111,8 @@ public class ProgramAnalysis {
 					report.update(); //do the interpolation based fault localization here to avoid timeouts.
 					if (Options.v().stopTime) {
 						Long t = sw.getTime();
-						Statistics.v().writeFaultLocalizationStats(p.getProcedureName(), t.doubleValue());
+						boolean timeout=(report instanceof InterpolationInfeasibleReport) ? ((InterpolationInfeasibleReport)report).timeout : false ;						
+						Statistics.v().writeFaultLocalizationStats(p.getProcedureName(), t.doubleValue(), timeout);
 						sw.stop();
 					}
 					

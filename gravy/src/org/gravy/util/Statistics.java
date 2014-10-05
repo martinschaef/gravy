@@ -90,7 +90,8 @@ public class Statistics {
 				}
 				this.checkerBuffer.write(", ");				
 				this.checkerBuffer.write(Statistics.HACK_effectualSetSize.toString());
-				this.checkerBuffer.write("\n");				
+				this.checkerBuffer.write("\n");	
+				this.checkerBuffer.flush();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
@@ -100,7 +101,7 @@ public class Statistics {
 	/**
 	 * hack
 	 */
-	public void writeFaultLocalizationStats(String procname, Double millisecs) {
+	public void writeFaultLocalizationStats(String procname, Double millisecs, Boolean timeout) {
 		if (this.faultLocBuffer!=null) {
 			try {
 				this.faultLocBuffer.write(procname);
@@ -111,7 +112,10 @@ public class Statistics {
 				this.faultLocBuffer.write(InfeasibleCodeFaultLocalization.DEBUG_ProofObligations.toString());
 				this.faultLocBuffer.write(", ");
 				this.faultLocBuffer.write(InfeasibleCodeFaultLocalization.DEBUG_AbstractTrace.toString());
+				this.faultLocBuffer.write(", ");
+				this.faultLocBuffer.write(timeout.toString());				
 				this.faultLocBuffer.write("\n");
+				this.faultLocBuffer.flush();
 			} catch (IOException e) {
 				e.printStackTrace();
 			}
