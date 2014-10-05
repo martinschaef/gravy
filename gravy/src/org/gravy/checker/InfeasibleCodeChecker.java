@@ -6,7 +6,6 @@ package org.gravy.checker;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 
-import org.gravy.Options;
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
 import org.gravy.prover.Prover;
@@ -15,7 +14,6 @@ import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.util.Statistics;
-import org.gravy.util.StopWatch;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
 
@@ -58,7 +56,7 @@ public class InfeasibleCodeChecker extends
 		p.pruneUnreachableBlocks();
 		
 		
-//		p.toFile("./"+p.getProcedureName()+".bpl");
+		p.toFile("./"+p.getProcedureName()+".bpl");
 //		p.toDot("./"+p.getProcedureName()+"_lf.dot");
 	}
 
@@ -101,6 +99,8 @@ public class InfeasibleCodeChecker extends
 		
 		infeasibleBlocks = new HashSet<BasicBlock>(tr.getReachabilityVariables().keySet());
 		infeasibleBlocks.removeAll(feasibleBlocks);
+		
+		for (BasicBlock b : infeasibleBlocks) System.err.println(b.getLabel());
 		
 		return new InterpolationInfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
 	}

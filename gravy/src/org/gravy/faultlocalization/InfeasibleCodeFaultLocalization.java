@@ -53,9 +53,11 @@ public class InfeasibleCodeFaultLocalization {
 		LinkedList<HashSet<BasicBlock>> components = findConnectedComponents(infeasibleBlocks);
 		for (HashSet<BasicBlock> cmp : components) {
 			try {
+				System.err.println("Start fault localization ...");
 				HashMap<CfgStatement, JavaSourceLocation> res = localizeFault(
 						tr, cmp);
-				if (res != null && !res.isEmpty()) {
+				System.err.println("\t\t...done");
+				if (res != null && !res.isEmpty()) {					
 					reports.add(res);
 				}
 			} catch (Throwable e) {
@@ -76,7 +78,7 @@ public class InfeasibleCodeFaultLocalization {
 		DEBUG_AbstractTrace = 0;
 		DEBUG_ProofObligations = 0;
 		// TODO: check if this contains a noverify tag and ignore it.
-		for (BasicBlock b : component) {
+		for (BasicBlock b : component) {			
 			if (containsNamedAttribute(b, ProgramFactory.NoVerifyTag)) {
 				return new HashMap<CfgStatement, JavaSourceLocation>();
 			}
@@ -126,6 +128,7 @@ public class InfeasibleCodeFaultLocalization {
 
 		ProverResult res = prover.checkSat(true);
 		if (res != ProverResult.Unsat) {
+			prover.shutdown();
 			throw new RuntimeException("Fault Localization failed!");
 		}
 		DEBUG_ProofObligations = partition;

@@ -89,7 +89,7 @@ public class Statistics {
 					this.checkerBuffer.write(", -1");
 				}
 				this.checkerBuffer.write(", ");				
-				this.checkerBuffer.write(Statistics.HACK_effectualSetSize);
+				this.checkerBuffer.write(Statistics.HACK_effectualSetSize.toString());
 				this.checkerBuffer.write("\n");				
 			} catch (IOException e) {
 				e.printStackTrace();
