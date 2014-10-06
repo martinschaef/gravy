@@ -55,12 +55,12 @@ public class InterpolationInfeasibleReport extends Report {
 		if (this.flt!=null && this.tr!=null && this.infeasibleBlocks!=null) {
 			ExecutorService executor = Executors.newSingleThreadExecutor();	
 			
-			final Future<?> future = executor.submit(flt);
-
+			final Future<?> future = executor.submit(flt);			
 			try {
 				// start thread and wait xx seconds			
 				future.get(Options.v().getTimeOut(),
-						TimeUnit.MILLISECONDS);				
+						TimeUnit.MILLISECONDS);
+				this.reports.addAll(flt.getReports());
 			} catch (TimeoutException e) {
 				this.timeout=true;
 				this.reports=null;
