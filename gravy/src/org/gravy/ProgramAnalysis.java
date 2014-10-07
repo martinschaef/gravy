@@ -71,11 +71,7 @@ public class ProgramAnalysis {
 	
 	
 	public static void runFullProgramAnalysis(ProgramFactory pf, ReportPrinter rp) {
-		
-		if (Options.v().stopTime) {
-			Log.info("logging statistics");
-		}
-		
+			
 		GlobalsCache.v().setProgramFactory(pf);
 		TypeChecker tc = new TypeChecker(pf.getASTRoot());
 		DefaultControlFlowFactory cff = new DefaultControlFlowFactory(pf.getASTRoot(), tc);
@@ -162,9 +158,9 @@ public class ProgramAnalysis {
 	}
 	
 	private static Report analyzeProcedure(CfgProcedure p, AbstractControlFlowFactory cff) {
-		if (Options.v().getDebugMode()) {
+//		if (Options.v().getDebugMode()) {
 			Log.info("Checking: " + p.getProcedureName());
-		}
+//		}
 		// create an executor to kill the verification with a timeout if
 		// necessary
 		ExecutorService executor = Executors.newSingleThreadExecutor();		

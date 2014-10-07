@@ -62,12 +62,19 @@ public abstract class AbstractChecker implements Runnable {
 	public void run() {
 		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();
 		//Prover prover = pf.spawnWithLog("lala");
-		this.prover = pf.spawn();
-		Log.debug("Compute Transition Relation "+this.procedure.getProcedureName());
-		//AbstractTransitionRelation tr = new TransitionRelation(this.procedure, this.cff, prover);
-		CfgTransitionRelation tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
-		this.report = checkSat(prover, tr); 
-		shutDownProver();
+		try {
+			this.prover = pf.spawn();
+			Log.debug("Compute Transition Relation "+this.procedure.getProcedureName());
+			//AbstractTransitionRelation tr = new TransitionRelation(this.procedure, this.cff, prover);
+			CfgTransitionRelation tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
+			this.report = checkSat(prover, tr); 
+		} catch (Throwable e) {
+//			e.printStackTrace();
+//			this.procedure.toDot("Debug"+this.procedure.getProcedureName()+".dot");
+//			this.procedure.toFile("Debug"+this.procedure.getProcedureName()+".bpl");
+		} finally {
+			shutDownProver();
+		}
 	}
 	
 	public void shutDownProver() {

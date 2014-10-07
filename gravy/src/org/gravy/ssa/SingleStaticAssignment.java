@@ -155,7 +155,8 @@ public class SingleStaticAssignment {
 		Log.debug("------ recomute the ssa");
 		//Do the actual SSA
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
-		LinkedList<BasicBlock> done = new LinkedList<BasicBlock>();		
+		LinkedList<BasicBlock> done = new LinkedList<BasicBlock>();	
+		if (p.getRootNode()==null) return;
 		todo.add(p.getRootNode());
 
 		//do SSA on the precondition first.
@@ -176,10 +177,12 @@ public class SingleStaticAssignment {
 			 */
 			{
 				boolean allPredsDone = true;
-				for (BasicBlock pred : current.getPredecessors()) {
-					if (!done.contains(pred)) {
-						allPredsDone = false;
-						break;
+				if (current.getPredecessors()!=null) {
+					for (BasicBlock pred : current.getPredecessors()) {
+						if (!done.contains(pred)) {
+							allPredsDone = false;
+							break;
+						}
 					}
 				}
 				if (allPredsDone) {

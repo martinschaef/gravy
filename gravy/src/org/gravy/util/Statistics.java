@@ -8,7 +8,7 @@ import java.io.File;
 import java.io.FileWriter;
 import java.io.IOException;
 
-import org.gravy.faultlocalization.InfeasibleCodeFaultLocalization;
+import org.gravy.faultlocalization.FaultLocalizationThread;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 
@@ -109,9 +109,9 @@ public class Statistics {
 				Double secs = (millisecs/ 1000.0); //convert to seconds
 				this.faultLocBuffer.write(secs.toString());
 				this.faultLocBuffer.write(", ");
-				this.faultLocBuffer.write(InfeasibleCodeFaultLocalization.DEBUG_ProofObligations.toString());
+				this.faultLocBuffer.write(FaultLocalizationThread.DEBUG_ProofObligations.toString());
 				this.faultLocBuffer.write(", ");
-				this.faultLocBuffer.write(InfeasibleCodeFaultLocalization.DEBUG_AbstractTrace.toString());
+				this.faultLocBuffer.write(FaultLocalizationThread.DEBUG_AbstractTrace.toString());
 				this.faultLocBuffer.write(", ");
 				this.faultLocBuffer.write(timeout.toString());				
 				this.faultLocBuffer.write("\n");

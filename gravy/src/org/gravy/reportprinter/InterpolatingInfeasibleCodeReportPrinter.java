@@ -42,8 +42,8 @@ public class InterpolatingInfeasibleCodeReportPrinter implements ReportPrinter {
 	private String buildBoogieErrorString(InterpolationInfeasibleReport ir) {
 		LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = ir.getReports();
 		StringBuffer sb = new StringBuffer();
-	
-		sb.append("Total reports: "+reports.size()+ " -----------------\n");
+		
+//		sb.append("Total reports: "+reports.size()+ " -----------------\n");
 		int count =0;
 		for (HashMap<CfgStatement, JavaSourceLocation> lines : reports) {
 			sb.append("  Reports: "+(++count));

@@ -53,27 +53,45 @@ public class InterpolationInfeasibleReport extends Report {
 	@Override
 	public void update() {
 		if (this.flt!=null && this.tr!=null && this.infeasibleBlocks!=null) {
+//			this.flt.run();
+//			this.flt.shutDownProver();
+//			this.flt = null;
+//			this.tr=null;
+//			this.infeasibleBlocks=null;
+
+			
 			ExecutorService executor = Executors.newSingleThreadExecutor();	
 			
 			final Future<?> future = executor.submit(flt);			
 			try {
 				// start thread and wait xx seconds			
-				future.get(Options.v().getTimeOut(),
+				future.get(Options.v().getTimeOut()+50000,
 						TimeUnit.MILLISECONDS);
 				this.reports.addAll(flt.getReports());
 			} catch (TimeoutException e) {
 				this.timeout=true;
-				this.reports=null;
+				this.reports.clear();
 			} catch (OutOfMemoryError e) {
-				this.reports=null;
+				this.reports.clear();
 				throw e;
 			} catch (Throwable e) {
 				e.printStackTrace();
 				this.reports=null;
 			} finally {
+				if (flt!=null) {
+					flt.shutDownProver();
+				}
+				
 				this.flt = null;
 				this.tr=null;
 				this.infeasibleBlocks=null;
+				if (!future.isDone()) {
+					future.cancel(true);
+				}
+				// shutdown prover
+				
+				// shutdown executor
+				executor.shutdown();				
 			}
 		}
 	}
