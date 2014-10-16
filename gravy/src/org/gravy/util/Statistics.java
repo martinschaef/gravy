@@ -83,7 +83,7 @@ public class Statistics {
 				this.checkerBuffer.write(secs.toString());
 				if (report instanceof InterpolationInfeasibleReport) {
 					this.checkerBuffer.write(", ");
-					Integer found = (((InterpolationInfeasibleReport)report).hasInfeasibleBlocks)?1:0;
+					Integer found = (((InterpolationInfeasibleReport)report).needsUpdate)?1:0;
 					this.checkerBuffer.write( found.toString() );
 				} else {
 					this.checkerBuffer.write(", -1");

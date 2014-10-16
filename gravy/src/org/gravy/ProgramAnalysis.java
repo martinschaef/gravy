@@ -99,7 +99,7 @@ public class ProgramAnalysis {
 				}
 				
 				
-				if (report!=null) {
+				if (report!=null && report.needsUpdate) {
 					sw = null;
 					if (Options.v().stopTime) {
 						sw = StopWatch.getInstanceAndStart();					
@@ -107,12 +107,10 @@ public class ProgramAnalysis {
 					report.update(); //do the interpolation based fault localization here to avoid timeouts.
 					if (Options.v().stopTime) {
 						Long t = sw.getTime();
-						boolean timeout=(report instanceof InterpolationInfeasibleReport) ? ((InterpolationInfeasibleReport)report).timeout : false ;						
-						Statistics.v().writeFaultLocalizationStats(p.getProcedureName(), t.doubleValue(), timeout);
 						sw.stop();
+						boolean timeout=(report instanceof InterpolationInfeasibleReport) ? ((InterpolationInfeasibleReport)report).timeout : false ;
+						Statistics.v().writeFaultLocalizationStats(p.getProcedureName(), t.doubleValue(), timeout);						
 					}
-					
-					
 					rp.printReport(report);
 				}
 						
@@ -198,8 +196,10 @@ public class ProgramAnalysis {
 			// methodInfo.setTimeout(true);
 			timeouts++;
 			Log.debug("Timeout reached for method " + p.getProcedureName());
+			exception =true;
 		} catch (OutOfMemoryError e) {
 			Log.info("Out of memory for "+ p.getProcedureName());
+			exception =true;
 		} catch (Exception e) {
 			e.printStackTrace();
 			exception =true;			

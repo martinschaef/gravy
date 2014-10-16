@@ -17,6 +17,7 @@ import org.gravy.faultlocalization.FaultLocalizationThread;
 import org.gravy.util.JavaSourceLocation;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 
+import util.Log;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.statement.CfgStatement;
@@ -39,12 +40,10 @@ public class InterpolationInfeasibleReport extends Report {
 			AbstractTransitionRelation tr, Set<BasicBlock> feasibleBlocks,
 			Set<BasicBlock> infeasibleBlocks) {
 		this.infeasibleBlocks = infeasibleBlocks;
-		this.hasInfeasibleBlocks = this.infeasibleBlocks.size()>0;
+		this.needsUpdate = this.infeasibleBlocks.size()>0;
 		this.tr = tr;
 		flt = new FaultLocalizationThread(cff, tr, feasibleBlocks, infeasibleBlocks);
 	}	
-	
-	public boolean hasInfeasibleBlocks;
 
 	public LinkedList<HashMap<CfgStatement, JavaSourceLocation>> getReports() {
 		return this.reports;
@@ -52,6 +51,7 @@ public class InterpolationInfeasibleReport extends Report {
 	
 	@Override
 	public void update() {
+		Log.info("trying to localize fault.");
 		if (this.flt!=null && this.tr!=null && this.infeasibleBlocks!=null) {
 //			this.flt.run();
 //			this.flt.shutDownProver();
@@ -65,33 +65,34 @@ public class InterpolationInfeasibleReport extends Report {
 			final Future<?> future = executor.submit(flt);			
 			try {
 				// start thread and wait xx seconds			
-				future.get(Options.v().getTimeOut()+50000,
+				future.get(Options.v().getTimeOut(),
 						TimeUnit.MILLISECONDS);
 				this.reports.addAll(flt.getReports());
 			} catch (TimeoutException e) {
+				Log.error("fault localization timeout.");
 				this.timeout=true;
 				this.reports.clear();
 			} catch (OutOfMemoryError e) {
 				this.reports.clear();
-				throw e;
 			} catch (Throwable e) {
 				e.printStackTrace();
 				this.reports=null;
 			} finally {
+				if (!future.isDone()) {
+					future.cancel(true);
+				}				
 				if (flt!=null) {
 					flt.shutDownProver();
 				}
+				executor.shutdown();
 				
 				this.flt = null;
 				this.tr=null;
 				this.infeasibleBlocks=null;
-				if (!future.isDone()) {
-					future.cancel(true);
-				}
 				// shutdown prover
 				
 				// shutdown executor
-				executor.shutdown();				
+				
 			}
 		}
 	}
