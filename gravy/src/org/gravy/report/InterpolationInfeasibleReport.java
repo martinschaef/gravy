@@ -78,12 +78,14 @@ public class InterpolationInfeasibleReport extends Report {
 				e.printStackTrace();
 				this.reports=null;
 			} finally {
-				if (!future.isDone()) {
-					future.cancel(true);
-				}				
 				if (flt!=null) {
 					flt.shutDownProver();
 				}
+
+				if (!future.isDone()) {
+					future.cancel(true);
+				} 
+				
 				executor.shutdown();
 				
 				this.flt = null;
