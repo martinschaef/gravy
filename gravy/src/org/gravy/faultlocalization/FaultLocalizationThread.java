@@ -91,7 +91,7 @@ public class FaultLocalizationThread implements Runnable {
 		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();				
 		for (HashSet<BasicBlock> cmp : components) {
 			try {				
-				this.prover = pf.spawn();
+				this.prover = pf.spawnWithLog("wurstsalat");
 				this.prover.setConstructProofs(true);				
 				HashMap<CfgStatement, JavaSourceLocation> res = localizeFault(
 						tr, cmp, this.prover);
@@ -99,7 +99,7 @@ public class FaultLocalizationThread implements Runnable {
 					reports.add(res);
 				}
 			} catch (Throwable e) {
-				throw e;
+//				throw e;
 			} finally {
 				shutDownProver();
 			}
@@ -142,8 +142,8 @@ public class FaultLocalizationThread implements Runnable {
 		// slice.pruneUnreachableBlocks();
 
 //		 tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+".dot");
-//		 slice.toDot("./slice_"+slice.getProcedureName()+component.hashCode()+".dot");
-
+		 slice.toDot("./slice_"+slice.getProcedureName()+".dot");
+		 
 //		System.err.println("compute tr");
 		FaultLocalizationTransitionRelation sliceTr = new FaultLocalizationTransitionRelation(
 				slice, tr.getControlFlowFactory(), prover);
@@ -179,7 +179,7 @@ public class FaultLocalizationThread implements Runnable {
 //		System.err.println("check sat");
 		ProverResult res = prover.checkSat(true);
 		if (res != ProverResult.Unsat) {
-			throw new RuntimeException("Fault Localization failed!");
+			throw new RuntimeException("Fault Localization failed! "+res.toString());
 		}
 		DEBUG_ProofObligations = partition;
 		int[][] ordering = new int[partition][1];

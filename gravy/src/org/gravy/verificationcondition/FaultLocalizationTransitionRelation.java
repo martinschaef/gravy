@@ -120,7 +120,7 @@ public class FaultLocalizationTransitionRelation extends
 				for (LinkedList<ProverExpr> list : prefix) {
 					shared = sharedPrefix(shared, list);
 				}
-//				System.err.println("shared: " + shared.size());
+
 				conj.add(this.prover.mkAnd(shared.toArray(new ProverExpr[shared.size()])));
 
 				LinkedList<ProverExpr> disj = new LinkedList<ProverExpr>();
@@ -131,7 +131,7 @@ public class FaultLocalizationTransitionRelation extends
 					disj.add(this.prover.mkAnd(cutlist.toArray(new ProverExpr[cutlist.size()])));
 				}
 				conj.add(this.prover.mkOr(disj.toArray(new ProverExpr[disj.size()])));
-//				System.err.println("conj: " + conj.size());
+
 			} else if (prefix.size()==1) {
 				conj.addAll(prefix.getFirst());
 			} else {
