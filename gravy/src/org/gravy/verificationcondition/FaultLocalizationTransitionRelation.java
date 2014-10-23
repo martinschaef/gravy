@@ -63,7 +63,11 @@ public class FaultLocalizationTransitionRelation extends
 		PartialBlockOrderNode pon = hd.findNode(cfg.getRootNode());
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		todo.add(cfg.getRootNode());
+		
 		HashSet<BasicBlock> mustreach = pon.getElements();
+		
+//		System.err.println("-------");
+//		for (BasicBlock b : mustreach) System.err.println(b.getLabel());
 //		System.err.println("traverse ");
 		while (!todo.isEmpty()) {
 			BasicBlock current = todo.pop();			
@@ -112,22 +116,22 @@ public class FaultLocalizationTransitionRelation extends
 			LinkedList<ProverExpr> conj = new LinkedList<ProverExpr>();
 			if (prefix.size()>1) {
 				//TODO
-//				LinkedList<ProverExpr> shared = prefix.getFirst();
-//				for (LinkedList<ProverExpr> list : prefix) {
-//					shared = sharedPrefix(shared, list);
-//				}
+				LinkedList<ProverExpr> shared = prefix.getFirst();
+				for (LinkedList<ProverExpr> list : prefix) {
+					shared = sharedPrefix(shared, list);
+				}
 //				System.err.println("shared: " + shared.size());
-//				conj.add(this.prover.mkAnd(shared.toArray(new ProverExpr[shared.size()])));
+				conj.add(this.prover.mkAnd(shared.toArray(new ProverExpr[shared.size()])));
 
 				LinkedList<ProverExpr> disj = new LinkedList<ProverExpr>();
 				for (LinkedList<ProverExpr> list : prefix) {
 					LinkedList<ProverExpr> cutlist = new LinkedList<ProverExpr>();
 					cutlist.addAll(list);
-//					cutlist.removeAll(shared);
+					cutlist.removeAll(shared);
 					disj.add(this.prover.mkAnd(cutlist.toArray(new ProverExpr[cutlist.size()])));
 				}
 				conj.add(this.prover.mkOr(disj.toArray(new ProverExpr[disj.size()])));
-				System.err.println("conj: " + conj.size());
+//				System.err.println("conj: " + conj.size());
 			} else if (prefix.size()==1) {
 				conj.addAll(prefix.getFirst());
 			} else {

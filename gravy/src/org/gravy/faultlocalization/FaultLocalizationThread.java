@@ -124,7 +124,7 @@ public class FaultLocalizationThread implements Runnable {
 			}
 		}
 
-		System.err.println("compute slice");
+//		System.err.println("compute slice");
 		CfgProcedure slice = tr.getProcedure().computeSlice(
 				getSubprog(component), tr.getProcedure().getRootNode());
 
@@ -134,21 +134,21 @@ public class FaultLocalizationThread implements Runnable {
 //			tr.getProcedure().toFile("DEBUG_"+tr.getProcedureName()+".bpl");
 			return new HashMap<CfgStatement, JavaSourceLocation>();
 		}
-		System.err.println("compute ssa");
+//		System.err.println("compute ssa");
 		// TODO do I have to recompute SSA?
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.updateBlockSSA(slice);
 
 		// slice.pruneUnreachableBlocks();
 
-		// tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+component.hashCode()+".dot");
+//		 tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+".dot");
 //		 slice.toDot("./slice_"+slice.getProcedureName()+component.hashCode()+".dot");
 
-		System.err.println("compute tr");
+//		System.err.println("compute tr");
 		FaultLocalizationTransitionRelation sliceTr = new FaultLocalizationTransitionRelation(
 				slice, tr.getControlFlowFactory(), prover);
 
-		System.err.println("1");
+//		System.err.println("1");
 		// prover.addAssertion(sliceTr.getEnsures());
 		//
 		for (Entry<CfgAxiom, ProverExpr> entry : sliceTr.getPreludeAxioms()
@@ -156,7 +156,7 @@ public class FaultLocalizationThread implements Runnable {
 			prover.addAssertion(entry.getValue());
 		}
 
-		System.err.println("2");
+//		System.err.println("2");
 		
 		if (sliceTr.getRequires() != null)
 			prover.addAssertion(sliceTr.getRequires());
@@ -164,7 +164,7 @@ public class FaultLocalizationThread implements Runnable {
 		int partition = 0;
 		prover.setPartitionNumber(partition);
 
-		System.err.println("obligations "+ sliceTr.obligations.size());
+//		System.err.println("obligations "+ sliceTr.obligations.size());
 		for (ProverExpr assertion : sliceTr.obligations) {
 			prover.addAssertion(assertion);
 			prover.setPartitionNumber(++partition);
@@ -176,7 +176,7 @@ public class FaultLocalizationThread implements Runnable {
 		}
 		prover.setPartitionNumber(++partition);
 		
-		System.err.println("check sat");
+//		System.err.println("check sat");
 		ProverResult res = prover.checkSat(true);
 		if (res != ProverResult.Unsat) {
 			throw new RuntimeException("Fault Localization failed!");
@@ -187,7 +187,7 @@ public class FaultLocalizationThread implements Runnable {
 			ordering[i][0] = i;
 		}
 
-		System.err.println("compute interpolants");
+//		System.err.println("compute interpolants");
 		ProverExpr[] interpolants = prover.interpolate(ordering);
 
 		// debug code
@@ -206,7 +206,7 @@ public class FaultLocalizationThread implements Runnable {
 
 		JavaSourceLocation maxLoc = null;
 		
-		System.err.println("compute abstract slice");
+//		System.err.println("compute abstract slice");
 //		System.err.println("\t\t **");
 		HashMap<CfgStatement, JavaSourceLocation> interestingStatements = new HashMap<CfgStatement, JavaSourceLocation>();
 		ProverExpr currentInterpolant = interpolants[0];
@@ -338,7 +338,7 @@ public class FaultLocalizationThread implements Runnable {
 			}
 		}
 		// System.err.println("============");
-		System.err.println("done");
+//		System.err.println("done");
 		// TODO:
 		if (anyCloned && allInfeasibleCloned)
 			interestingStatements.clear();
