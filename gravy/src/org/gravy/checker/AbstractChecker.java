@@ -9,6 +9,7 @@ import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 
+import org.gravy.Options;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverFactory;
@@ -17,6 +18,7 @@ import org.gravy.prover.princess.PrincessProver;
 import org.gravy.report.Report;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
+import org.gravy.verificationcondition.JodTransitionRelation;
 import org.joogie.cfgPlugin.Util.Dag;
 
 import util.Log;
@@ -66,7 +68,28 @@ public abstract class AbstractChecker implements Runnable {
 			this.prover = pf.spawn();
 			Log.debug("Compute Transition Relation "+this.procedure.getProcedureName());
 			//AbstractTransitionRelation tr = new TransitionRelation(this.procedure, this.cff, prover);
-			CfgTransitionRelation tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
+			AbstractTransitionRelation tr;
+			
+			switch (Options.v().getChecker()) {
+			case 0: {
+				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
+				break;
+			}
+			case 1: {
+				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
+				break;
+			}		
+			case 2: {
+				tr = new JodTransitionRelation(this.procedure, this.cff, prover);
+				break;
+			}					
+			default: {
+				Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
+				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
+				break;
+			}
+			}			
+			
 			this.report = checkSat(prover, tr); 
 		} catch (Throwable e) {
 //			e.printStackTrace();

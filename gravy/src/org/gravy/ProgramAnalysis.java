@@ -11,9 +11,11 @@ import java.util.concurrent.TimeoutException;
 import org.gravy.checker.AbstractChecker;
 import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
+import org.gravy.checker.JodChecker;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.reportprinter.DefaultGraVyReportPrinter;
+import org.gravy.reportprinter.DefaultInfeasibleCodeReportPrinter;
 import org.gravy.reportprinter.InterpolatingInfeasibleCodeReportPrinter;
 import org.gravy.reportprinter.ReportPrinter;
 import org.gravy.util.Log;
@@ -60,6 +62,10 @@ public class ProgramAnalysis {
 			rp = new InterpolatingInfeasibleCodeReportPrinter();
 			break;
 		}		
+		case 2: {
+			rp = new DefaultInfeasibleCodeReportPrinter();
+			break;
+		}				
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			rp = new DefaultGraVyReportPrinter();
@@ -164,6 +170,8 @@ public class ProgramAnalysis {
 		ExecutorService executor = Executors.newSingleThreadExecutor();		
 		
 		AbstractChecker detectionThread = null;		
+
+		
 		
 		switch (Options.v().getChecker()) {
 		case 0: {
@@ -174,6 +182,10 @@ public class ProgramAnalysis {
 			detectionThread = new InfeasibleCodeChecker(cff, p);
 			break;
 		}		
+		case 2: {
+			detectionThread = new JodChecker(cff, p);
+			break;
+		}				
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			detectionThread = new GravyChecker(cff, p);

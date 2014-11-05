@@ -91,7 +91,7 @@ public class FaultLocalizationThread implements Runnable {
 		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();				
 		for (HashSet<BasicBlock> cmp : components) {
 			try {				
-				this.prover = pf.spawnWithLog("wurstsalat");
+				this.prover = pf.spawn();
 				this.prover.setConstructProofs(true);				
 				HashMap<CfgStatement, JavaSourceLocation> res = localizeFault(
 						tr, cmp, this.prover);
