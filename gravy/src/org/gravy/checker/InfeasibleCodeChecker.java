@@ -101,6 +101,7 @@ public class InfeasibleCodeChecker extends
 		infeasibleBlocks.removeAll(feasibleBlocks);
 		
 		return new InterpolationInfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
+//		return new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
 	}
 		
 	
