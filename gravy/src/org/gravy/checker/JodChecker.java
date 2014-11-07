@@ -4,7 +4,9 @@
 package org.gravy.checker;
 
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map.Entry;
@@ -26,6 +28,9 @@ import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
+import boogie.controlflow.CfgVariable;
+import boogie.controlflow.statement.CfgAssumeStatement;
+import boogie.controlflow.statement.CfgStatement;
 
 /**
  * @author schaef
@@ -151,13 +156,17 @@ public class JodChecker extends AbstractChecker {
 			System.err.println("Total blocks to cover: " + todo.size()
 					+ "  ... checking " + target.getLabel());
 
-			LinkedList<BasicBlock> sat_path = checkPaths(prover, tr, path,
-					target);
+			// LinkedList<BasicBlock> sat_path = checkPaths(prover, tr, path,
+			// target);
+
+			LinkedList<BasicBlock> sat_path = checkBlock(prover, tr, target);
+
 			if (sat_path != null) {
 				todo.removeAll(sat_path);
 				coveredBlocks.addAll(sat_path);
 			} else {
 				// remove all nodes in the same equivalence class;
+				// TODO also remove all equiv classes below
 				todo.removeAll(tr.getHasseDiagram().findNode(target)
 						.getElements());
 			}
@@ -167,49 +176,206 @@ public class JodChecker extends AbstractChecker {
 	}
 
 	/**
-	 * checks if the set of paths in 'paths' is feasible. If so it returns one
-	 * feasible path through the blocks in paths otherwise it returns null.
+	 * Tries to cover target. Returns a path if there is one, or null otherwise.
 	 * 
 	 * @param prover
 	 * @param tr
-	 * @param paths
 	 * @param target
-	 *            the block that we intend to cover
+	 * @return path or null.
+	 */
+	private LinkedList<BasicBlock> checkBlock(Prover prover,
+			JodTransitionRelation tr, BasicBlock target) {
+
+		LinkedList<BasicBlock> paths = pickCompletePath(tr, target);
+
+		// Try abstract paths in succession until one is found
+		while (true) {
+
+			// Check the current path
+			prover.push();
+			assertPaths(prover, tr, paths);
+			ProverResult res = prover.checkSat(true);
+
+			if (res == ProverResult.Sat) {
+				// Satisfiable -> concrete path
+				LinkedList<BasicBlock> sat_path = getPathFromModel(prover, tr,
+						paths);
+				System.err.println("\tSat path len " + sat_path.size());
+				// for (BasicBlock x : sat_path) System.err.print(x.getLabel()+
+				// ", ");
+				// System.err.println();
+
+				// Pop the solver
+				prover.pop();
+
+				return sat_path;
+			} else if (res == ProverResult.Unsat) {
+
+				// Pop the solver
+				prover.pop();
+
+				// Unsatisfiable
+				// * try to extend the paths through abstraction
+
+				paths = extendPaths(prover, tr, target, paths);
+				if (paths == null) {
+					// Extension not possible (either, no more paths, or
+					// abstraction is unsat) -> unsat
+					return null;
+				}
+
+				System.err.println("\tUNSAT");
+			} else {
+				// God knows what happened
+				throw new RuntimeException("Prover failed with " + res);
+			}
+
+		}
+
+	}
+
+	/**
+	 * Returns an extension of paths with at least one more concrete path, or
+	 * null, if no feasible extension is possible.
+	 * 
+	 * @param prover
+	 * @param tr
+	 * @param target
+	 * @param paths
+	 *            infeasible path
 	 * @return
 	 */
-	private LinkedList<BasicBlock> checkPaths(Prover prover,
-			JodTransitionRelation tr, LinkedList<BasicBlock> paths,
-			BasicBlock target) {
-
-		prover.push();
-		assertPaths(prover, tr, paths);
-		LinkedList<BasicBlock> sat_path = new LinkedList<BasicBlock>();
-		ProverResult res = prover.checkSat(true);
-
-		if (res == ProverResult.Sat) {
-			sat_path = getPathFromModel(prover, tr, paths);
-			System.err.println("\tSat path len " + sat_path.size());
-			// for (BasicBlock x : sat_path) System.err.print(x.getLabel()+
-			// ", ");
-			// System.err.println();
-			prover.pop();
-			return sat_path;
-		} else if (res == ProverResult.Unsat) {
-			System.err
-					.println("\tUNSAT - Not implemented. This is where we do the refinement");
-			prover.pop();
-			// TODO: do the actual refinement here
-			// check again for all paths going through target.
-			if (target != null) {
-				LinkedList<BasicBlock> new_path = pickAllPath(tr, target);
-				System.err.println("Refining " + target.getLabel() + ".... "
-						+ new_path.size());
-				// set target to null to avoid endless recursion.
-				sat_path = checkPaths(prover, tr, new_path, null);				
-				return sat_path;
-			}
+	private LinkedList<BasicBlock> extendPaths(Prover prover,
+			JodTransitionRelation tr, BasicBlock target,
+			LinkedList<BasicBlock> paths) {
+		LinkedList<BasicBlock> result = pickAllPath(tr, target);
+		if (paths.containsAll(result)) {
+			return null;
 		} else {
-			throw new RuntimeException("Prover failed with " + res);
+			//TODO
+			foo(prover, tr, target, paths, result);
+			return result;
+		}
+	}
+
+	private void foo(Prover prover, JodTransitionRelation tr,
+			BasicBlock target, LinkedList<BasicBlock> paths, LinkedList<BasicBlock> all_paths) {
+
+		LinkedList<BasicBlock> toAbstract = new LinkedList<BasicBlock>(
+				all_paths);
+		toAbstract.removeAll(paths);
+
+		for (BasicBlock b : paths) {
+			for (BasicBlock s : b.getSuccessors()) {
+				if (toAbstract.contains(s)) {					
+					CfgStatement assume = findFirstAssume(s); // find the guard
+																// of the branch
+					if (assume == null) {
+						throw new RuntimeException("Oops");
+					}
+					//find all blocks to can join back into paths from s.
+					HashMap<BasicBlock, HashSet<CfgVariable>> joins = findJoinPoints(s, paths, all_paths);
+					//group them by the node that join into
+					HashMap<BasicBlock, HashSet<BasicBlock>> joinPoints = new HashMap<BasicBlock, HashSet<BasicBlock>>();
+					for (BasicBlock join : joins.keySet()) {
+						for (BasicBlock succ : join.getSuccessors()) {
+							if (paths.contains(succ)) {
+								if (!joinPoints.containsKey(succ)) {
+									joinPoints.put(succ, new HashSet<BasicBlock>());
+								}
+								joinPoints.get(succ).add(join);
+							}
+						}
+					}
+					HashSet<CfgVariable> modified = new HashSet<CfgVariable>(); 
+					for (Entry<BasicBlock, HashSet<BasicBlock>> entry : joinPoints.entrySet()) {
+						for (BasicBlock pre : entry.getValue()) {
+							modified.addAll(joins.get(pre));
+						}
+						/*
+						 * TODO: now we have the block b in the path, the join point enty.getKey()
+						 * the set of modified variables, and the branch condition to go from b to s.
+						 * That's all we need to generate the abstraction. 
+						 * 
+						 * Next step is to create a block and add all this stuff
+						 */
+					}
+
+				}
+			}
+		}
+
+	}
+
+
+	
+	/**
+	 * Returns the set of all blocks reachable from start that are not in paths but 
+	 * have at least one successor in paths together with the set of variables that
+	 * can be modified between start and this block.
+	 * @param start
+	 * @param paths
+	 * @param all_paths
+	 * @return
+	 */
+	private HashMap<BasicBlock, HashSet<CfgVariable>> findJoinPoints(BasicBlock start, LinkedList<BasicBlock> paths, LinkedList<BasicBlock> all_paths) {
+		//TODO collect the set of modified variables here.
+		
+		HashMap<BasicBlock, HashSet<CfgVariable>> result = new HashMap<BasicBlock, HashSet<CfgVariable>>();
+		
+		HashMap<BasicBlock, HashSet<CfgVariable>> modifiedVariables = new HashMap<BasicBlock, HashSet<CfgVariable>>(); 
+		
+		
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+		todo.add(start);		
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		done.addAll(start.getPredecessors());
+				
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.removeFirst();
+			boolean allPreDone = true;
+			HashSet<CfgVariable> modified = new HashSet<CfgVariable>();
+			for (BasicBlock pre : current.getPredecessors()) {
+				if (!done.contains(pre)) {
+					allPreDone = false; break;
+				}
+				if (modifiedVariables.containsKey(pre)) {
+					modified.addAll(modifiedVariables.get(pre));
+				}		
+			}
+			if (!allPreDone) {
+				todo.addLast(current); continue;
+			}
+			done.add(current);
+			for (Entry<CfgVariable, Integer> entry : current.getLocalIncarnationMap().entrySet()) {
+				if (entry.getValue()>0) {
+					modified.add(entry.getKey());
+				}
+			}
+			modifiedVariables.put(current, modified);
+			
+			for (BasicBlock s : current.getSuccessors()) {
+				if (!todo.contains(s) && !done.contains(s)) {
+					if (paths.contains(s)) {
+						result.put(current, modified);
+					} else {
+						todo.add(s);
+					}					
+				}
+			}
+		}
+		return result;
+	}
+
+	/**
+	 * Find the first assume statement in the block b.
+	 * @param b
+	 * @return first assume statement or null if none exists
+	 */
+	private CfgStatement findFirstAssume(BasicBlock b) {
+		for (CfgStatement s : b.getStatements()) {
+			if (s instanceof CfgAssumeStatement)
+				return s;
 		}
 		return null;
 	}
@@ -253,7 +419,8 @@ public class JodChecker extends AbstractChecker {
 		if (paths.size() > 0) {
 			// assert that the path is feasible by saying that the first block
 			// must have an execution.
-			prover.addAssertion(tr.getReachabilityVariables().get(tr.getProcedure().getRootNode()));
+			prover.addAssertion(tr.getReachabilityVariables().get(
+					tr.getProcedure().getRootNode()));
 		}
 	}
 
