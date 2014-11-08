@@ -20,6 +20,7 @@ import org.gravy.prover.ProverResult;
 import org.gravy.report.InfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
+import org.gravy.util.Log;
 import org.gravy.util.Statistics;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.JodTransitionRelation;
@@ -46,7 +47,7 @@ public class JodChecker extends AbstractChecker {
 	public JodChecker(AbstractControlFlowFactory cff, CfgProcedure p) {
 		super(cff, p);
 
-		System.err.println("prune unreachable");
+		Log.debug("prune unreachable");
 
 		// p.toDot("./"+p.getProcedureName()+".dot");
 
@@ -54,25 +55,25 @@ public class JodChecker extends AbstractChecker {
 
 		// p.toDot("./"+p.getProcedureName()+".dot");
 
-		System.err.println("remove calls");
+		Log.debug("remove calls");
 
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
 
-		System.err.println("unwind loops");
+		Log.debug("unwind loops");
 		AbstractLoopUnwinding.unwindeLoops(p);
 		p.pruneUnreachableBlocks();
 
-		System.err.println("ssa");
+		Log.debug("ssa");
 		// p.toFile("./"+p.getProcedureName()+".bpl");
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.computeSSA(p);
 
-		System.err.println("prune again");
+		Log.debug("prune again");
 		p.pruneUnreachableBlocks();
 
-		System.err.println("done");
+		Log.debug("done");
 
 		// p.toFile("./"+p.getProcedureName()+".bpl");
 		// p.toDot("./"+p.getProcedureName()+"_lf.dot");
@@ -155,7 +156,7 @@ public class JodChecker extends AbstractChecker {
 			BasicBlock target = pickBlockToCover(todo);
 			LinkedList<BasicBlock> path = pickCompletePath(tr, target);
 
-			System.err.println("Total blocks to cover: " + todo.size()
+			Log.debug("Total blocks to cover: " + todo.size()
 					+ "  ... checking " + target.getLabel());
 
 			// LinkedList<BasicBlock> sat_path = checkPaths(prover, tr, path,
@@ -215,17 +216,17 @@ public class JodChecker extends AbstractChecker {
 				// Satisfiable -> concrete path
 				LinkedList<BasicBlock> sat_path = getPathFromModel(prover, tr,
 						paths);
-				System.err.println("\tSat path len " + sat_path.size());
-				// for (BasicBlock x : sat_path) System.err.print(x.getLabel()+
+				Log.debug("\tSat path len " + sat_path.size());
+				// for (BasicBlock x : sat_path) sb.append(x.getLabel()+
 				// ", ");
-				// System.err.println();
+				// Log.debug();
 
 				// Pop the solver
 				prover.pop();
 
 				return sat_path;
 			} else if (res == ProverResult.Unsat) {
-				System.err.println("\tUNSAT");
+				Log.debug("\tUNSAT");
 				// Pop the solver
 				prover.pop();
 
@@ -308,14 +309,16 @@ public class JodChecker extends AbstractChecker {
 					
 					
 					if (assume == null) {
-						System.err.println("on path: " + paths.contains(s));
-						System.err.print("pre ");
-						for (BasicBlock x : s.getPredecessors()) System.err.print(x.getLabel()+", ");
-						System.err.println();
-						System.err.print("suc ");
-						for (BasicBlock x : s.getSuccessors()) System.err.print(x.getLabel()+", ");
-						System.err.println();
-						System.err.println(s);
+						StringBuilder sb = new StringBuilder();
+						Log.debug("on path: " + paths.contains(s));
+						sb.append("pre ");
+						for (BasicBlock x : s.getPredecessors()) sb.append(x.getLabel()+", ");
+						sb.append("\n");
+						sb.append("suc ");
+						for (BasicBlock x : s.getSuccessors()) sb.append(x.getLabel()+", ");
+						sb.append("\n");
+						Log.debug(sb.toString());
+						Log.debug(s);
 						throw new RuntimeException("Oops");
 					}
 					//find all blocks to can join back into paths from s.
@@ -372,7 +375,7 @@ public class JodChecker extends AbstractChecker {
 						HashSet<CfgVariable> notModified = new HashSet<CfgVariable>(modifiedOnPaths);
 						notModified.removeAll(modified);
 						
-//						System.err.println("Unchanged "+notModified.size());
+//						Log.debug("Unchanged "+notModified.size());
 						
 						//create the abstraction block that contains
 						//the assume to reach it and assignments that
@@ -416,7 +419,7 @@ public class JodChecker extends AbstractChecker {
 		abstractpaths.addAll(abstractBlocks);
 		prover.push();
 		
-		System.err.println("\tchecking abstract paths...");
+		Log.debug("\tchecking abstract paths...");
 		//TODO: for the abstract blocks, we need to generate block
 		//variables and the transition relation		
 		assertPaths(prover, tr, abstractpaths);
@@ -427,13 +430,13 @@ public class JodChecker extends AbstractChecker {
 			// Satisfiable -> concrete path
 			LinkedList<BasicBlock> sat_path = getPathFromModel(prover, tr,
 					abstractpaths);
-			System.err.println("\tSat abstract path len " + sat_path.size());
+			Log.debug("\tSat abstract path len " + sat_path.size());
 
 			// Pop the solver
 			prover.pop();
 			for (BasicBlock b : sat_path) {
 				if (abstractBlockMap.containsKey(b)) {
-					System.err.println("\tAdd path through "+abstractBlockMap.get(b).getLabel());
+					Log.debug("\tAdd path through "+abstractBlockMap.get(b).getLabel());
 					LinkedList<BasicBlock> newpath = new LinkedList<BasicBlock>();
 					if (findPathBetween(abstractBlockMap.get(b), sucOfAbstract.get(b), newpath)) {
 						paths.addAll(newpath);
@@ -445,7 +448,7 @@ public class JodChecker extends AbstractChecker {
 			foundNewPath = true;
 
 		} else if (res == ProverResult.Unsat) {
-			System.err.println("\tUNSAT abstract path");
+			Log.debug("\tUNSAT abstract path");
 			// Pop the solver
 			prover.pop();
 		}		
