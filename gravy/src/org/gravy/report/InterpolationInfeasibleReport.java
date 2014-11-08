@@ -57,8 +57,7 @@ public class InterpolationInfeasibleReport extends Report {
 //			this.flt.shutDownProver();
 //			this.flt = null;
 //			this.tr=null;
-//			this.infeasibleBlocks=null;
-
+//			this.infeasibleBlocks=null;			
 			
 			ExecutorService executor = Executors.newSingleThreadExecutor();	
 			

@@ -52,11 +52,13 @@ public class InfeasibleReport extends Report {
 		LinkedList<HashSet<Statement>> res = new LinkedList<HashSet<Statement>>();
 		LinkedList<BasicBlock> allblocks = new LinkedList<BasicBlock>();
 		allblocks.addAll(infeasibleBlocks);
+		StringBuilder str = new StringBuilder();
 		while (!allblocks.isEmpty()) {
 			HashSet<Statement> subprog = new HashSet<Statement>();
 			LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 			todo.add(allblocks.pop());
-			System.err.println("blocks ");
+			
+			str.append("infeasible blocks\n");
 			while (!todo.isEmpty()) {
 				BasicBlock current = todo.pop();
 				allblocks.remove(current);
@@ -65,7 +67,7 @@ public class InfeasibleReport extends Report {
 					skipBlock = true;
 				}
 				if (!skipBlock) {			
-					System.err.println("\t"+current.getLabel());
+					str.append("\t"+current.getLabel()+"\n");
 					for (CfgStatement stmt : current.getStatements()) {
 						Statement s = cff.findAstStatement(stmt);
 						if (s!=null) subprog.add(s);
@@ -86,6 +88,7 @@ public class InfeasibleReport extends Report {
 				res.add(subprog);
 			}
 		}
+		System.out.println(str.toString());
 		return res;
 	}
 	

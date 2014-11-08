@@ -66,6 +66,10 @@ public class ProgramAnalysis {
 			rp = new DefaultInfeasibleCodeReportPrinter();
 			break;
 		}				
+		case 3: {
+			rp = new DefaultInfeasibleCodeReportPrinter();
+			break;
+		}				
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			rp = new DefaultGraVyReportPrinter();
@@ -184,6 +188,10 @@ public class ProgramAnalysis {
 		}		
 		case 2: {
 			detectionThread = new JodChecker(cff, p);
+			break;
+		}				
+		case 3: {
+			detectionThread = new InfeasibleCodeChecker(cff, p);
 			break;
 		}				
 		default: {

@@ -6,10 +6,12 @@ package org.gravy.checker;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
 
+import org.gravy.Options;
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
+import org.gravy.report.InfeasibleReport;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
@@ -99,9 +101,12 @@ public class InfeasibleCodeChecker extends
 		
 		infeasibleBlocks = new HashSet<BasicBlock>(tr.getReachabilityVariables().keySet());
 		infeasibleBlocks.removeAll(feasibleBlocks);
-		
+		//this is just for debugging purposes
+		if (Options.v().getChecker()==3) {
+			return new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
+		}
 		return new InterpolationInfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
-//		return new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
+
 	}
 		
 	

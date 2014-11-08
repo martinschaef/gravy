@@ -83,6 +83,10 @@ public abstract class AbstractChecker implements Runnable {
 				tr = new JodTransitionRelation(this.procedure, this.cff, prover);
 				break;
 			}					
+			case 3: {
+				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
+				break;
+			}					
 			default: {
 				Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);

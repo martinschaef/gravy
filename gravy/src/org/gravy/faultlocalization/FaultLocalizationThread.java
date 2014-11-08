@@ -30,51 +30,54 @@ import boogie.controlflow.statement.CfgStatement;
 
 /**
  * @author schaef
- *
+ * 
  */
 public class FaultLocalizationThread implements Runnable {
 
-	private LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = new LinkedList<HashMap<CfgStatement, JavaSourceLocation>>();	
+	private LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = new LinkedList<HashMap<CfgStatement, JavaSourceLocation>>();
 	private Set<BasicBlock> infeasibleBlocks;
 	private AbstractTransitionRelation tr;
 	private Prover prover = null;
-	
+
 	public FaultLocalizationThread(AbstractControlFlowFactory cff,
 			AbstractTransitionRelation tr, Set<BasicBlock> feasibleBlocks,
 			Set<BasicBlock> infeasibleBlocks) {
-		this.infeasibleBlocks = infeasibleBlocks;		
+		this.infeasibleBlocks = infeasibleBlocks;
 		this.tr = tr;
-	}	
-	
+	}
+
 	public LinkedList<HashMap<CfgStatement, JavaSourceLocation>> getReports() {
 		return this.reports;
 	}
-	
-	/* (non-Javadoc)
+
+	/*
+	 * (non-Javadoc)
+	 * 
 	 * @see java.lang.Runnable#run()
 	 */
 	@Override
 	public void run() {
-		if (this.tr!=null && this.infeasibleBlocks!=null) {
+		if (this.tr != null && this.infeasibleBlocks != null) {
 			this.reports = localizeFaults(tr, infeasibleBlocks);
-			this.tr=null;
-			this.infeasibleBlocks=null;	
+			this.tr = null;
+			this.infeasibleBlocks = null;
 			shutDownProver();
 		}
 	}
 
 	public void shutDownProver() {
-		if (this.prover!=null) {
+		if (this.prover != null) {
 			this.prover.stop();
 			this.prover.setConstructProofs(false);
 			prover.shutdown();
 			prover = null;
 		}
-		
+
 	}
 
 	public static Integer DEBUG_ProofObligations = 0;
 	public static Integer DEBUG_AbstractTrace = 0;
+
 	/**
 	 * Applies fault localization to a set of (not necessarily connected)
 	 * infeasible blocks.
@@ -82,24 +85,25 @@ public class FaultLocalizationThread implements Runnable {
 	 * @param tr
 	 * @param infeasibleBlocks
 	 */
-	private  LinkedList<HashMap<CfgStatement, JavaSourceLocation>> localizeFaults(
+	private LinkedList<HashMap<CfgStatement, JavaSourceLocation>> localizeFaults(
 			AbstractTransitionRelation tr, Set<BasicBlock> infeasibleBlocks) {
 
 		LinkedList<HashMap<CfgStatement, JavaSourceLocation>> reports = new LinkedList<HashMap<CfgStatement, JavaSourceLocation>>();
 		LinkedList<HashSet<BasicBlock>> components = findConnectedComponents(infeasibleBlocks);
 
-		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();				
+		ProverFactory pf = new org.gravy.prover.princess.PrincessProverFactory();
 		for (HashSet<BasicBlock> cmp : components) {
-			try {				
+			try {
 				this.prover = pf.spawn();
-				this.prover.setConstructProofs(true);				
+				this.prover.setConstructProofs(true);
 				HashMap<CfgStatement, JavaSourceLocation> res = localizeFault(
 						tr, cmp, this.prover);
-				if (res != null && !res.isEmpty()) {					
+				if (res != null && !res.isEmpty()) {
 					reports.add(res);
 				}
 			} catch (Throwable e) {
-//				throw e;
+				e.printStackTrace();
+				// throw e;
 			} finally {
 				shutDownProver();
 			}
@@ -113,42 +117,43 @@ public class FaultLocalizationThread implements Runnable {
 	 * @param tr
 	 * @param component
 	 */
-	private  HashMap<CfgStatement, JavaSourceLocation> localizeFault(
-			AbstractTransitionRelation tr, Set<BasicBlock> component, Prover prover) {
+	private HashMap<CfgStatement, JavaSourceLocation> localizeFault(
+			AbstractTransitionRelation tr, Set<BasicBlock> component,
+			Prover prover) {
 		DEBUG_AbstractTrace = 0;
 		DEBUG_ProofObligations = 0;
 		// TODO: check if this contains a noverify tag and ignore it.
-		for (BasicBlock b : component) {			
+		for (BasicBlock b : component) {
 			if (containsNamedAttribute(b, ProgramFactory.NoVerifyTag)) {
 				return new HashMap<CfgStatement, JavaSourceLocation>();
 			}
 		}
 
-//		System.err.println("compute slice");
+		// System.err.println("compute slice");
 		CfgProcedure slice = tr.getProcedure().computeSlice(
 				getSubprog(component), tr.getProcedure().getRootNode());
 
-		if (slice.getRootNode()==null) {
+		if (slice.getRootNode() == null) {
 			Log.error("Cannot construct slice for " + tr.getProcedureName());
-//			tr.getProcedure().toDot("DEBUG_"+tr.getProcedureName()+".dot");
-//			tr.getProcedure().toFile("DEBUG_"+tr.getProcedureName()+".bpl");
+			// tr.getProcedure().toDot("DEBUG_"+tr.getProcedureName()+".dot");
+			// tr.getProcedure().toFile("DEBUG_"+tr.getProcedureName()+".bpl");
 			return new HashMap<CfgStatement, JavaSourceLocation>();
 		}
-//		System.err.println("compute ssa");
+		// System.err.println("compute ssa");
 		// TODO do I have to recompute SSA?
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.updateBlockSSA(slice);
 
 		// slice.pruneUnreachableBlocks();
 
-//		 tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+".dot");
-		 slice.toDot("./slice_"+slice.getProcedureName()+".dot");
-		 
-//		System.err.println("compute tr");
+		// tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+".dot");
+		slice.toDot("./slice_" + slice.getProcedureName() + ".dot");
+
+		// System.err.println("compute tr");
 		FaultLocalizationTransitionRelation sliceTr = new FaultLocalizationTransitionRelation(
 				slice, tr.getControlFlowFactory(), prover);
 
-//		System.err.println("1");
+		// System.err.println("1");
 		// prover.addAssertion(sliceTr.getEnsures());
 		//
 		for (Entry<CfgAxiom, ProverExpr> entry : sliceTr.getPreludeAxioms()
@@ -156,15 +161,15 @@ public class FaultLocalizationThread implements Runnable {
 			prover.addAssertion(entry.getValue());
 		}
 
-//		System.err.println("2");
-		
+		// System.err.println("2");
+
 		if (sliceTr.getRequires() != null)
 			prover.addAssertion(sliceTr.getRequires());
 
 		int partition = 0;
 		prover.setPartitionNumber(partition);
 
-//		System.err.println("obligations "+ sliceTr.obligations.size());
+		// System.err.println("obligations "+ sliceTr.obligations.size());
 		for (ProverExpr assertion : sliceTr.obligations) {
 			prover.addAssertion(assertion);
 			prover.setPartitionNumber(++partition);
@@ -175,11 +180,12 @@ public class FaultLocalizationThread implements Runnable {
 
 		}
 		prover.setPartitionNumber(++partition);
-		
-//		System.err.println("check sat");
+
+		// System.err.println("check sat");
 		ProverResult res = prover.checkSat(true);
 		if (res != ProverResult.Unsat) {
-			throw new RuntimeException("Fault Localization failed! "+res.toString());
+			throw new RuntimeException("Fault Localization failed! "
+					+ res.toString());
 		}
 		DEBUG_ProofObligations = partition;
 		int[][] ordering = new int[partition][1];
@@ -187,27 +193,27 @@ public class FaultLocalizationThread implements Runnable {
 			ordering[i][0] = i;
 		}
 
-//		System.err.println("compute interpolants");
+		// System.err.println("compute interpolants");
 		ProverExpr[] interpolants = prover.interpolate(ordering);
 
 		// debug code
 		{
-//			 System.err.println("#interpolants: "+ interpolants.length +
-//			 " / #assertions: ======================");
-//			 for (int i=0; i<interpolants.length; i++) {
-//			 System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
-//			 System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
-//			 System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
-//			 }
+			// System.err.println("#interpolants: "+ interpolants.length +
+			// " / #assertions: ======================");
+			// for (int i=0; i<interpolants.length; i++) {
+			// System.err.println("Assertion "+i+":"+sliceTr.pe2StmtMap.get(sliceTr.obligations.get(i)));
+			// System.err.println("Obligation "+i+":"+sliceTr.obligations.get(i));
+			// System.err.println("\tInterpolant "+i+":"+interpolants[i]+"\n");
+			// }
 		}
 
 		boolean allInfeasibleCloned = true;
 		boolean anyCloned = false;
 
 		JavaSourceLocation maxLoc = null;
-		
-//		System.err.println("compute abstract slice");
-//		System.err.println("\t\t **");
+
+		// System.err.println("compute abstract slice");
+		// System.err.println("\t\t **");
 		HashMap<CfgStatement, JavaSourceLocation> interestingStatements = new HashMap<CfgStatement, JavaSourceLocation>();
 		ProverExpr currentInterpolant = interpolants[0];
 		for (int i = 1; i < interpolants.length; i++) {
@@ -215,7 +221,7 @@ public class FaultLocalizationThread implements Runnable {
 				currentInterpolant = interpolants[i];
 				CfgStatement statement = sliceTr.pe2StmtMap
 						.get(sliceTr.obligations.get(i));
-				
+
 				if (statement == null) {
 					// TODO:
 					statement = sliceTr.pe2StmtMap.get(sliceTr.obligations
@@ -243,14 +249,14 @@ public class FaultLocalizationThread implements Runnable {
 
 					while (pos < origin.getStatements().size()) {
 						CfgStatement st = origin.getStatements().get(pos);
-//						System.err.println("\t"+st);
+						// System.err.println("\t"+st);
 						loc = praseLocationTags(st.getAttributes());
 						if (loc != null) {
 							break;
 						}
 						pos++;
 					}
-//					System.err.println("FWD");
+					// System.err.println("FWD");
 				} else {
 					// if its a statement without location attributes
 					// go backwards until we find the last location attibute.
@@ -264,25 +270,24 @@ public class FaultLocalizationThread implements Runnable {
 						}
 						pos--;
 					}
-					
+
 					if (loc == null) {
-						//then try it in the other direction.
+						// then try it in the other direction.
 						pos = origin.getStatements().indexOf(statement);
 
 						while (pos < origin.getStatements().size()) {
 							CfgStatement st = origin.getStatements().get(pos);
-//							System.err.println("\t"+st);
+							// System.err.println("\t"+st);
 							loc = praseLocationTags(st.getAttributes());
 							if (loc != null) {
 								break;
 							}
 							pos++;
-						}						
+						}
 					}
-					
-//					System.err.println("BWD");
+
+					// System.err.println("BWD");
 				}
-				
 
 				if (loc != null) {
 					if (origin != null
@@ -296,10 +301,8 @@ public class FaultLocalizationThread implements Runnable {
 							&& containsNamedAttribute(origin,
 									ProgramFactory.NoVerifyTag)) {
 						loc.isNoVerify = true;
-					}					
-					
-					
-					
+					}
+
 					for (BasicBlock b : component) {
 						if (b.getLabel().equals(origin.getLabel())) {
 							// compare them by name because we cloned them, so
@@ -316,13 +319,14 @@ public class FaultLocalizationThread implements Runnable {
 						allInfeasibleCloned = false;
 					}
 
-					if (maxLoc==null) {
+					if (maxLoc == null) {
 						maxLoc = loc;
 					} else {
-						if (loc.StartLine>maxLoc.StartLine) {
+						if (loc.StartLine > maxLoc.StartLine) {
 							maxLoc = loc;
-						} else if (loc.StartLine==maxLoc.StartLine) {
-							maxLoc.isNoVerify = maxLoc.isNoVerify || loc.isNoVerify; 
+						} else if (loc.StartLine == maxLoc.StartLine) {
+							maxLoc.isNoVerify = maxLoc.isNoVerify
+									|| loc.isNoVerify;
 						}
 					}
 					interestingStatements.put(statement, loc);
@@ -338,34 +342,35 @@ public class FaultLocalizationThread implements Runnable {
 			}
 		}
 		// System.err.println("============");
-//		System.err.println("done");
+		// System.err.println("done");
 		// TODO:
 		if (anyCloned && allInfeasibleCloned)
 			interestingStatements.clear();
-		
-		if (maxLoc!=null && maxLoc.isNoVerify) {
-			//TODO: this is sort of a hack that helps to suppress
-			//strange try/catch false positives.
+
+		if (maxLoc != null && maxLoc.isNoVerify) {
+			// TODO: this is sort of a hack that helps to suppress
+			// strange try/catch false positives.
 			interestingStatements.clear();
 		}
 		DEBUG_AbstractTrace = interestingStatements.size();
 		return interestingStatements;
 	}
 
-	private  JavaSourceLocation praseLocationTags(Attribute[] attributes) {
+	private JavaSourceLocation praseLocationTags(Attribute[] attributes) {
 		if (attributes == null)
 			return null;
 		return JavaSourceLocation.readSourceLocationFromAttributes(attributes);
 	}
 
-	private  boolean containsNamedAttribute(BasicBlock b, String name) {
+	private boolean containsNamedAttribute(BasicBlock b, String name) {
 		for (CfgStatement s : b.getStatements()) {
-			if (containsNamedAttribute(s, name)) return true; 
+			if (containsNamedAttribute(s, name))
+				return true;
 		}
 		return false;
 	}
 
-	private  boolean containsNamedAttribute(CfgStatement s, String name) {
+	private boolean containsNamedAttribute(CfgStatement s, String name) {
 		if (s.getAttributes() != null) {
 			for (Attribute attr : s.getAttributes()) {
 				if (attr instanceof NamedAttribute) {
@@ -377,8 +382,8 @@ public class FaultLocalizationThread implements Runnable {
 			}
 		}
 		return false;
-	}	
-	
+	}
+
 	/**
 	 * Collect all blocks that must can reach or can be reached by the elements
 	 * in component
@@ -386,15 +391,14 @@ public class FaultLocalizationThread implements Runnable {
 	 * @param component
 	 * @return
 	 */
-	private  Set<BasicBlock> getSubprog(Set<BasicBlock> component) {
+	private Set<BasicBlock> getSubprog(Set<BasicBlock> component) {
 		HashSet<BasicBlock> result = new HashSet<BasicBlock>();
 		result.addAll(getNeighbors(component, true));
 		result.addAll(getNeighbors(component, false));
 		return result;
 	}
 
-	private  Set<BasicBlock> getNeighbors(Set<BasicBlock> blocks,
-			boolean forward) {
+	private Set<BasicBlock> getNeighbors(Set<BasicBlock> blocks, boolean forward) {
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
 		todo.addAll(blocks);
@@ -410,13 +414,13 @@ public class FaultLocalizationThread implements Runnable {
 		return done;
 	}
 
-	private  Set<BasicBlock> getNeighbors(BasicBlock b, boolean forward) {
+	private Set<BasicBlock> getNeighbors(BasicBlock b, boolean forward) {
 		if (forward)
 			return b.getSuccessors();
 		return b.getPredecessors();
 	}
 
-	private  LinkedList<HashSet<BasicBlock>> findConnectedComponents(
+	private LinkedList<HashSet<BasicBlock>> findConnectedComponents(
 			Set<BasicBlock> blocks) {
 		LinkedList<HashSet<BasicBlock>> components = new LinkedList<HashSet<BasicBlock>>();
 		LinkedList<BasicBlock> allblocks = new LinkedList<BasicBlock>();
@@ -448,6 +452,6 @@ public class FaultLocalizationThread implements Runnable {
 			}
 		}
 		return components;
-	}	
-	
+	}
+
 }

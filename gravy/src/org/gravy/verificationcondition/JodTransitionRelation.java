@@ -58,15 +58,22 @@ public class JodTransitionRelation extends AbstractTransitionRelation {
 				}
 			}
 			
-			List<ProverExpr> stmts = statements2proverExpression(current.getStatements());
-			this.blockTransitionReleations.put(current, prover.mkAnd(stmts.toArray(new ProverExpr[stmts.size()])));
-			this.reachabilityVariables.put(current, this.prover.mkVariable(current.getLabel() + "_fwd",
-					this.prover.getBooleanType()));			
+			this.addBlock(current);			
 		}
 		finalizeAxioms();
 	}	
 	
+	public void addBlock(BasicBlock b) {
+		List<ProverExpr> stmts = statements2proverExpression(b.getStatements());
+		this.blockTransitionReleations.put(b, prover.mkAnd(stmts.toArray(new ProverExpr[stmts.size()])));
+		this.reachabilityVariables.put(b, this.prover.mkVariable(b.getLabel() + "_fwd",
+				this.prover.getBooleanType()));			
+		
+	}
 	
-	
+	public void removeBlock(BasicBlock b) {
+		this.blockTransitionReleations.remove(b);
+		this.reachabilityVariables.remove(b);
+	}
 	
 }

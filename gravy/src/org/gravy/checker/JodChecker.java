@@ -31,6 +31,7 @@ import boogie.controlflow.CfgProcedure;
 import boogie.controlflow.CfgVariable;
 import boogie.controlflow.statement.CfgAssumeStatement;
 import boogie.controlflow.statement.CfgStatement;
+import boogie.controlflow.util.PartialBlockOrderNode;
 
 /**
  * @author schaef
@@ -101,6 +102,7 @@ public class JodChecker extends AbstractChecker {
 					tr, blocks2cover));
 		} catch (Throwable e) {
 			e.printStackTrace();
+			throw e;
 		}
 		blocks2cover.removeAll(feasibleBlocks);
 
@@ -111,8 +113,8 @@ public class JodChecker extends AbstractChecker {
 				.getReachabilityVariables().keySet());
 		infeasibleBlocks.removeAll(feasibleBlocks);
 
-		// return new InterpolationInfeasibleReport(this.cff, atr,
-		// this.feasibleBlocks, this.infeasibleBlocks);
+//		 return new InterpolationInfeasibleReport(this.cff, atr,
+//		 this.feasibleBlocks, this.infeasibleBlocks);
 		return new InfeasibleReport(this.cff, atr, this.feasibleBlocks,
 				this.infeasibleBlocks);
 	}
@@ -166,7 +168,20 @@ public class JodChecker extends AbstractChecker {
 				coveredBlocks.addAll(sat_path);
 			} else {
 				// remove all nodes in the same equivalence class;
-				// TODO also remove all equiv classes below
+				// ...also remove all equiv classes below
+				LinkedList<PartialBlockOrderNode> todo_nodes = new LinkedList<PartialBlockOrderNode>();
+				todo_nodes.add(tr.getHasseDiagram().findNode(target));
+				HashSet<PartialBlockOrderNode> done_nodes = new HashSet<PartialBlockOrderNode>();
+				while (!todo_nodes.isEmpty()) {
+					PartialBlockOrderNode current = todo_nodes.pop();
+					todo.removeAll(current.getElements());
+					done_nodes.add(current);
+					for (PartialBlockOrderNode suc : current.getSuccessors()) {
+						if (!todo_nodes.contains(suc) && !done_nodes.contains(suc)) {
+							todo_nodes.add(suc);
+						}
+					}
+				}
 				todo.removeAll(tr.getHasseDiagram().findNode(target)
 						.getElements());
 			}
@@ -210,7 +225,7 @@ public class JodChecker extends AbstractChecker {
 
 				return sat_path;
 			} else if (res == ProverResult.Unsat) {
-
+				System.err.println("\tUNSAT");
 				// Pop the solver
 				prover.pop();
 
@@ -224,7 +239,7 @@ public class JodChecker extends AbstractChecker {
 					return null;
 				}
 
-				System.err.println("\tUNSAT");
+				
 			} else {
 				// God knows what happened
 				throw new RuntimeException("Prover failed with " + res);
@@ -252,32 +267,70 @@ public class JodChecker extends AbstractChecker {
 		if (paths.containsAll(result)) {
 			return null;
 		} else {
-			//TODO
-			foo(prover, tr, target, paths, result);
-			return result;
+			//check if we can add a new path to paths.
+			if (!addNewPath(prover, tr, target, paths, result)) {
+				return null;
+			}
+			return paths;
 		}
 	}
 
-	private void foo(Prover prover, JodTransitionRelation tr,
+	private boolean addNewPath(Prover prover, JodTransitionRelation tr,
 			BasicBlock target, LinkedList<BasicBlock> paths, LinkedList<BasicBlock> all_paths) {
 
 		LinkedList<BasicBlock> toAbstract = new LinkedList<BasicBlock>(
 				all_paths);
-		toAbstract.removeAll(paths);
+		toAbstract.removeAll(paths); //the set of blocks that we want to abstract
 
-		for (BasicBlock b : paths) {
+		//the set of abstraction blocks that is generated.
+		HashSet<BasicBlock> abstractBlocks = new LinkedHashSet<BasicBlock>();
+		
+		HashMap<BasicBlock, BasicBlock> abstractBlockMap = new HashMap<BasicBlock, BasicBlock>();
+		
+		HashMap<BasicBlock, BasicBlock> preOfAbstract = new HashMap<BasicBlock, BasicBlock>();
+		HashMap<BasicBlock, BasicBlock> sucOfAbstract = new HashMap<BasicBlock, BasicBlock>();
+		
+		for (BasicBlock b : paths) {	
 			for (BasicBlock s : b.getSuccessors()) {
-				if (toAbstract.contains(s)) {					
-					CfgStatement assume = findFirstAssume(s); // find the guard
-																// of the branch
+				//check if a successor of b is not in paths
+				if (toAbstract.contains(s)) {	
+					
+					
+					CfgStatement assume = null;
+					BasicBlock bl = s;
+					while (assume==null) {
+						// find the guard of the branch
+						assume = findFirstAssume(bl);
+						if (assume == null && bl.getSuccessors().size()==1) {
+							bl = bl.getSuccessors().iterator().next();
+						} else break;
+					}
+					
+					
 					if (assume == null) {
+						System.err.println("on path: " + paths.contains(s));
+						System.err.print("pre ");
+						for (BasicBlock x : s.getPredecessors()) System.err.print(x.getLabel()+", ");
+						System.err.println();
+						System.err.print("suc ");
+						for (BasicBlock x : s.getSuccessors()) System.err.print(x.getLabel()+", ");
+						System.err.println();
+						System.err.println(s);
 						throw new RuntimeException("Oops");
 					}
 					//find all blocks to can join back into paths from s.
-					HashMap<BasicBlock, HashSet<CfgVariable>> joins = findJoinPoints(s, paths, all_paths);
-					//group them by the node that join into
+					
+					HashSet<BasicBlock> joins = findJoinPoints(s, paths, all_paths);
+					//TODO: for each block b in joins, find the variables 
+					//modified between b and s.
+					//HashMap<BasicBlock, HashSet<CfgVariable>> modifiedInAbstract
+					
+					
+					//group them by the node that join into 
+					//this is necessary, because there might be several paths between
+					//the block s and one join point.
 					HashMap<BasicBlock, HashSet<BasicBlock>> joinPoints = new HashMap<BasicBlock, HashSet<BasicBlock>>();
-					for (BasicBlock join : joins.keySet()) {
+					for (BasicBlock join : joins) {
 						for (BasicBlock succ : join.getSuccessors()) {
 							if (paths.contains(succ)) {
 								if (!joinPoints.containsKey(succ)) {
@@ -287,44 +340,190 @@ public class JodChecker extends AbstractChecker {
 							}
 						}
 					}
-					HashSet<CfgVariable> modified = new HashSet<CfgVariable>(); 
-					for (Entry<BasicBlock, HashSet<BasicBlock>> entry : joinPoints.entrySet()) {
-						for (BasicBlock pre : entry.getValue()) {
-							modified.addAll(joins.get(pre));
-						}
-						/*
-						 * TODO: now we have the block b in the path, the join point enty.getKey()
-						 * the set of modified variables, and the branch condition to go from b to s.
-						 * That's all we need to generate the abstraction. 
-						 * 
-						 * Next step is to create a block and add all this stuff
-						 */
-					}
 
+
+					//for each join point, compute an abstract block to connect b to that 
+					//join point.
+					for (Entry<BasicBlock, HashSet<BasicBlock>> entry : joinPoints.entrySet()) {
+						BasicBlock joinBlock = entry.getKey();
+						//now find the set of blocks that are NOT modified in the part
+						//that we want to abstract.
+						
+						//first find all successors of b that are on paths
+						//and compute the set of vars that are modified between
+						//them and joinBlock
+						HashSet<CfgVariable> modifiedOnPaths = new HashSet<CfgVariable>();
+						for (BasicBlock next : b.getSuccessors()) {
+							if (paths.contains(next)) {
+								modifiedOnPaths.addAll(findModifiedVariablesBetween(next, joinBlock, paths));
+							}
+						}
+
+						//now we find all variables that are modified by the part that we want to abstract.
+						HashSet<CfgVariable> modified = new HashSet<CfgVariable>();	
+//						for (BasicBlock pre : entry.getValue()) {
+//							modified.addAll(joins.get(pre));
+//						}
+						
+						//now compute the set of variables that are
+						//modified on paths between b and the join but
+						//are not modified on the part that we want to
+						//abstract.
+						HashSet<CfgVariable> notModified = new HashSet<CfgVariable>(modifiedOnPaths);
+						notModified.removeAll(modified);
+						
+//						System.err.println("Unchanged "+notModified.size());
+						
+						//create the abstraction block that contains
+						//the assume to reach it and assignments that
+						//ensure that unchanged variables are not 
+						//havoced.
+						BasicBlock abstractBlock = new BasicBlock(s.getLocationTag(), "abstract$"+s.getLabel()+"$"+joinBlock);
+						//add the assume
+						abstractBlock.addStatement(assume.clone());
+						//add identity assignments for all unchanged variables
+						//TODO
+						for (CfgVariable v : notModified) {
+							b.localIncarnationMap.get(v);
+							for (BasicBlock pre : joinBlock.getPredecessors()) {
+								if (paths.contains(pre)) {
+									pre.localIncarnationMap.get(v);
+								}
+							}
+						}						
+						abstractBlocks.add(abstractBlock);
+						abstractBlockMap.put(abstractBlock,s); //remember which block we abstracted
+						//now remember what the abstract loop will be connected to
+						//do NOT connect it in this loop, this will cause chaos!
+						preOfAbstract.put(abstractBlock, b);
+						sucOfAbstract.put(abstractBlock, joinBlock);
+					}
 				}
-			}
+			}			
 		}
 
+		
+		//now connect all abstract blocks
+		//and create the block vars and formulas for them
+		for (BasicBlock b : abstractBlocks) {
+			preOfAbstract.get(b).connectToSuccessor(b);
+			b.connectToSuccessor(sucOfAbstract.get(b));
+			tr.addBlock(b);
+		}
+
+		//now check the abstract path.
+		LinkedList<BasicBlock> abstractpaths = new LinkedList<BasicBlock>(paths);
+		abstractpaths.addAll(abstractBlocks);
+		prover.push();
+		
+		System.err.println("\tchecking abstract paths...");
+		//TODO: for the abstract blocks, we need to generate block
+		//variables and the transition relation		
+		assertPaths(prover, tr, abstractpaths);
+		ProverResult res = prover.checkSat(true);
+
+		boolean foundNewPath = false;
+		if (res == ProverResult.Sat) {
+			// Satisfiable -> concrete path
+			LinkedList<BasicBlock> sat_path = getPathFromModel(prover, tr,
+					abstractpaths);
+			System.err.println("\tSat abstract path len " + sat_path.size());
+
+			// Pop the solver
+			prover.pop();
+			for (BasicBlock b : sat_path) {
+				if (abstractBlockMap.containsKey(b)) {
+					System.err.println("\tAdd path through "+abstractBlockMap.get(b).getLabel());
+					LinkedList<BasicBlock> newpath = new LinkedList<BasicBlock>();
+					if (findPathBetween(abstractBlockMap.get(b), sucOfAbstract.get(b), newpath)) {
+						paths.addAll(newpath);
+					} else {
+						throw new RuntimeException("Could not add new path.");
+					}
+				}
+			}
+			foundNewPath = true;
+
+		} else if (res == ProverResult.Unsat) {
+			System.err.println("\tUNSAT abstract path");
+			// Pop the solver
+			prover.pop();
+		}		
+		
+		
+		//clean up and disconnect all abstract blocks.
+		for (BasicBlock b : abstractBlocks) {
+			tr.removeBlock(b);
+			
+			for (BasicBlock pre : new HashSet<BasicBlock>(b.getPredecessors())) {
+				pre.disconnectFromSuccessor(b);
+			}	
+			for (BasicBlock suc : new HashSet<BasicBlock>(b.getSuccessors())) {
+				b.disconnectFromSuccessor(suc);
+			}
+		}
+		return foundNewPath;
 	}
 
 
+	/**
+	 * Find path between start and end excluding end. 
+	 * @param start
+	 * @param end
+	 * @param visited
+	 * @return
+	 */
+	private boolean findPathBetween(BasicBlock start, BasicBlock end, LinkedList<BasicBlock> visited) {
+		if (start==end) return true;
+		for (BasicBlock suc : start.getSuccessors()) {
+			if (findPathBetween(suc, end, visited)) {
+				visited.add(start);
+				return true;
+			}
+		}		
+		return false;
+	}
+
+	/**
+	 * Find all variables that are modified on any path in blocks between start and end, excluding end.
+	 * @param start
+	 * @param end
+	 * @param blocks
+	 * @return
+	 */
+	private HashSet<CfgVariable> findModifiedVariablesBetween(BasicBlock start, BasicBlock end, LinkedList<BasicBlock> blocks) {
+		HashSet<CfgVariable> result = new HashSet<CfgVariable>();
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+		todo.add(start);		
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();		
+			for (Entry<CfgVariable, Integer> entry : current.getLocalIncarnationMap().entrySet()) {
+				if (entry.getValue()>0) {
+					result.add(entry.getKey());
+				}
+			}
+			done.add(current);
+			for (BasicBlock next : current.getSuccessors()) {				
+				if (next!=end && blocks.contains(next) && !done.contains(next) && !todo.contains(next)) {
+					todo.add(next);
+				}
+			}
+		}
+		return result;
+	}
 	
 	/**
 	 * Returns the set of all blocks reachable from start that are not in paths but 
-	 * have at least one successor in paths together with the set of variables that
-	 * can be modified between start and this block.
+	 * have at least one successor in paths.
 	 * @param start
 	 * @param paths
 	 * @param all_paths
 	 * @return
 	 */
-	private HashMap<BasicBlock, HashSet<CfgVariable>> findJoinPoints(BasicBlock start, LinkedList<BasicBlock> paths, LinkedList<BasicBlock> all_paths) {
-		//TODO collect the set of modified variables here.
-		
-		HashMap<BasicBlock, HashSet<CfgVariable>> result = new HashMap<BasicBlock, HashSet<CfgVariable>>();
-		
-		HashMap<BasicBlock, HashSet<CfgVariable>> modifiedVariables = new HashMap<BasicBlock, HashSet<CfgVariable>>(); 
-		
+	private HashSet<BasicBlock> findJoinPoints(BasicBlock start, LinkedList<BasicBlock> paths, LinkedList<BasicBlock> all_paths) {
+			
+		HashSet<BasicBlock> result = new HashSet<BasicBlock>();
 		
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		todo.add(start);		
@@ -333,33 +532,15 @@ public class JodChecker extends AbstractChecker {
 				
 		while (!todo.isEmpty()) {
 			BasicBlock current = todo.removeFirst();
-			boolean allPreDone = true;
-			HashSet<CfgVariable> modified = new HashSet<CfgVariable>();
-			for (BasicBlock pre : current.getPredecessors()) {
-				if (!done.contains(pre)) {
-					allPreDone = false; break;
-				}
-				if (modifiedVariables.containsKey(pre)) {
-					modified.addAll(modifiedVariables.get(pre));
-				}		
-			}
-			if (!allPreDone) {
-				todo.addLast(current); continue;
-			}
-			done.add(current);
-			for (Entry<CfgVariable, Integer> entry : current.getLocalIncarnationMap().entrySet()) {
-				if (entry.getValue()>0) {
-					modified.add(entry.getKey());
-				}
-			}
-			modifiedVariables.put(current, modified);
-			
+			done.add(current);		
 			for (BasicBlock s : current.getSuccessors()) {
 				if (!todo.contains(s) && !done.contains(s)) {
 					if (paths.contains(s)) {
-						result.put(current, modified);
+						result.add(s);
 					} else {
-						todo.add(s);
+						//make sure that we do not add anything
+						//that can bypass the block that we are analyzing.
+						if (all_paths.contains(s)) todo.add(s);
 					}					
 				}
 			}
