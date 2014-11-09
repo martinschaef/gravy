@@ -12,6 +12,7 @@ import org.gravy.checker.AbstractChecker;
 import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
 import org.gravy.checker.JodChecker;
+import org.gravy.checker.SimpleInfeasibleCodeChecker;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.reportprinter.DefaultGraVyReportPrinter;
@@ -35,7 +36,8 @@ import boogie.controlflow.DefaultControlFlowFactory;
  */
 public class ProgramAnalysis {
 	
-	private static long timeouts = 0;
+	public static long timeouts = 0;
+	public static long totalTime = 0;
 		
 	public static void runProgramAnalysis(String boogieFileName) throws Exception {
 		ProgramFactory pf;
@@ -70,6 +72,10 @@ public class ProgramAnalysis {
 			rp = new DefaultInfeasibleCodeReportPrinter();
 			break;
 		}				
+		case 4: {
+			rp = new DefaultInfeasibleCodeReportPrinter();
+			break;
+		}						
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			rp = new DefaultGraVyReportPrinter();
@@ -90,7 +96,7 @@ public class ProgramAnalysis {
 //			cff.toFile("unstructured.bpl");
 //		}
 
-		Long totalTime = 0L;
+		Long checkTime = 0L;
 		for (CfgProcedure p : cff.getProcedureCFGs()) {
 			if (p.getRootNode()==null) continue;
 			try {				
@@ -99,7 +105,7 @@ public class ProgramAnalysis {
 				Report report = analyzeProcedure(p, cff);
 
 				Long t = sw.getTime();
-				totalTime+=t;
+				checkTime+=t;
 
 				if (Options.v().stopTime) {					
 					int lines = countStatementsForStatistics(p);
@@ -135,7 +141,8 @@ public class ProgramAnalysis {
 			cff.toFile("passive.bpl");
 		}
 
-		Log.info("Total time: " + ((float)totalTime)/1000f + "s");
+		totalTime+=checkTime;
+		Log.info("Total time: " + ((float)checkTime)/1000f + "s");
 		Log.info("Total Timeouts after " + Options.v().getTimeOut()
 				+ "ms: " + timeouts);
 				
@@ -195,6 +202,10 @@ public class ProgramAnalysis {
 			detectionThread = new InfeasibleCodeChecker(cff, p);
 			break;
 		}				
+		case 4: {
+			detectionThread = new SimpleInfeasibleCodeChecker(cff, p);
+			break;
+		}						
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			detectionThread = new GravyChecker(cff, p);

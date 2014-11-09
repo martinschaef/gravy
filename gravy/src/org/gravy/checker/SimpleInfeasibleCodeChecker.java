@@ -46,7 +46,6 @@ public class SimpleInfeasibleCodeChecker extends
 		cunwind.unwindCalls(p);
 
 		AbstractLoopUnwinding.unwindeLoops(p);
-
 		p.pruneUnreachableBlocks();
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();

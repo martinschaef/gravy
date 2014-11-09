@@ -164,7 +164,7 @@ public class JodChecker extends AbstractChecker {
 			// LinkedList<BasicBlock> sat_path = checkPaths(prover, tr, path,
 			// target);
 
-			LinkedList<BasicBlock> sat_path = checkBlock(prover, tr, target);
+			HashSet<BasicBlock> sat_path = checkBlock(prover, tr, target);
 
 			if (sat_path != null) {
 				todo.removeAll(sat_path);
@@ -199,10 +199,10 @@ public class JodChecker extends AbstractChecker {
 	 * @param target
 	 * @return path or null.
 	 */
-	private LinkedList<BasicBlock> checkBlock(Prover prover,
+	private HashSet<BasicBlock> checkBlock(Prover prover,
 			JodTransitionRelation tr, BasicBlock target) {
 
-		LinkedList<BasicBlock> paths = pickCompletePath(tr, target);
+		HashSet<BasicBlock> paths = pickCompletePath(tr, target);
 
 		// Try abstract paths in succession until one is found
 		while (true) {
@@ -214,7 +214,7 @@ public class JodChecker extends AbstractChecker {
 
 			if (res == ProverResult.Sat) {
 				// Satisfiable -> concrete path
-				LinkedList<BasicBlock> sat_path = getPathFromModel(prover, tr,
+				HashSet<BasicBlock> sat_path = getPathFromModel(prover, tr,
 						paths);
 				Log.debug("\tSat path len " + sat_path.size());
 				// for (BasicBlock x : sat_path) sb.append(x.getLabel()+
@@ -260,10 +260,10 @@ public class JodChecker extends AbstractChecker {
 	 *            infeasible path
 	 * @return
 	 */
-	private LinkedList<BasicBlock> extendPaths(Prover prover,
+	private HashSet<BasicBlock> extendPaths(Prover prover,
 			JodTransitionRelation tr, BasicBlock target,
-			LinkedList<BasicBlock> paths) {
-		LinkedList<BasicBlock> allPaths = pickAllPath(tr, target);
+			HashSet<BasicBlock> paths) {
+		HashSet<BasicBlock> allPaths = pickAllPath(tr, target);
 		if (paths.containsAll(allPaths)) {
 			return null;
 		} else {
@@ -289,7 +289,7 @@ public class JodChecker extends AbstractChecker {
 	 * @return
 	 */
 	private boolean addNewPath(Prover prover, JodTransitionRelation tr,
-			BasicBlock target, LinkedList<BasicBlock> paths, LinkedList<BasicBlock> all_paths) {
+			BasicBlock target, HashSet<BasicBlock> paths, HashSet<BasicBlock> all_paths) {
 
 //		System.err.println("Target: "+target.getLabel());
 		
@@ -466,7 +466,7 @@ public class JodChecker extends AbstractChecker {
 		}
 
 		//now check the abstract path.
-		LinkedList<BasicBlock> abstractpaths = new LinkedList<BasicBlock>(paths);
+		HashSet<BasicBlock> abstractpaths = new HashSet<BasicBlock>(paths);
 		abstractpaths.addAll(abstractBlocks);
 		prover.push();
 		
@@ -479,7 +479,7 @@ public class JodChecker extends AbstractChecker {
 		boolean foundNewPath = false;
 		if (res == ProverResult.Sat) {
 			// Satisfiable -> concrete path
-			LinkedList<BasicBlock> sat_path = getPathFromModel(prover, tr,
+			HashSet<BasicBlock> sat_path = getPathFromModel(prover, tr,
 					abstractpaths);
 			Log.debug("\tSat abstract path len " + sat_path.size());
 
@@ -638,7 +638,7 @@ public class JodChecker extends AbstractChecker {
 	 * @param blocks
 	 * @return
 	 */
-	private HashSet<CfgVariable> findModifiedVariablesBetween(BasicBlock start, BasicBlock end, LinkedList<BasicBlock> blocks) {
+	private HashSet<CfgVariable> findModifiedVariablesBetween(BasicBlock start, BasicBlock end, HashSet<BasicBlock> blocks) {
 		HashSet<CfgVariable> result = new HashSet<CfgVariable>();
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		todo.add(start);		
@@ -668,7 +668,7 @@ public class JodChecker extends AbstractChecker {
 	 * @param all_paths
 	 * @return
 	 */
-	private HashSet<BasicBlock> findBlockThatJoinIntoPaths(BasicBlock start, LinkedList<BasicBlock> paths, LinkedList<BasicBlock> all_paths) {
+	private HashSet<BasicBlock> findBlockThatJoinIntoPaths(BasicBlock start, HashSet<BasicBlock> paths, HashSet<BasicBlock> all_paths) {
 			
 		HashSet<BasicBlock> result = new HashSet<BasicBlock>();
 		
@@ -717,7 +717,7 @@ public class JodChecker extends AbstractChecker {
 	 * @param paths
 	 */
 	private void assertPaths(Prover prover, JodTransitionRelation tr,
-			List<BasicBlock> paths) {
+			HashSet<BasicBlock> paths) {
 
 		for (BasicBlock b : paths) {
 			LinkedList<BasicBlock> succ = new LinkedList<BasicBlock>();
@@ -772,7 +772,7 @@ public class JodChecker extends AbstractChecker {
 	 * @param toCover
 	 * @return
 	 */
-	private LinkedList<BasicBlock> pickCompletePath(JodTransitionRelation tr,
+	private HashSet<BasicBlock> pickCompletePath(JodTransitionRelation tr,
 			BasicBlock toCover) {
 		LinkedList<BasicBlock> path = new LinkedList<BasicBlock>();
 		Random rand = new Random();
@@ -804,7 +804,7 @@ public class JodChecker extends AbstractChecker {
 			}
 		}
 
-		return path;
+		return new HashSet<BasicBlock>(path);
 	}
 
 	/**
@@ -814,9 +814,9 @@ public class JodChecker extends AbstractChecker {
 	 * @param toCover
 	 * @return
 	 */
-	private LinkedList<BasicBlock> pickAllPath(JodTransitionRelation tr,
+	private HashSet<BasicBlock> pickAllPath(JodTransitionRelation tr,
 			BasicBlock toCover) {
-		LinkedList<BasicBlock> path = new LinkedList<BasicBlock>();
+		HashSet<BasicBlock> path = new HashSet<BasicBlock>();
 
 		path.add(toCover);
 		// collect a random prefix
@@ -856,8 +856,8 @@ public class JodChecker extends AbstractChecker {
 	 * @param tr
 	 * @return
 	 */
-	private LinkedList<BasicBlock> getPathFromModel(Prover prover,
-			JodTransitionRelation tr, List<BasicBlock> currentPaths) {
+	private HashSet<BasicBlock> getPathFromModel(Prover prover,
+			JodTransitionRelation tr, HashSet<BasicBlock> currentPaths) {
 		LinkedList<BasicBlock> path = new LinkedList<BasicBlock>();
 
 		HashSet<BasicBlock> blocksInModel = new HashSet<BasicBlock>();
@@ -901,7 +901,7 @@ public class JodChecker extends AbstractChecker {
 			throw new RuntimeException(
 					"Model does not contain a complete path!");
 		}
-		return path;
+		return new HashSet<BasicBlock>(path);
 	}
 
 }
