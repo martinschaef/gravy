@@ -20,6 +20,9 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class InfeasibleCodeDetectionTest {
 
+	public static Long time=0L;
+	public static Long timeOuts=0L;
+	
 	@Parameterized.Parameters (name = "{index}: parse({1})")
 	public static Collection<Object[]> data() {
 		LinkedList<Object[]> filenames = new LinkedList<Object[]>();
@@ -62,11 +65,16 @@ public class InfeasibleCodeDetectionTest {
 		String fname = this.input;	
 		
 		//set the checker to GradualVerification (default)
-		Options.v().setChecker(1);
+		Options.v().setChecker(3);
 		
 		try {
 			
 			ProgramAnalysis.runProgramAnalysis(fname);
+			timeOuts+=ProgramAnalysis.timeouts;
+			time+=ProgramAnalysis.totalTime;
+			
+			System.err.println("Cumulative time: "+time.toString());
+			System.err.println("Cumulative timeouts: "+timeOuts.toString());
 			
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -76,4 +84,6 @@ public class InfeasibleCodeDetectionTest {
 		org.junit.Assert.assertTrue(true);
 	}
 
+	
+	
 }
