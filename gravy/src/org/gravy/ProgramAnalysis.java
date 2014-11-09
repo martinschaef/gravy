@@ -90,18 +90,18 @@ public class ProgramAnalysis {
 //			cff.toFile("unstructured.bpl");
 //		}
 
+		Long totalTime = 0L;
 		for (CfgProcedure p : cff.getProcedureCFGs()) {
 			if (p.getRootNode()==null) continue;
 			try {				
-				StopWatch sw = null;
-				if (Options.v().stopTime) {
-					sw = StopWatch.getInstanceAndStart();					
-				}
+				StopWatch sw = StopWatch.getInstanceAndStart();
 				
 				Report report = analyzeProcedure(p, cff);
-				
+
+				Long t = sw.getTime();
+				totalTime+=t;
+
 				if (Options.v().stopTime) {					
-					Long t = sw.getTime();
 					int lines = countStatementsForStatistics(p);
 					Statistics.v().writeCheckerStats(p.getProcedureName(), lines, t.doubleValue(), report);
 					sw.stop();
@@ -116,7 +116,7 @@ public class ProgramAnalysis {
 					}					
 					report.update(); //do the interpolation based fault localization here to avoid timeouts.
 					if (Options.v().stopTime) {
-						Long t = sw.getTime();
+						t = sw.getTime();
 						sw.stop();
 						boolean timeout=(report instanceof InterpolationInfeasibleReport) ? ((InterpolationInfeasibleReport)report).timeout : false ;
 						Statistics.v().writeFaultLocalizationStats(p.getProcedureName(), t.doubleValue(), timeout);						
@@ -135,6 +135,7 @@ public class ProgramAnalysis {
 			cff.toFile("passive.bpl");
 		}
 
+		Log.info("Total time: " + ((float)totalTime)/1000f + "s");
 		Log.info("Total Timeouts after " + Options.v().getTimeOut()
 				+ "ms: " + timeouts);
 				

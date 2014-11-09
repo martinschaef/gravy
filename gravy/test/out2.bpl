@@ -659,17 +659,3 @@ var temp$878 : int;
     return;
 }
 
-
-implementation void$InfeasibleCode01$$la$init$ra$$1898($this:ref) returns ($exception:ref){
-    
-var this80 : ref;
-    assume { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",-1,-1,-1,-1 } $this != $null;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",7,-1,-1,-1 } true;
-    this80 := $this;
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",7,-1,-1,-1 } true;
-    call $exception := void$java.lang.Object$$la$init$ra$$38(this80);
-    assert { :sourceloc "/Users/schaef/git/jar2bpl/jar2bpl_test/regression/true_positives/tp01/InfeasibleCode01.java",7,-1,-1,-1 } true;
-    return;
-}
-
-
