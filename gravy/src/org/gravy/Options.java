@@ -50,6 +50,13 @@ public class Options {
 	public void setTimeOut(int milliSec) {
 		timeOut = milliSec;
 	}
+
+	@Option(name = "-f", usage = "Only analyze one Function")
+	private String functionName = null; //after 20 seconds
+	public String getFunctionName() {
+		return this.functionName;
+	}
+	
 	
 	
 	public boolean stopTime = false;

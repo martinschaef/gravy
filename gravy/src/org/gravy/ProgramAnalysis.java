@@ -95,9 +95,18 @@ public class ProgramAnalysis {
 //		if (Options.v().getDebugMode()) {
 //			cff.toFile("unstructured.bpl");
 //		}
-
+		
+		String fname = org.gravy.Options.v().getFunctionName();
+		
 		Long checkTime = 0L;
-		for (CfgProcedure p : cff.getProcedureCFGs()) {
+		for (CfgProcedure p : cff.getProcedureCFGs()) {			
+			
+			if (fname!=null && !p.getProcedureName().equals(fname)) {
+				//if option is set to analyze only one procedure, 
+				//continue if this is not the right proc.
+				continue;
+			}
+			
 			if (p.getRootNode()==null) continue;
 			try {				
 				StopWatch sw = StopWatch.getInstanceAndStart();
@@ -149,7 +158,7 @@ public class ProgramAnalysis {
 		GlobalsCache.resetInstance();
 		Options.resetInstance();
 		Statistics.resetInstance();
-	}
+	}	
 	
 	private static int countStatementsForStatistics(CfgProcedure p) {
 		int total = 0;
