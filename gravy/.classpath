@@ -20,6 +20,6 @@
 			<accessrule kind="accessible" pattern="*"/>
 		</accessrules>
 	</classpathentry>
-	<classpathentry kind="lib" path="lib/boogieamp.jar"/>
+	<classpathentry kind="lib" path="lib/boogieamp.jar" sourcepath="/boogieamp"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
