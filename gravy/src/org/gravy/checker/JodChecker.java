@@ -337,6 +337,7 @@ public class JodChecker extends AbstractChecker {
 					}
 					
 					
+					
 					if (assume == null) {
 						StringBuilder sb = new StringBuilder();
 						Log.debug("on path: " + paths.contains(s));
@@ -412,13 +413,9 @@ public class JodChecker extends AbstractChecker {
 						//the assume to reach it and assignments that
 						//ensure that unchanged variables are not 
 						//havoced.
-						BasicBlock abstractBlock = new BasicBlock(s.getLocationTag(), "abstract$"+s.getLabel()+"$"+joinBlock);
+						BasicBlock abstractBlock = new BasicBlock(s.getLocationTag(), "abstract$"+s.getLabel()+"$"+joinBlock.getLabel());
 						//add the assume
 						abstractBlock.addStatement(assume.clone());
-						//add identity assignments for all unchanged variables
-						//TODO
-						
-						
 						int maxIncarnation = 0;
 						int minIncarnation = 0;
 						for (CfgVariable v : modifiedOnPathsButNotInAbstract) {							
@@ -441,7 +438,8 @@ public class JodChecker extends AbstractChecker {
 							CfgAssignStatement asgn = new CfgAssignStatement(s.getLocationTag(), left, right);
 							abstractBlock.addStatement(asgn);
 //							System.err.println(left.toString()+"_"+maxIncarnation+ " := " + right.toString()+"_"+minIncarnation);							
-						}						
+						}
+						
 												
 						abstractBlocks.add(abstractBlock);
 						abstractBlockMap.put(abstractBlock,s); //remember which block we abstracted
@@ -449,6 +447,8 @@ public class JodChecker extends AbstractChecker {
 						//do NOT connect it in this loop, this will cause chaos!
 						preOfAbstract.put(abstractBlock, b);
 						sucOfAbstract.put(abstractBlock, joinBlock);
+						
+//						System.err.println(abstractBlock);
 						
 //						System.err.println("New abstract paht between "+b.getLabel() + " and " + joinBlock.getLabel());
 					}
