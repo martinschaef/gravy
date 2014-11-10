@@ -20,8 +20,8 @@ import org.junit.runners.Parameterized;
 @RunWith(Parameterized.class)
 public class InfeasibleCodeDetectionTest {
 
-	public static Long time=0L;
-	public static Long timeOuts=0L;
+	public static Long deltatime=0L;
+	
 	
 	@Parameterized.Parameters (name = "{index}: parse({1})")
 	public static Collection<Object[]> data() {
@@ -62,28 +62,33 @@ public class InfeasibleCodeDetectionTest {
 //			pf = new ProgramFactory(this.input);
 		System.out.println("TEST: "+this.shortname);
 		
+		Long t1 = checkWith(2);
+		Long t2 = checkWith(3);
+		
+		deltatime += t1-t2;
+		System.err.println("Delta time: "+deltatime);
+		
+		org.junit.Assert.assertTrue(true);
+	}
+
+	
+	protected Long checkWith(int checker) {
 		String fname = this.input;	
 		
 		//set the checker to GradualVerification (default)
-		Options.v().setChecker(3);
+		Options.v().setChecker(checker);
 		
 		try {
-			
+			ProgramAnalysis.timeouts=0L;
+			ProgramAnalysis.totalTime=0L;
 			ProgramAnalysis.runProgramAnalysis(fname);
-			timeOuts+=ProgramAnalysis.timeouts;
-			time+=ProgramAnalysis.totalTime;
-			
-			System.err.println("Cumulative time: "+time.toString());
-			System.err.println("Cumulative timeouts: "+timeOuts.toString());
 			
 		} catch (Exception e) {
 			e.printStackTrace();
 			org.junit.Assert.assertTrue(e.toString(), false);
 		}
-		
-		org.junit.Assert.assertTrue(true);
+		return ProgramAnalysis.totalTime;
 	}
-
 	
 	
 }
