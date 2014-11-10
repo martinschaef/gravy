@@ -102,6 +102,7 @@ public abstract class AbstractChecker implements Runnable {
 			
 			this.report = checkSat(prover, tr); 
 		} catch (Throwable e) {			
+			throw e;
 //			e.printStackTrace();
 //			this.procedure.toDot("Debug"+this.procedure.getProcedureName()+".dot");
 //			this.procedure.toFile("Debug"+this.procedure.getProcedureName()+".bpl");
