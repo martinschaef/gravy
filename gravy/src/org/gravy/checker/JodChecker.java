@@ -199,47 +199,61 @@ public class JodChecker extends AbstractChecker {
 	 * @param target
 	 * @return path or null.
 	 */
-	private HashSet<BasicBlock> checkBlock(Prover prover,
-			JodTransitionRelation tr, BasicBlock target) {
+	private HashSet<BasicBlock> checkBlock(Prover prover, JodTransitionRelation tr, BasicBlock target) {
 
-		HashSet<BasicBlock> paths = pickCompletePath(tr, target);
+		HashSet<BasicBlock> paths = new HashSet<BasicBlock>();
+		HashSet<BasicBlock> allPaths = pickAllPath(tr, target);
 
+		ProverResult res = null;
+		
 		// Try abstract paths in succession until one is found
 		while (true) {
 
-			// Check the current path
+			// Check the abstraction path
 			prover.push();
-			assertPaths(prover, tr, paths);
-			ProverResult res = prover.checkSat(true);
+			assertPaths(prover, tr, paths, allPaths);
+			System.err.println("checking abstraction");
+			res = prover.checkSat(true);
+			System.err.println("abstraction: " + res);
 
 			if (res == ProverResult.Sat) {
-				// Satisfiable -> concrete path
-				HashSet<BasicBlock> sat_path = getPathFromModel(prover, tr,
-						paths);
-				System.err.println("\tSat path len " + sat_path.size());
-				// for (BasicBlock x : sat_path) sb.append(x.getLabel()+
-				// ", ");
-				// System.err.println();
-
+				// The extension path
+				HashSet<BasicBlock> sat_path = getPathFromModel(prover, tr, allPaths);
+				// Pop the prover
+				prover.pop();
+				// Add the concrete
+				paths.addAll(sat_path);
+			} else if (res == ProverResult.Unsat){
 				// Pop the solver
 				prover.pop();
-
+				// Done, infeasible
+				return null;
+			} else {
+				// God knows what happened
+				throw new RuntimeException("Prover failed with " + res);
+			}
+			
+			// Check the current path
+			prover.push();
+			assertPaths(prover, tr, paths, paths);
+			System.err.println("checking concrete");
+			res = prover.checkSat(true);
+			System.err.println("concrete: " + res);
+			
+			if (res == ProverResult.Sat) {
+				// Satisfiable -> concrete path				
+				HashSet<BasicBlock> sat_path = getPathFromModel(prover, tr, paths);
+				// Pop the solver
+				prover.pop();
+				// Return
 				return sat_path;
 			} else if (res == ProverResult.Unsat) {
-				System.err.println("\tUNSAT");
 				// Pop the solver
 				prover.pop();
-
-				// Unsatisfiable
-				// * try to extend the paths through abstraction
-				paths = extendPaths(prover, tr, target, paths);
-				if (paths == null) {
-					// Extension not possible (either, no more paths, or
-					// abstraction is unsat) -> unsat
+				// Unsatisfiable -> try extending, unless it's already full
+				if (paths.contains(allPaths)) {
 					return null;
 				}
-
-				
 			} else {
 				// God knows what happened
 				throw new RuntimeException("Prover failed with " + res);
@@ -248,280 +262,6 @@ public class JodChecker extends AbstractChecker {
 		}
 
 	}
-
-	/**
-	 * Returns an extension of paths with at least one more concrete path, or
-	 * null, if no feasible extension is possible.
-	 * 
-	 * @param prover
-	 * @param tr
-	 * @param target
-	 * @param paths
-	 *            infeasible path
-	 * @return
-	 */
-	private HashSet<BasicBlock> extendPaths(Prover prover,
-			JodTransitionRelation tr, BasicBlock target,
-			HashSet<BasicBlock> paths) {
-		HashSet<BasicBlock> allPaths = pickAllPath(tr, target);
-		if (paths.containsAll(allPaths)) {
-			return null;
-		} else {
-			//check if we can add a new path to paths.
-			if (!addNewPath(prover, tr, target, paths, allPaths)) {
-				return null;
-			}
-			return paths;
-		}
-	}
-
-	/**
-	 * tries to add a new path to paths. If successful, it adds the blocks to paths
-	 * and returns true, otherwise it returns false.
-	 * To add the new path, it first adds abstract paths to paths. If paths is still
-	 * infeasible, we know that no other feasible path can exist. If sat, it checks
-	 * which abstract blocks haven been used and creates a concrete path through them.
-	 * @param prover
-	 * @param tr
-	 * @param target
-	 * @param paths
-	 * @param all_paths
-	 * @return
-	 */
-	private boolean addNewPath(Prover prover, JodTransitionRelation tr,
-			BasicBlock target, HashSet<BasicBlock> paths, HashSet<BasicBlock> all_paths) {
-
-//		System.err.println("Target: "+target.getLabel());
-		
-		//compute the max incarnation of each variable for each block
-		//this is needed in the abstraction to build the frame condition.
-		HashMap<BasicBlock, HashMap<CfgVariable, Integer>> globalIncarnationMap = findMaxIncarnationPerBlock(tr.getProcedure().getRootNode());
-//		System.err.println();
-//		System.err.println("----------------");
-//		System.err.print("Current path : ");
-//		for (BasicBlock b : paths) {
-//			System.err.print(b.getLabel()+", ");
-//		}
-//		System.err.println();
-		
-		LinkedList<BasicBlock> toAbstract = new LinkedList<BasicBlock>(
-				all_paths);
-		toAbstract.removeAll(paths); //the set of blocks that we want to abstract
-				
-		//the set of abstraction blocks that is generated.
-		HashSet<BasicBlock> abstractBlocks = new LinkedHashSet<BasicBlock>();
-		//a mapping from generated an abstract block to the concrete block
-		//that it abstracts
-		HashMap<BasicBlock, BasicBlock> abstractBlockMap = new HashMap<BasicBlock, BasicBlock>();
-		
-		//the predecessor and successor blocks of 
-		//generated abstract blocks
-		HashMap<BasicBlock, BasicBlock> preOfAbstract = new HashMap<BasicBlock, BasicBlock>();
-		HashMap<BasicBlock, BasicBlock> sucOfAbstract = new HashMap<BasicBlock, BasicBlock>();
-		
-		for (BasicBlock b : paths) {	
-			for (BasicBlock s : b.getSuccessors()) {
-				//check if a successor of b is not in paths
-				if (toAbstract.contains(s)) {
-					
-					CfgStatement assume = null;
-					BasicBlock bl = s;
-					while (assume==null) {
-						// find the guard of the branch
-						// this might not be in the first block because SSA
-						// may have added a block in between.
-						assume = findFirstAssume(bl);
-						if (assume == null && bl.getSuccessors().size()==1) {
-							bl = bl.getSuccessors().iterator().next();
-						} else break;
-					}
-					
-					
-					
-					if (assume == null) {
-						StringBuilder sb = new StringBuilder();
-						System.err.println("on path: " + paths.contains(s));
-						sb.append("pre ");
-						for (BasicBlock x : s.getPredecessors()) sb.append(x.getLabel()+", ");
-						sb.append("\n");
-						sb.append("suc ");
-						for (BasicBlock x : s.getSuccessors()) sb.append(x.getLabel()+", ");
-						sb.append("\n");
-						System.err.println(sb.toString());
-						System.err.println(s);
-						throw new RuntimeException("Oops");
-					}
-					//find all blocks to can join back into paths from s.
-					
-					//the set of all blocks reachable from s that are not in paths
-					//but have a successor in paths.
-					HashSet<BasicBlock> joinPredecessors = findBlockThatJoinIntoPaths(s, paths, all_paths);					
-					
-					//group them by the node that join into 
-					//this is necessary, because there might be several paths between
-					//the block s and one join point.
-					HashMap<BasicBlock, HashSet<BasicBlock>> joinPoints = new HashMap<BasicBlock, HashSet<BasicBlock>>();
-					for (BasicBlock join : joinPredecessors) {
-						for (BasicBlock succ : join.getSuccessors()) {
-							if (paths.contains(succ)) {
-								if (!joinPoints.containsKey(succ)) {
-									joinPoints.put(succ, new HashSet<BasicBlock>());
-								}
-								joinPoints.get(succ).add(join);
-							}
-						}
-					}
-
-					//TODO: for each block b in joins, find the variables 
-					//modified between b and s.
-					//HashMap<BasicBlock, HashSet<CfgVariable>> modifiedInAbstract
-
-
-					//for each join point, create an abstract block to connect b to that 
-					//join point.
-					for (Entry<BasicBlock, HashSet<BasicBlock>> entry : joinPoints.entrySet()) {
-						BasicBlock joinBlock = entry.getKey();
-						//now find the set of blocks that are NOT modified in the part
-						//that we want to abstract.
-						
-						//first find all successors of b that are on paths
-						//and compute the set of vars that are modified between
-						//them and joinBlock
-						HashSet<CfgVariable> modifiedOnPaths = new HashSet<CfgVariable>();
-						for (BasicBlock next : b.getSuccessors()) {
-							if (paths.contains(next)) {
-								modifiedOnPaths.addAll(findModifiedVariablesBetween(next, joinBlock, paths));
-							}
-						}
-
-						//now we find all variables that are modified by the part that we want to abstract.
-						HashSet<CfgVariable> modified = new HashSet<CfgVariable>();	
-						for (BasicBlock pre : entry.getValue()) {
-							modified.addAll(findModifiedBetween(s, pre));
-						}
-						
-						//now compute the set of variables that are
-						//modified on paths between b and the join but
-						//are not modified on the part that we want to
-						//abstract.
-						HashSet<CfgVariable> modifiedOnPathsButNotInAbstract = new HashSet<CfgVariable>(modifiedOnPaths);
-						modifiedOnPathsButNotInAbstract.removeAll(modified);
-						
-//						System.err.println("Unchanged "+notModified.size());
-						
-						//create the abstraction block that contains
-						//the assume to reach it and assignments that
-						//ensure that unchanged variables are not 
-						//havoced.
-						BasicBlock abstractBlock = new BasicBlock(s.getLocationTag(), "abstract$"+s.getLabel()+"$"+joinBlock.getLabel());
-						//add the assume
-						abstractBlock.addStatement(assume.clone());
-						int maxIncarnation = 0;
-						int minIncarnation = 0;
-						for (CfgVariable v : modifiedOnPathsButNotInAbstract) {							
-							for (BasicBlock pre : joinBlock.getPredecessors()) {
-								if (paths.contains(pre)) {		
-									HashMap<CfgVariable, Integer> incarnationMap = globalIncarnationMap.get(pre);
-									if (incarnationMap.containsKey(v)) {										
-										int inc = incarnationMap.get(v);
-										maxIncarnation = (inc>maxIncarnation) ? inc : maxIncarnation;
-									} 
-								}
-							}
-							if (globalIncarnationMap.get(b).containsKey(v)) {
-								int inc = globalIncarnationMap.get(b).get(v);
-								minIncarnation = (inc>minIncarnation) ? inc : minIncarnation;
-							}
-							//now make an identity assignment for the unchanged variables
-							CfgIdentifierExpression left = new CfgIdentifierExpression(s.getLocationTag(), v, maxIncarnation);
-							CfgIdentifierExpression right = new CfgIdentifierExpression(s.getLocationTag(), v, minIncarnation);
-							CfgAssignStatement asgn = new CfgAssignStatement(s.getLocationTag(), left, right);
-							abstractBlock.addStatement(asgn);
-//							System.err.println(left.toString()+"_"+maxIncarnation+ " := " + right.toString()+"_"+minIncarnation);							
-						}
-						
-												
-						abstractBlocks.add(abstractBlock);
-						abstractBlockMap.put(abstractBlock,s); //remember which block we abstracted
-						//now remember what the abstract loop will be connected to
-						//do NOT connect it in this loop, this will cause chaos!
-						preOfAbstract.put(abstractBlock, b);
-						sucOfAbstract.put(abstractBlock, joinBlock);
-						
-//						System.err.println(abstractBlock);
-						
-//						System.err.println("New abstract paht between "+b.getLabel() + " and " + joinBlock.getLabel());
-					}
-				}
-			}			
-		}
-
-		
-		//now connect all abstract blocks
-		//and create the block vars and formulas for them
-		for (BasicBlock b : abstractBlocks) {
-			preOfAbstract.get(b).connectToSuccessor(b);
-			b.connectToSuccessor(sucOfAbstract.get(b));
-			tr.addBlock(b);
-		}
-
-		//now check the abstract path.
-		HashSet<BasicBlock> abstractpaths = new HashSet<BasicBlock>(paths);
-		abstractpaths.addAll(abstractBlocks);
-		prover.push();
-		
-		System.err.println("\tchecking abstract paths...");
-		//TODO: for the abstract blocks, we need to generate block
-		//variables and the transition relation		
-		assertPaths(prover, tr, abstractpaths);
-		ProverResult res = prover.checkSat(true);
-
-		boolean foundNewPath = false;
-		if (res == ProverResult.Sat) {
-			// Satisfiable -> concrete path
-			HashSet<BasicBlock> sat_path = getPathFromModel(prover, tr,
-					abstractpaths);
-			System.err.println("\tSat abstract path len " + sat_path.size());
-
-			// Pop the solver
-			prover.pop();
-			for (BasicBlock b : sat_path) {
-				if (abstractBlockMap.containsKey(b)) {
-					System.err.println("\tAdd path through "+abstractBlockMap.get(b).getLabel()+":\n");
-					LinkedList<BasicBlock> newpath = new LinkedList<BasicBlock>();
-					if (findPathBetween(abstractBlockMap.get(b), sucOfAbstract.get(b), newpath, abstractBlocks)) {
-						System.err.println("\t");
-						for (BasicBlock x : newpath) System.err.println(x.getLabel()+", ");
-						System.err.println("\n");
-						paths.addAll(newpath);
-					} else {
-						throw new RuntimeException("Could not add new path.");
-					}
-				}
-			}
-			foundNewPath = true;
-
-		} else if (res == ProverResult.Unsat) {
-			System.err.println("\tUNSAT abstract path");
-			// Pop the solver
-			prover.pop();
-		}		
-		
-		
-		//clean up and disconnect all abstract blocks.
-		for (BasicBlock b : abstractBlocks) {			
-			for (BasicBlock pre : new HashSet<BasicBlock>(b.getPredecessors())) {
-				pre.disconnectFromSuccessor(b);
-			}	
-			for (BasicBlock suc : new HashSet<BasicBlock>(b.getSuccessors())) {
-				b.disconnectFromSuccessor(suc);
-			}
-			tr.removeBlock(b);
-
-		}
-		return foundNewPath;
-	}
-
 	
 	private HashMap<BasicBlock, HashMap<CfgVariable, Integer>> findMaxIncarnationPerBlock(BasicBlock root) {
 		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
@@ -717,39 +457,54 @@ public class JodChecker extends AbstractChecker {
 	 * @param paths
 	 */
 	private void assertPaths(Prover prover, JodTransitionRelation tr,
-			HashSet<BasicBlock> paths) {
+			HashSet<BasicBlock> paths, HashSet<BasicBlock> allPaths) {
 
-		for (BasicBlock b : paths) {
-			LinkedList<BasicBlock> succ = new LinkedList<BasicBlock>();
-			for (BasicBlock s : b.getSuccessors()) {
-				if (paths.contains(s)) {
-					succ.add(s);
-				}
+		// Encode each block
+		for (BasicBlock block : allPaths) {
+			
+			// Get the successors of the block
+			LinkedList<BasicBlock> successors = new LinkedList<BasicBlock>();
+			for (BasicBlock succ : block.getSuccessors()) {
+				if (allPaths.contains(succ)) {
+					successors.add(succ);
+				} 
 			}
+			
+			// Construct the disjunction of the successors
 			ProverExpr next;
-			if (succ.size() == 0) {
+			if (successors.size() == 0) {
 				next = prover.mkLiteral(true);
-			} else if (succ.size() == 1) {
-				next = tr.getReachabilityVariables().get(succ.getFirst());
+			} else if (successors.size() == 1) {
+				next = tr.getReachabilityVariables().get(successors.getFirst());
 			} else {
-				ProverExpr[] disj = new ProverExpr[succ.size()];
+				ProverExpr[] disj = new ProverExpr[successors.size()];
 				int i = 0;
-				for (BasicBlock n : succ) {
+				for (BasicBlock n : successors) {
 					disj[i++] = tr.getReachabilityVariables().get(n);
 				}
 				next = prover.mkOr(disj);
 			}
-			prover.addAssertion(prover.mkImplies(tr.getReachabilityVariables()
-					.get(b), prover.mkAnd(tr.blockTransitionReleations.get(b),
-					next)));
-
+			
+			// Make the assertion
+			ProverExpr assertion = null;
+			if (paths.contains(block)) {
+				assertion = prover.mkImplies(
+						tr.getReachabilityVariables().get(block), 
+						prover.mkAnd(tr.blockTransitionReleations.get(block), next)
+					);
+			} else {
+				assertion = prover.mkImplies(tr.getReachabilityVariables().get(block), next);
+				
+			}
+			
+			// Assert it
+			prover.addAssertion(assertion);
 		}
-		if (paths.size() > 0) {
+//		if (paths.size() > 0) {
 			// assert that the path is feasible by saying that the first block
 			// must have an execution.
-			prover.addAssertion(tr.getReachabilityVariables().get(
-					tr.getProcedure().getRootNode()));
-		}
+			prover.addAssertion(tr.getReachabilityVariables().get(tr.getProcedure().getRootNode()));
+//		}
 	}
 
 	/**
@@ -759,9 +514,8 @@ public class JodChecker extends AbstractChecker {
 	 * @return
 	 */
 	private BasicBlock pickBlockToCover(List<BasicBlock> notCovered) {
-		Random rand = new Random();
 		// pick one node that we want to cover.
-		BasicBlock toCover = notCovered.get(rand.nextInt(notCovered.size()));
+		BasicBlock toCover = notCovered.get(0);
 		return toCover;
 	}
 
