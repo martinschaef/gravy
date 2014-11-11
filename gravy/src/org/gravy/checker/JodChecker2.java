@@ -89,6 +89,8 @@ public class JodChecker2 extends AbstractChecker {
 		JodTransitionRelation tr = (JodTransitionRelation) atr;
 
 //		toDot("./color"+tr.getProcedureName()+".dot", tr);
+		hasseToDot("H-"+tr.getProcedureName()+".dot", tr);
+		
 		
 		Statistics.HACK_effectualSetSize = tr.getEffectualSet().size();
 
@@ -134,7 +136,7 @@ public class JodChecker2 extends AbstractChecker {
 		prover.addAssertion(tr.getEnsures());
 
 		PartialBlockOrderNode poRoot = tr.getHasseDiagram().getRoot();
-		coveredBlocks.addAll(foo(prover, tr, poRoot, 0));
+		coveredBlocks.addAll(foo(prover, tr, poRoot));
 		
 
 		return coveredBlocks;
@@ -147,7 +149,7 @@ public class JodChecker2 extends AbstractChecker {
 	 * @param node
 	 * @return
 	 */
-	protected HashSet<BasicBlock> foo(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, int depth) {
+	protected HashSet<BasicBlock> foo(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node) {
 		//to subprogram that we want to check.
 		HashSet<BasicBlock> toCheck = new HashSet<BasicBlock>();
 		HashSet<BasicBlock> covered = new HashSet<BasicBlock>();
@@ -156,10 +158,11 @@ public class JodChecker2 extends AbstractChecker {
 			//elements in the set of blocks that need to be
 			//checked.
 			
-			toCheck.addAll(foo(prover, tr, child, depth+1));
+			toCheck.addAll(foo(prover, tr, child));
 		}
 		
-		System.err.println("checking subprog depths "+depth);
+
+		System.err.println("checking subprog depths "+node.getHeight());
 		
 		//if all successor nodes are infeasible
 		//then this node is infeasible as well
@@ -168,10 +171,14 @@ public class JodChecker2 extends AbstractChecker {
 			System.err.println("infeasible, because all children are.");
 			return covered;
 		}
-		
+
 		//add all basic blocks in this equivalence class 
 		toCheck.addAll(node.getElements());
-		
+		System.err.print("checking: ");
+		for (BasicBlock b : toCheck) {
+			System.err.print(b.getLabel()+", ");
+		}
+		System.err.println();
 		
 		prover.push();
 		assertPaths(prover, tr, toCheck);
@@ -179,10 +186,18 @@ public class JodChecker2 extends AbstractChecker {
 		ProverResult res = prover.checkSat(true);
 		
 		HashSet<BasicBlock> todo = new HashSet<BasicBlock>(toCheck);
-		while (!todo.isEmpty()) {
+		while (true) {
 			if (res == ProverResult.Sat) {
 				System.err.println("SAT");
 				HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, toCheck);
+				
+				System.err.print("path: ");
+				for (BasicBlock b : feasiblePath) {
+					System.err.print(b.getLabel()+", ");
+				}
+				System.err.println();
+				
+				
 				System.err.println("covered "+covered.size() + " of "+toCheck.size());
 				covered.addAll(feasiblePath);
 				todo.removeAll(feasiblePath);
@@ -211,6 +226,23 @@ public class JodChecker2 extends AbstractChecker {
 
 
 
+	private ProverExpr mkDisjunction(JodTransitionRelation tr, Collection<BasicBlock> blocks) {
+		ProverExpr next;
+		if (blocks.size() == 0) {
+			next = prover.mkLiteral(true);
+		} else if (blocks.size() == 1) {
+			next = tr.getReachabilityVariables().get(blocks.iterator().next());
+		} else {
+			ProverExpr[] disj = new ProverExpr[blocks.size()];
+			int i = 0;
+			for (BasicBlock n : blocks) {
+				disj[i++] = tr.getReachabilityVariables().get(n);
+			}
+			next = prover.mkOr(disj);
+		}
+		return next;
+	}
+	
 	/**
 	 * Creates the assertions for princess. It assumes that all blocks in paths
 	 * are connected.
@@ -234,28 +266,33 @@ public class JodChecker2 extends AbstractChecker {
 			}
 			
 			// Construct the disjunction of the successors
-			ProverExpr next;
-			if (successors.size() == 0) {
-				next = prover.mkLiteral(true);
-			} else if (successors.size() == 1) {
-				next = tr.getReachabilityVariables().get(successors.getFirst());
-			} else {
-				ProverExpr[] disj = new ProverExpr[successors.size()];
-				int i = 0;
-				for (BasicBlock n : successors) {
-					disj[i++] = tr.getReachabilityVariables().get(n);
-				}
-				next = prover.mkOr(disj);
-			}
 			
 			// Make the assertion
 			ProverExpr assertion = prover.mkImplies(
 					tr.getReachabilityVariables().get(block), 
-					prover.mkAnd(tr.blockTransitionReleations.get(block), next)
+					prover.mkAnd(tr.blockTransitionReleations.get(block), mkDisjunction(tr, successors))
 				);
 			
 			// Assert it
 			prover.addAssertion(assertion);
+			
+			//now assert fwd
+			LinkedList<BasicBlock> predecessors = new LinkedList<BasicBlock>();
+			for (BasicBlock succ : block.getPredecessors()) {
+				if (blocks.contains(succ)) {
+					predecessors.add(succ);
+				} 
+			}
+			
+			assertion = prover.mkImplies(
+					tr.getReachabilityVariables().get(block), 
+					mkDisjunction(tr, predecessors)
+				);
+			
+			// Assert it
+			prover.addAssertion(assertion);
+			
+			
 		}
 
 		//find all entry points to the subprogram and assert that their  
@@ -336,26 +373,35 @@ public class JodChecker2 extends AbstractChecker {
 	}
 
 	
-	private HashSet<PartialBlockOrderNode> getPoNodes(PartialBlockOrderNode node) {
-		HashSet<PartialBlockOrderNode> result = new HashSet<PartialBlockOrderNode>();
-		result.add(node);
-		for (PartialBlockOrderNode next : node.getSuccessors()) {
-			result.addAll(getPoNodes(next));
-		}
-		return result;
-	}
 	
+	private void makeColors(PartialBlockOrderNode node, int startColor, int endColor, HashMap<PartialBlockOrderNode, Integer> node2color) {
+
+		int range = (endColor-startColor)/2;
+		int midcolor = startColor + range;
+		
+		node2color.put(node, midcolor );
+		
+		int previous_color = startColor;
+		int colordelta = (int) ( (1.0)/((double)node.getSuccessors().size())*range );
+		
+		for (PartialBlockOrderNode child : node.getSuccessors()) {			
+			makeColors(child, previous_color, previous_color+colordelta, node2color);
+			previous_color += colordelta;
+		}
+
+	}
 	
 	public void toDot(String filename, JodTransitionRelation tr) {
 		HasseDiagram hd = tr.getHasseDiagram();
-		HashSet<PartialBlockOrderNode> poNodes = getPoNodes(hd.getRoot());
+//		HashSet<PartialBlockOrderNode> poNodes = getPoNodes(hd.getRoot());
 		HashMap<PartialBlockOrderNode, Integer> node2color = new HashMap<PartialBlockOrderNode, Integer>();
-		
-		int i=1;
-		for (PartialBlockOrderNode node : poNodes) {
-			double color = ((double)(i++))/((double)poNodes.size()+1) * ((double)0xffffff);
-			node2color.put(node, (int)color );
-		}
+
+		makeColors(hd.getRoot(), 0x101010, 0xffffff, node2color);
+//		int i=1;
+//		for (PartialBlockOrderNode node : poNodes) {
+//			double color = ((double)(i++))/((double)poNodes.size()+1) * ((double)0xffffff);
+//			node2color.put(node, (int)color );
+//		}
 		
 		File fpw = new File(filename);		
 		try {
@@ -392,7 +438,6 @@ public class JodChecker2 extends AbstractChecker {
 					sb_.insert(0, '0'); // pad with leading zero if needed
 				}
 				String colorHex = sb_.toString();
-				System.err.println(colorHex);
 				pw.println("\""+b.getLabel()+"\" " + "[label=\""+ b.getLabel()+"\",style=filled, fillcolor=\"#"+colorHex+"\"];\n" );
 			}
 			pw.println(sb.toString());
@@ -407,6 +452,52 @@ public class JodChecker2 extends AbstractChecker {
 	
 	
 	
-	
+	public void hasseToDot(String filename, JodTransitionRelation tr) {
+		HasseDiagram hd = tr.getHasseDiagram();
+		
+		File fpw = new File(filename);		
+		try {
+			PrintWriter pw = new PrintWriter(fpw);
+			pw.println("digraph dot {");
+			LinkedList<PartialBlockOrderNode> todo = new LinkedList<PartialBlockOrderNode>();
+			HashSet<PartialBlockOrderNode> done = new HashSet<PartialBlockOrderNode>();
+			todo.add(hd.getRoot());
+			StringBuffer sb = new StringBuffer();
+			while (!todo.isEmpty()) {
+				PartialBlockOrderNode current = todo.pop();
+				done.add(current);
+//				 for (BasicBlock prev : current.getPredecessors()) {
+//				 pw.println(" \""+ current.getLabel()
+//				 +"\" -> \""+prev.getLabel()+"\" [style=dotted]");
+//					if (!todo.contains(prev) && !done.contains(prev)) {
+//						todo.add(prev);
+//					}
+//
+//				 }
+				for (PartialBlockOrderNode next : current.getSuccessors()) {
+					sb.append(" \"" + current.hashCode() + "\" -> \""
+							+ next.hashCode() + "\" \n");
+					if (!todo.contains(next) && !done.contains(next)) {
+						todo.add(next);
+					}
+				}
+			}
+			
+			for (PartialBlockOrderNode node : done ) {
+				StringBuilder _sb = new StringBuilder();
+				for (BasicBlock b : node.getElements()) {
+					_sb.append(b.getLabel()+"\n");
+				}	
+
+				pw.println("\""+node.hashCode()+"\" " + "[label=\""+ _sb.toString()+"\"];\n" );
+			}
+			pw.println(sb.toString());
+
+			pw.println("}");
+			pw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}	
 	
 }
