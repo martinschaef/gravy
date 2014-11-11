@@ -184,6 +184,10 @@ public abstract class AbstractChecker implements Runnable {
 			((PrincessProver) prover).setupCFGPlugin(vcdag, remainingBlockVars,
 					remainingIneffFlags, threshold);
 
+			if (org.gravy.Options.v().getDebugMode()) {
+				Log.info("Number of remaining blocks " + ineffFlags.size());				
+			}
+			
 			// Query the feasible paths for this setup
 			ProverResult res = prover.checkSat(true);
 
@@ -191,6 +195,11 @@ public abstract class AbstractChecker implements Runnable {
 			//Log.debug("Prover returns " + res.toString());
 
 			while (res == ProverResult.Sat) {
+
+				if (org.gravy.Options.v().getDebugMode()) {
+					Log.info("Prover returns " + res.toString());
+				}
+
 				LinkedList<ProverExpr> covered = new LinkedList<ProverExpr>();
 				LinkedList<ProverExpr> flagsToAssert = new LinkedList<ProverExpr>();
 
@@ -213,6 +222,10 @@ public abstract class AbstractChecker implements Runnable {
 
 				prover.addAssertion(prover.mkAnd(flagsToAssert
 						.toArray(new ProverExpr[flagsToAssert.size()])));
+
+				if (org.gravy.Options.v().getDebugMode()) {
+					Log.info("Number of remaining blocks " + ineffFlags.size());				
+				}
 
 				res = prover.checkSat(true);
 
