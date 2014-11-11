@@ -90,7 +90,7 @@ public abstract class AbstractChecker implements Runnable {
 				break;
 			}					
 			case 4: {
-				tr = new TransitionRelation(this.procedure, this.cff, prover);
+				tr = new JodTransitionRelation(this.procedure, this.cff, prover);
 				break;
 			}								
 			default: {

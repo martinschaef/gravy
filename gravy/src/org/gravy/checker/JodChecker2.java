@@ -224,7 +224,7 @@ public class JodChecker2 extends AbstractChecker {
 			}
 			
 			// Make the assertion
-			ProverExpr assertion = prover.mkEq(
+			ProverExpr assertion = prover.mkImplies(
 					tr.getReachabilityVariables().get(block), 
 					prover.mkAnd(tr.blockTransitionReleations.get(block), next)
 				);
