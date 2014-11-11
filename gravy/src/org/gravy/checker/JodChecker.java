@@ -169,6 +169,14 @@ public class JodChecker extends AbstractChecker {
 			if (sat_path != null) {
 				todo.removeAll(sat_path);
 				coveredBlocks.addAll(sat_path);
+				
+//				ProverExpr[] conj = new ProverExpr[sat_path.size()];
+//				int i=0;
+//				for (BasicBlock b : sat_path) {
+//					conj[i++] = tr.getReachabilityVariables().get(b);
+//				}
+//				prover.addAssertion(prover.mkNot(prover.mkAnd(conj)));
+//				
 			} else {
 				// remove all nodes in the same equivalence class;
 				// ...also remove all equiv classes below
@@ -488,12 +496,12 @@ public class JodChecker extends AbstractChecker {
 			// Make the assertion
 			ProverExpr assertion = null;
 			if (paths.contains(block)) {
-				assertion = prover.mkImplies(
+				assertion = prover.mkEq(
 						tr.getReachabilityVariables().get(block), 
 						prover.mkAnd(tr.blockTransitionReleations.get(block), next)
 					);
 			} else {
-				assertion = prover.mkImplies(tr.getReachabilityVariables().get(block), next);
+				assertion = prover.mkEq(tr.getReachabilityVariables().get(block), next);
 				
 			}
 			
