@@ -3,7 +3,11 @@
  */
 package org.gravy.checker;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Collection;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map.Entry;
@@ -24,6 +28,7 @@ import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
 import boogie.controlflow.CfgProcedure;
+import boogie.controlflow.util.HasseDiagram;
 import boogie.controlflow.util.PartialBlockOrderNode;
 
 /**
@@ -83,6 +88,8 @@ public class JodChecker2 extends AbstractChecker {
 	public Report checkSat(Prover prover, AbstractTransitionRelation atr) {
 		JodTransitionRelation tr = (JodTransitionRelation) atr;
 
+//		toDot("./color"+tr.getProcedureName()+".dot", tr);
+		
 		Statistics.HACK_effectualSetSize = tr.getEffectualSet().size();
 
 		HashSet<BasicBlock> blocks2cover = new HashSet<BasicBlock>(tr
@@ -151,25 +158,43 @@ public class JodChecker2 extends AbstractChecker {
 			
 			toCheck.addAll(foo(prover, tr, child, depth+1));
 		}
+		
+		System.err.println("checking subprog depths "+depth);
+		
+		//if all successor nodes are infeasible
+		//then this node is infeasible as well
+		//and we do not need to check it.
+		if (toCheck.isEmpty() && node.getSuccessors().size()>0) {
+			System.err.println("infeasible, because all children are.");
+			return covered;
+		}
+		
+		//add all basic blocks in this equivalence class 
 		toCheck.addAll(node.getElements());
+		
+		
 		prover.push();
 		assertPaths(prover, tr, toCheck);
-		System.err.println("checking subprog depths "+depth);
+		
 		ProverResult res = prover.checkSat(true);
 		
-		while (true) {
+		HashSet<BasicBlock> todo = new HashSet<BasicBlock>(toCheck);
+		while (!todo.isEmpty()) {
 			if (res == ProverResult.Sat) {
 				System.err.println("SAT");
 				HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, toCheck);
-				System.err.println("covered "+feasiblePath.size() + " of "+toCheck.size());
+				System.err.println("covered "+covered.size() + " of "+toCheck.size());
 				covered.addAll(feasiblePath);
+				todo.removeAll(feasiblePath);
 				//now add a blocking clause.
+
 				ProverExpr[] blocking = new ProverExpr[feasiblePath.size()];
 				int i=0;
 				for (BasicBlock b : feasiblePath) {
 					blocking[i++] = tr.getReachabilityVariables().get(b);
 				}				
-				prover.addAssertion(prover.mkNot(prover.mkAnd(blocking)));				
+				prover.addAssertion(prover.mkNot(prover.mkAnd(blocking)));			
+			
 			} else if (res == ProverResult.Unsat){
 				System.err.println("UNSAT");
 				break;
@@ -310,4 +335,78 @@ public class JodChecker2 extends AbstractChecker {
 		return new HashSet<BasicBlock>(path);
 	}
 
+	
+	private HashSet<PartialBlockOrderNode> getPoNodes(PartialBlockOrderNode node) {
+		HashSet<PartialBlockOrderNode> result = new HashSet<PartialBlockOrderNode>();
+		result.add(node);
+		for (PartialBlockOrderNode next : node.getSuccessors()) {
+			result.addAll(getPoNodes(next));
+		}
+		return result;
+	}
+	
+	
+	public void toDot(String filename, JodTransitionRelation tr) {
+		HasseDiagram hd = tr.getHasseDiagram();
+		HashSet<PartialBlockOrderNode> poNodes = getPoNodes(hd.getRoot());
+		HashMap<PartialBlockOrderNode, Integer> node2color = new HashMap<PartialBlockOrderNode, Integer>();
+		
+		int i=1;
+		for (PartialBlockOrderNode node : poNodes) {
+			double color = ((double)(i++))/((double)poNodes.size()+1) * ((double)0xffffff);
+			node2color.put(node, (int)color );
+		}
+		
+		File fpw = new File(filename);		
+		try {
+			PrintWriter pw = new PrintWriter(fpw);
+			pw.println("digraph dot {");
+			LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+			HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+			todo.add(tr.getProcedure().getRootNode());
+			StringBuffer sb = new StringBuffer();
+			while (!todo.isEmpty()) {
+				BasicBlock current = todo.pop();
+				done.add(current);
+//				 for (BasicBlock prev : current.getPredecessors()) {
+//				 pw.println(" \""+ current.getLabel()
+//				 +"\" -> \""+prev.getLabel()+"\" [style=dotted]");
+//					if (!todo.contains(prev) && !done.contains(prev)) {
+//						todo.add(prev);
+//					}
+//
+//				 }
+				for (BasicBlock next : current.getSuccessors()) {
+					sb.append(" \"" + current.getLabel() + "\" -> \""
+							+ next.getLabel() + "\" \n");
+					if (!todo.contains(next) && !done.contains(next)) {
+						todo.add(next);
+					}
+				}
+			}
+			
+			for (BasicBlock b : done ) {
+				StringBuilder sb_ = new StringBuilder();
+				sb_.append(Integer.toHexString(node2color.get(hd.findNode(b))));
+				while (sb_.length() < 6) {
+					sb_.insert(0, '0'); // pad with leading zero if needed
+				}
+				String colorHex = sb_.toString();
+				System.err.println(colorHex);
+				pw.println("\""+b.getLabel()+"\" " + "[label=\""+ b.getLabel()+"\",style=filled, fillcolor=\"#"+colorHex+"\"];\n" );
+			}
+			pw.println(sb.toString());
+
+			pw.println("}");
+			pw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		}
+	}	
+	
+	
+	
+	
+	
+	
 }

@@ -3,6 +3,7 @@
  */
 package org.gravy.report;
 
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Set;
@@ -51,6 +52,18 @@ public class InfeasibleReport extends Report {
 	private LinkedList<HashSet<Statement>> findInfeasibleSubprogs(AbstractControlFlowFactory cff, Set<BasicBlock> infeasibleBlocks) {
 		LinkedList<HashSet<Statement>> res = new LinkedList<HashSet<Statement>>();
 		LinkedList<BasicBlock> allblocks = new LinkedList<BasicBlock>();
+		
+		//TODO: debug code
+		LinkedList<String> blocknames = new LinkedList<String>();
+		for (BasicBlock b : infeasibleBlocks) {
+			blocknames.add(b.getLabel());
+		}
+		Collections.sort(blocknames);
+		System.err.println("infeasible blocks");
+		for (String s: blocknames) {
+			System.err.println("\t"+s);
+		}
+		
 		allblocks.addAll(infeasibleBlocks);
 		StringBuilder str = new StringBuilder();
 		while (!allblocks.isEmpty()) {
@@ -88,7 +101,7 @@ public class InfeasibleReport extends Report {
 				res.add(subprog);
 			}
 		}
-		System.out.println(str.toString());
+//		System.out.println(str.toString());
 		return res;
 	}
 	
