@@ -12,7 +12,7 @@ import org.gravy.checker.AbstractChecker;
 import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
 import org.gravy.checker.JodChecker;
-import org.gravy.checker.SimpleInfeasibleCodeChecker;
+import org.gravy.checker.JodChecker2;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.reportprinter.DefaultGraVyReportPrinter;
@@ -212,7 +212,7 @@ public class ProgramAnalysis {
 			break;
 		}				
 		case 4: {
-			detectionThread = new SimpleInfeasibleCodeChecker(cff, p);
+			detectionThread = new JodChecker2(cff, p);
 			break;
 		}						
 		default: {
