@@ -39,7 +39,7 @@ public class JodChecker2 extends AbstractChecker {
 	public JodChecker2(AbstractControlFlowFactory cff, CfgProcedure p) {
 		super(cff, p);
 
-		//System.err.println("prune unreachable");
+		System.err.println("prune unreachable");
 
 		// p.toDot("./"+p.getProcedureName()+".dot");
 
@@ -47,25 +47,25 @@ public class JodChecker2 extends AbstractChecker {
 
 		// p.toDot("./"+p.getProcedureName()+".dot");
 
-		//System.err.println("remove calls");
+		System.err.println("remove calls");
 
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
 
-		//System.err.println("unwind loops");
+		System.err.println("unwind loops");
 		AbstractLoopUnwinding.unwindeLoops(p);
 		p.pruneUnreachableBlocks();
 
-		//System.err.println("ssa");
+		System.err.println("ssa");
 //		 p.toFile("./"+p.getProcedureName()+".bpl");
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.computeSSA(p);
 
-		//System.err.println("prune again");
+		System.err.println("prune again");
 		p.pruneUnreachableBlocks();
 
-		//System.err.println("done");
+		System.err.println("done");
 
 //		p.toFile("./"+p.getProcedureName()+".bpl");
 //		p.toDot("./"+p.getProcedureName()+"_lf.dot");
@@ -154,14 +154,14 @@ public class JodChecker2 extends AbstractChecker {
 		toCheck.addAll(node.getElements());
 		prover.push();
 		assertPaths(prover, tr, toCheck);
-		//System.err.println("checking subprog depths "+depth);
+		System.err.println("checking subprog depths "+depth);
 		ProverResult res = prover.checkSat(true);
 		
 		while (true) {
 			if (res == ProverResult.Sat) {
-				//System.err.println("SAT");
+				System.err.println("SAT");
 				HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, toCheck);
-				//System.err.println("covered "+feasiblePath.size() + " of "+toCheck.size());
+				System.err.println("covered "+feasiblePath.size() + " of "+toCheck.size());
 				covered.addAll(feasiblePath);
 				//now add a blocking clause.
 				ProverExpr[] blocking = new ProverExpr[feasiblePath.size()];
@@ -171,13 +171,13 @@ public class JodChecker2 extends AbstractChecker {
 				}				
 				prover.addAssertion(prover.mkNot(prover.mkAnd(blocking)));				
 			} else if (res == ProverResult.Unsat){
-				//System.err.println("UNSAT");
+				System.err.println("UNSAT");
 				break;
 			} else {
 				// God knows what happened
 				throw new RuntimeException("Prover failed with " + res);
 			}
-			//System.err.println("checking subprog again");
+			System.err.println("checking subprog again");
 			res = prover.checkSat(true);
 		}
 		prover.pop();
@@ -248,7 +248,7 @@ public class JodChecker2 extends AbstractChecker {
 				prover.addAssertion(tr.getReachabilityVariables().get(block));
 			}
 		}
-		//System.err.println("Entries "+count);
+		System.err.println("Entries "+count);
 	}
 
 
