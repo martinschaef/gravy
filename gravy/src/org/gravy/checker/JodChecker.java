@@ -3,9 +3,6 @@
  */
 package org.gravy.checker;
 
-import java.io.File;
-import java.io.IOException;
-import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -190,9 +187,9 @@ public class JodChecker extends AbstractChecker {
 		HashSet<BasicBlock> todo = new HashSet<BasicBlock>();
 		todo.addAll(allBlocks);
 
+		// We check in chunks of 10
 		while (!todo.isEmpty()) {
 
-			// The node to cover next
 			System.err.println("Total blocks to cover: " + todo.size());
 
 			// Try to cover one more block
@@ -211,7 +208,7 @@ public class JodChecker extends AbstractChecker {
 				// Add to covered
 				coveredBlocks.addAll(satPath);
 			} else {
-				// No more feasible paths
+				// No feasible paths in chunk
 			    todo.clear();
 			}
 
@@ -432,53 +429,6 @@ public class JodChecker extends AbstractChecker {
 		// Screwed
 		toDot("path_error.dot", allBlocks, enabledBlocks, necessaryNodes);
 		throw new RuntimeException("Could not find a path");
-	}
-
-	private void toDot(String filename, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> blueBlocks, HashSet<BasicBlock> redBlocks) {
-		File out = new File(filename);
-		try {
-			PrintWriter pw = new PrintWriter(out);
-			
-			pw.println("digraph dot {");
-
-			for (BasicBlock block : blueBlocks) {
-				// Special blocks
-				if (redBlocks.contains(block)) {
-					System.err.println("FUFUFUFUFUFUFUFCK");
-					pw.println("\"" + block.getLabel() + "\" [style=filled, color=red, fillcolor=blue, label=\"" + block.getLabel() + "\"]");
-				} else {
-					pw.println("\"" + block.getLabel() + "\" [style=filled, fillcolor=blue, label=\"" + block.getLabel() + "\"]");					
-				}
-			}
-
-			for (BasicBlock block : redBlocks) {
-				// Special blocks
-				if (!blueBlocks.contains(block)) {
-					pw.println("\"" + block.getLabel() + "\" [color=red, label=\"" + block.getLabel() + "\"]");
-				}
-			}
-
-			for (BasicBlock block : allBlocks) {
-				// Regular blocks 
-				if (!blueBlocks.contains(block) && !redBlocks.contains(block)) {
-					pw.println("\"" + block.getLabel() + "\" [label=\"" + block.getLabel() + "\"]");					
-				}
-			}
-			
-			for (BasicBlock block : allBlocks) {
-				for (BasicBlock succ : block.getSuccessors()) {
-					if (allBlocks.contains(succ)) {
-						pw.println("\"" + block.getLabel() + "\"" + " -> " + "\"" + succ.getLabel() + "\"");
-					}
-				}
-			}
-			
-			pw.println("}");
-			
-			pw.close();
-		} catch (IOException e) {
-			e.printStackTrace();
-		} 
 	}
 	
 }

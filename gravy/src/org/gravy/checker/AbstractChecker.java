@@ -3,6 +3,9 @@
  */
 package org.gravy.checker;
 
+import java.io.File;
+import java.io.IOException;
+import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
@@ -244,6 +247,53 @@ public abstract class AbstractChecker implements Runnable {
 
 		}
 		return coveredBlocks;
+	}
+
+	protected void toDot(String filename, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> blueBlocks, HashSet<BasicBlock> redBlocks) {
+		File out = new File(filename);
+		try {
+			PrintWriter pw = new PrintWriter(out);
+			
+			pw.println("digraph dot {");
+	
+			for (BasicBlock block : blueBlocks) {
+				// Special blocks
+				if (redBlocks.contains(block)) {
+					System.err.println("FUFUFUFUFUFUFUFCK");
+					pw.println("\"" + block.getLabel() + "\" [style=filled, color=red, fillcolor=blue, label=\"" + block.getLabel() + "\"]");
+				} else {
+					pw.println("\"" + block.getLabel() + "\" [style=filled, fillcolor=blue, label=\"" + block.getLabel() + "\"]");					
+				}
+			}
+	
+			for (BasicBlock block : redBlocks) {
+				// Special blocks
+				if (!blueBlocks.contains(block)) {
+					pw.println("\"" + block.getLabel() + "\" [color=red, label=\"" + block.getLabel() + "\"]");
+				}
+			}
+	
+			for (BasicBlock block : allBlocks) {
+				// Regular blocks 
+				if (!blueBlocks.contains(block) && !redBlocks.contains(block)) {
+					pw.println("\"" + block.getLabel() + "\" [label=\"" + block.getLabel() + "\"]");					
+				}
+			}
+			
+			for (BasicBlock block : allBlocks) {
+				for (BasicBlock succ : block.getSuccessors()) {
+					if (allBlocks.contains(succ)) {
+						pw.println("\"" + block.getLabel() + "\"" + " -> " + "\"" + succ.getLabel() + "\"");
+					}
+				}
+			}
+			
+			pw.println("}");
+			
+			pw.close();
+		} catch (IOException e) {
+			e.printStackTrace();
+		} 
 	}
 	
 	
