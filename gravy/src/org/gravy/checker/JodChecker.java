@@ -186,12 +186,19 @@ public class JodChecker extends AbstractChecker {
 
 		HashSet<BasicBlock> todo = new HashSet<BasicBlock>();
 		todo.addAll(allBlocks);
-
-		// We check in chunks of 10
+		
 		while (!todo.isEmpty()) {
 
+			// We check in chunks of 10
 			System.err.println("Total blocks to cover: " + todo.size());
 
+			// Remove from allBlocks the blocks that have no paths to or from 
+			// blocks still in need of a cover		
+			HashSet<BasicBlock> reachable = new HashSet<BasicBlock>();
+			reachable.addAll(getReachable(tr, todo, allBlocks, ReachabilityType.FORWARD));
+			reachable.addAll(getReachable(tr, todo, allBlocks, ReachabilityType.BACKWARD));
+			allBlocks = reachable;
+			
 			// Try to cover one more block
 			HashSet<BasicBlock> satPath = getFeasiblePath(tr, allBlocks, todo);
 			
@@ -205,13 +212,12 @@ public class JodChecker extends AbstractChecker {
 					throw new RuntimeException("New path did not eliminate a block");
 				}
 				
-				// Add to covered
 				coveredBlocks.addAll(satPath);
+				// Add to covered
 			} else {
 				// No feasible paths in chunk
 			    todo.clear();
 			}
-
 		}
 		
 		return coveredBlocks;
@@ -224,60 +230,63 @@ public class JodChecker extends AbstractChecker {
 	private HashSet<BasicBlock> getFeasiblePath(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> blocksToCover) {
 		
 		ProverResult res = null;
+		HashSet<BasicBlock> satPath = null;
+		
 		HashSet<BasicBlock> paths = new HashSet<BasicBlock>();
 				
-		// Try abstract paths in succession until one is found
-		while (true) {
+		try {
+						
+			// Try abstract paths in succession until one is found
+			while (true) {
 
-			// Check the abstraction path
-			prover.push();
-			assertPaths(prover, tr, paths, allBlocks, blocksToCover);
-			System.err.println("checking abstraction");
-			res = prover.checkSat(true);
-			System.err.println("abstraction: " + res);
+				// Check the abstraction path
+				prover.push();
+				assertPaths(prover, tr, paths, allBlocks, blocksToCover);
+				System.err.println("checking abstraction");
+				res = prover.checkSat(true);
+				System.err.println("abstraction: " + res);
 
-			if (res == ProverResult.Sat) {
-				// The extension path
-				HashSet<BasicBlock> satPath = getPathFromModel(prover, tr, allBlocks, blocksToCover);
-				// Pop the prover
-				prover.pop();
-				// Add the concrete
-				paths.addAll(satPath);
-			} else if (res == ProverResult.Unsat){
-				// Pop the solver
-				prover.pop();
-				// Done, infeasible
-				return null;
-			} else {
-				// God knows what happened
-				throw new RuntimeException("Prover failed with " + res);
-			}
-			
-			// Check the current concrete paths
-			prover.push();
-			assertPaths(prover, tr, paths, paths, blocksToCover);
-			System.err.println("checking concrete");
-			res = prover.checkSat(true);
-			System.err.println("concrete: " + res);
-			
-			if (res == ProverResult.Sat) {
-				// Satisfiable -> concrete path				
-				HashSet<BasicBlock> satPath = getPathFromModel(prover, tr, paths, blocksToCover);
-				// Pop the solver
-				prover.pop();
-				// Return
-				return satPath;
-			} else if (res == ProverResult.Unsat) {
-				// Pop the solver
-				prover.pop();
-				// Unsatisfiable -> try extending, unless it's already full
-				if (paths.contains(allBlocks)) {
+				if (res == ProverResult.Sat) {
+					// The extension path
+					satPath = getPathFromModel(prover, tr, allBlocks, blocksToCover);
+					// Pop the prover
+					prover.pop();
+				} else if (res == ProverResult.Unsat){
+					// Pop the solver
+					prover.pop();
+					// Done, infeasible
 					return null;
+				} else {
+					// God knows what happened
+					throw new RuntimeException("Prover failed with " + res);
 				}
-			} else {
-				// God knows what happened
-				throw new RuntimeException("Prover failed with " + res);
+				
+				// Check the current concrete path
+				prover.push();
+				assertPaths(prover, tr, satPath, satPath, blocksToCover);
+				System.err.println("checking concrete");
+				res = prover.checkSat(true);
+				System.err.println("concrete: " + res);
+				
+				if (res == ProverResult.Sat) {
+					// Pop the solver
+					prover.pop();
+					// Return
+					return satPath;
+				} else if (res == ProverResult.Unsat) {
+					// Pop the solver
+					prover.pop();
+					// Unsatisfiable -> try extending, unless it's already full
+					paths.addAll(satPath);
+				} else {
+					// God knows what happened
+					throw new RuntimeException("Prover failed with " + res);
+				}
 			}
+		} catch (Exception e) {
+			// Let us see what was the haps
+			toDot("findPath.dot", allBlocks, paths, blocksToCover);
+			throw e;
 		}
 	}
 
@@ -324,9 +333,49 @@ public class JodChecker extends AbstractChecker {
 		}
 		
 		// Start from the root node
-		prover.addAssertion(tr.getReachabilityVariables().get(tr.getProcedure().getRootNode()));
+     	prover.addAssertion(tr.getReachabilityVariables().get(tr.getProcedure().getRootNode()));
 	}
 
+	enum ReachabilityType {
+		FORWARD,
+		BACKWARD,
+	};
+	
+	/** 
+	 * Get the paths from start.
+	 */
+	private HashSet<BasicBlock> getReachable(JodTransitionRelation tr, HashSet<BasicBlock> start, HashSet<BasicBlock> vertices, ReachabilityType type) {
+
+		// The reachable set
+		HashSet<BasicBlock> reachable = new HashSet<BasicBlock>();
+		reachable.addAll(start);
+		
+		// Compute the paths
+		LinkedList<BasicBlock> queue = new LinkedList<BasicBlock>();
+		queue.addAll(start);
+		while (!queue.isEmpty()) {
+			BasicBlock current = queue.removeFirst();
+			if (type == ReachabilityType.FORWARD) {
+				for (BasicBlock succ : current.getSuccessors()) {
+					if (vertices.contains(succ) && !reachable.contains(succ)) {
+						reachable.add(succ);
+						queue.addLast(succ);
+					}
+				}
+			}
+			if (type == ReachabilityType.BACKWARD) {
+				for (BasicBlock pred : current.getPredecessors()) {
+					if (vertices.contains(pred) && !reachable.contains(pred)) {
+						reachable.add(pred);
+						queue.addLast(pred);
+					}
+				}				
+			}
+		}
+		
+		return reachable;
+	}
+	
 	/**
 	 * Get a path from node to node, through successors.
 	 */
