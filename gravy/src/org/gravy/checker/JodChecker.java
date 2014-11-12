@@ -161,6 +161,20 @@ public class JodChecker extends AbstractChecker {
 	}
 
 	/**
+	 * Add the axioms of the transition relation to the prover.
+	 * @param tr
+	 */
+	protected void addAxioms(JodTransitionRelation tr) {
+		// add the basic prelude stuff that is needed for every check.
+		for (Entry<CfgAxiom, ProverExpr> entry : tr.getPreludeAxioms().entrySet()) {
+			prover.addAssertion(entry.getValue());
+		}
+		prover.addAssertion(tr.getRequires());
+		prover.addAssertion(tr.getEnsures());		
+	}
+	
+	
+	/**
 	 * This is the main loop that uses our Joins-on-Demand algorithm to cover
 	 * the CFG
 	 * 
@@ -175,17 +189,15 @@ public class JodChecker extends AbstractChecker {
 	 */
 	protected Collection<BasicBlock> computeJodCover(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks) {
 
+		// Result: all nodes we managed to cover
 		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>();
 
-		// add the basic prelude stuff that is needed for every check.
-		for (Entry<CfgAxiom, ProverExpr> entry : tr.getPreludeAxioms().entrySet()) {
-			prover.addAssertion(entry.getValue());
-		}
-		prover.addAssertion(tr.getRequires());
-		prover.addAssertion(tr.getEnsures());
-
+		// The nodes we need to cover
 		HashSet<BasicBlock> todo = new HashSet<BasicBlock>();
 		todo.addAll(allBlocks);
+		
+		// Add the initial non-changing stuff to the prover
+		addAxioms(tr);
 		
 		while (!todo.isEmpty()) {
 
@@ -242,9 +254,9 @@ public class JodChecker extends AbstractChecker {
 				// Check the abstraction path
 				prover.push();
 				assertPaths(prover, tr, paths, allBlocks, blocksToCover);
-				System.err.println("checking abstraction");
+				System.err.print("abstraction: ");
 				res = prover.checkSat(true);
-				System.err.println("abstraction: " + res);
+				System.err.println(res);
 
 				if (res == ProverResult.Sat) {
 					// The extension path
@@ -264,9 +276,9 @@ public class JodChecker extends AbstractChecker {
 				// Check the current concrete path
 				prover.push();
 				assertPaths(prover, tr, satPath, satPath, blocksToCover);
-				System.err.println("checking concrete");
+				System.err.print("concrete   : ");
 				res = prover.checkSat(true);
-				System.err.println("concrete: " + res);
+				System.err.println(res);
 				
 				if (res == ProverResult.Sat) {
 					// Pop the solver
@@ -300,6 +312,11 @@ public class JodChecker extends AbstractChecker {
 	 */
 	private void assertPaths(Prover prover, JodTransitionRelation tr, HashSet<BasicBlock> concreteBlocks, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> necessaryBlocks) {
 
+		boolean concretizeSucc = true;
+		boolean concretizePred = true;
+
+		HashSet<BasicBlock> toConcretize = new HashSet<BasicBlock>(concreteBlocks);
+		
 		// Encode each block
 		for (BasicBlock block : allBlocks) {
 			
@@ -310,22 +327,30 @@ public class JodChecker extends AbstractChecker {
 			HashSet<BasicBlock> successors = new HashSet<BasicBlock>(block.getSuccessors());
 			successors.retainAll(allBlocks);
 			if (successors.size() > 0) {
-				prover.addAssertion(prover.mkImplies(blockVar, mkDisjunction(tr, successors)));
+				prover.addAssertion(prover.mkImplies(blockVar, mkDisjunction(tr, successors)));				
+				if (concretizeSucc && concreteBlocks.contains(block)) {
+					toConcretize.addAll(successors);
+				}
+				
 			}
 			
 			// Constrain path to go through predecessors
 			HashSet<BasicBlock> predecessors = new HashSet<BasicBlock>(block.getPredecessors());
 			predecessors.retainAll(allBlocks);
 			if (predecessors.size() > 0) {
-				prover.addAssertion(prover.mkImplies(blockVar, mkDisjunction(tr, predecessors)));				
-			}
-			
-			// Make the body
-			if (concreteBlocks.contains(block)) {
-				prover.addAssertion(prover.mkImplies(blockVar, tr.blockTransitionReleations.get(block)));
-			} 
+				prover.addAssertion(prover.mkImplies(blockVar, mkDisjunction(tr, predecessors)));
+				if (concretizePred && concreteBlocks.contains(block)) {
+					toConcretize.addAll(predecessors);
+				}
+			}			 
 		}
 
+		// Concretize
+		for (BasicBlock block : toConcretize) {
+			ProverExpr blockVar = tr.getReachabilityVariables().get(block);
+			prover.addAssertion(prover.mkImplies(blockVar, tr.blockTransitionReleations.get(block)));			
+		}
+		
 		if (necessaryBlocks != null) {
 			HashSet<BasicBlock> selection = new HashSet<BasicBlock>(necessaryBlocks);
 			selection.retainAll(allBlocks);
