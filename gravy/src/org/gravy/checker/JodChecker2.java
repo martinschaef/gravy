@@ -11,6 +11,7 @@ import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map.Entry;
+import java.util.Set;
 
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
@@ -44,7 +45,7 @@ public class JodChecker2 extends AbstractChecker {
 	public JodChecker2(AbstractControlFlowFactory cff, CfgProcedure p) {
 		super(cff, p);
 
-		System.err.println("prune unreachable");
+		//System.err.println("prune unreachable");
 
 		// p.toDot("./"+p.getProcedureName()+".dot");
 
@@ -52,25 +53,25 @@ public class JodChecker2 extends AbstractChecker {
 
 		// p.toDot("./"+p.getProcedureName()+".dot");
 
-		System.err.println("remove calls");
+		//System.err.println("remove calls");
 
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
 
-		System.err.println("unwind loops");
+		//System.err.println("unwind loops");
 		AbstractLoopUnwinding.unwindeLoops(p);
 		p.pruneUnreachableBlocks();
 
-		System.err.println("ssa");
+		//System.err.println("ssa");
 //		 p.toFile("./"+p.getProcedureName()+".bpl");
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.computeSSA(p);
 
-		System.err.println("prune again");
+		//System.err.println("prune again");
 		p.pruneUnreachableBlocks();
 
-		System.err.println("done");
+		//System.err.println("done");
 
 //		p.toFile("./"+p.getProcedureName()+".bpl");
 //		p.toDot("./"+p.getProcedureName()+"_lf.dot");
@@ -88,7 +89,7 @@ public class JodChecker2 extends AbstractChecker {
 	public Report checkSat(Prover prover, AbstractTransitionRelation atr) {
 		JodTransitionRelation tr = (JodTransitionRelation) atr;
 
-//		toDot("./color"+tr.getProcedureName()+".dot", tr);
+		toDot("./color"+tr.getProcedureName()+".dot", tr);
 		hasseToDot("H-"+tr.getProcedureName()+".dot", tr);
 		
 		
@@ -136,11 +137,11 @@ public class JodChecker2 extends AbstractChecker {
 		prover.addAssertion(tr.getEnsures());
 
 		PartialBlockOrderNode poRoot = tr.getHasseDiagram().getRoot();
-		coveredBlocks.addAll(foo(prover, tr, poRoot));
+		coveredBlocks.addAll(foo(prover, tr, poRoot, new HashSet<BasicBlock>()));
 		
 
 		return coveredBlocks;
-	}
+	}	
 	
 	/**
 	 * Check subprogram
@@ -149,82 +150,124 @@ public class JodChecker2 extends AbstractChecker {
 	 * @param node
 	 * @return
 	 */
-	protected HashSet<BasicBlock> foo(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node) {
-		//to subprogram that we want to check.
-		HashSet<BasicBlock> toCheck = new HashSet<BasicBlock>();
-		HashSet<BasicBlock> covered = new HashSet<BasicBlock>();
-		for (PartialBlockOrderNode child : node.getSuccessors()) {
-			//if the child node is feasible include his 
-			//elements in the set of blocks that need to be
-			//checked.
-			
-			toCheck.addAll(foo(prover, tr, child));
+	protected HashSet<BasicBlock> foo(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
+		HashSet<BasicBlock> result = new HashSet<BasicBlock>(alreadyCovered);
+		
+		//the set of node that we want to cover.
+		Set<BasicBlock> toCheck = new HashSet<BasicBlock>(node.getElements());
+		toCheck.removeAll(alreadyCovered);
+		if (toCheck.isEmpty()) {
+			System.out.println("already covered, descending");
+			if (node.getSuccessors()!=null) {
+				for (PartialBlockOrderNode child : node.getSuccessors()) {
+					result.addAll(foo(prover, tr, child, alreadyCovered));
+				}
+				return result;
+			}
 		}
 		
-
-		System.err.println("checking subprog depths "+node.getHeight());
 		
-		//if all successor nodes are infeasible
-		//then this node is infeasible as well
-		//and we do not need to check it.
-		if (toCheck.isEmpty() && node.getSuccessors().size()>0) {
-			System.err.println("infeasible, because all children are.");
-			return covered;
-		}
-
-		//add all basic blocks in this equivalence class 
-		toCheck.addAll(node.getElements());
-		System.err.print("checking: ");
-		for (BasicBlock b : toCheck) {
-			System.err.print(b.getLabel()+", ");
-		}
-		System.err.println();
+		//remove all blocks that we covered already
 		
+		//find the subprogram contain all
+		//path going through nodes in the
+		//equivalence class node
+		Set<BasicBlock> subprog = getSubprogContainingAll(toCheck);
+		
+		System.err.println("checking");
 		prover.push();
-		assertPaths(prover, tr, toCheck);
-		
+		assertPaths(prover, tr, subprog);
 		ProverResult res = prover.checkSat(true);
 		
-		HashSet<BasicBlock> todo = new HashSet<BasicBlock>(toCheck);
-		while (true) {
-			if (res == ProverResult.Sat) {
-				System.err.println("SAT");
-				HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, toCheck);
-				
-				System.err.print("path: ");
-				for (BasicBlock b : feasiblePath) {
-					System.err.print(b.getLabel()+", ");
-				}
-				System.err.println();
-				
-				
-				System.err.println("covered "+covered.size() + " of "+toCheck.size());
-				covered.addAll(feasiblePath);
-				todo.removeAll(feasiblePath);
-				//now add a blocking clause.
-
-				ProverExpr[] blocking = new ProverExpr[feasiblePath.size()];
-				int i=0;
-				for (BasicBlock b : feasiblePath) {
-					blocking[i++] = tr.getReachabilityVariables().get(b);
-				}				
-				prover.addAssertion(prover.mkNot(prover.mkAnd(blocking)));			
+		
+		if (res == ProverResult.Sat) {
+			System.err.println("SAT");
+			HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, subprog, toCheck);
 			
-			} else if (res == ProverResult.Unsat){
-				System.err.println("UNSAT");
-				break;
-			} else {
-				// God knows what happened
-				throw new RuntimeException("Prover failed with " + res);
+//			System.err.print("To Check: ");
+//			for (BasicBlock b : toCheck) System.err.print(b.getLabel()+", ");
+//			System.err.print("\n\n");
+//
+//			System.err.print("Path: ");
+//			for (BasicBlock b : feasiblePath) System.err.print(b.getLabel()+", ");
+//			System.err.print("\n\n");
+			
+			if (!feasiblePath.containsAll(toCheck)) {
+				throw new RuntimeException("This is all wrong");
 			}
-			System.err.println("checking subprog again");
-			res = prover.checkSat(true);
+			result.addAll(feasiblePath);
+			HashSet<BasicBlock> covered = new HashSet<BasicBlock>(result); //make a copy of result for usage in the loop.
+			if (node.getSuccessors()!=null) {
+				for (PartialBlockOrderNode child : node.getSuccessors()) {
+					System.err.println("descending");
+					result.addAll(foo(prover, tr, child, covered));
+				}				
+			}
+		} else if (res == ProverResult.Unsat){
+			System.err.println("UNSAT");
+			//do nothing
+		} else {
+			// God knows what happened
+			prover.pop();
+			throw new RuntimeException("Prover failed with " + res);
 		}
+		
 		prover.pop();
-		return covered;
+		
+		return result;
 	}
 
+	
+	/**
+	 * returns the set of blocks that can reach any of the blocks in blocks
+	 * @param blocks
+	 * @return
+	 */
+	private Set<BasicBlock> getSubprogContainingAll(Set<BasicBlock> blocks) {
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>(blocks);
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();
+			Set<BasicBlock> subprog = getSubprogContaining(current);
+//			todo.removeAll(subprog);
+			done.addAll(subprog);
+		}
+		return done;
+	}
 
+	/**
+	 * returns all nodes that occur on paths through b
+	 * @param b
+	 * @return
+	 */
+	private Set<BasicBlock> getSubprogContaining(BasicBlock b) {
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		todo.add(b);
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();
+			done.add(current);
+			for (BasicBlock x : current.getPredecessors()) {
+				if (!todo.contains(x) && !done.contains(x)) {
+					todo.add(x);
+				}
+			}
+		}
+		//now the other direction
+		todo.add(b);
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();
+			done.add(current);
+			for (BasicBlock x : current.getSuccessors()) {
+				if (!todo.contains(x) && !done.contains(x)) {
+					todo.add(x);
+				}
+			}
+		}
+		return done;
+	}
+	
+	
 
 	private ProverExpr mkDisjunction(JodTransitionRelation tr, Collection<BasicBlock> blocks) {
 		ProverExpr next;
@@ -252,7 +295,7 @@ public class JodChecker2 extends AbstractChecker {
 	 * @param paths
 	 */
 	private void assertPaths(Prover prover, JodTransitionRelation tr,
-			HashSet<BasicBlock> blocks) {
+			Set<BasicBlock> blocks) {
 
 		// Encode each block
 		for (BasicBlock block : blocks) {
@@ -278,9 +321,9 @@ public class JodChecker2 extends AbstractChecker {
 			
 			//now assert fwd
 			LinkedList<BasicBlock> predecessors = new LinkedList<BasicBlock>();
-			for (BasicBlock succ : block.getPredecessors()) {
-				if (blocks.contains(succ)) {
-					predecessors.add(succ);
+			for (BasicBlock pred : block.getPredecessors()) {
+				if (blocks.contains(pred)) {
+					predecessors.add(pred);
 				} 
 			}
 			
@@ -297,7 +340,6 @@ public class JodChecker2 extends AbstractChecker {
 
 		//find all entry points to the subprogram and assert that their  
 		//block var needs to be true
-		int count=0;
 		for (BasicBlock block : blocks) {
 			boolean hasPreInBlocks = false;
 			for (BasicBlock pre : block.getPredecessors()) {
@@ -306,71 +348,141 @@ public class JodChecker2 extends AbstractChecker {
 				}
 			}
 			if (!hasPreInBlocks) {
-				count++;
 				prover.addAssertion(tr.getReachabilityVariables().get(block));
 			}
 		}
-		System.err.println("Entries "+count);
+		//System.err.println("Entries "+count);
 	}
 
 
 
+//	/**
+//	 * Get a complete and feasible path from the model produced by princes.
+//	 * 
+//	 * @param prover
+//	 * @param tr
+//	 * @return
+//	 */
+//	protected HashSet<BasicBlock> getPathFromModel(Prover prover,
+//			JodTransitionRelation tr, HashSet<BasicBlock> currentPaths) {
+//		LinkedList<BasicBlock> path = new LinkedList<BasicBlock>();
+//
+//		HashSet<BasicBlock> blocksInModel = new HashSet<BasicBlock>();
+//
+//		for (BasicBlock b : currentPaths) {
+//			final ProverExpr pe = tr.getReachabilityVariables().get(b);
+//			if (prover.evaluate(pe).getBooleanLiteralValue()) {
+//				blocksInModel.add(b);
+//			}
+//		}
+//
+//		
+//		for (BasicBlock block : currentPaths) {
+//			boolean hasPreInBlocks = false;
+//			for (BasicBlock pre : block.getPredecessors()) {
+//				if (currentPaths.contains(pre)) {
+//					hasPreInBlocks = true; break;
+//				}
+//			}
+//			if (!hasPreInBlocks) {
+//				LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+//				HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+//
+//				todo.add(block);
+//				BasicBlock current = null;
+//				while (!todo.isEmpty()) {
+//					current = todo.pop();
+//					if (blocksInModel.contains(current)) {
+//						path.add(current);
+//						boolean found = false;
+//						for (BasicBlock b : current.getSuccessors()) {
+//							if (!done.contains(b) && !todo.contains(b)
+//									&& blocksInModel.contains(b)) {
+//								todo.push(b);
+//								if (!found) {
+//									found = true;
+//								} else {
+//									throw new RuntimeException("more than one path in model");
+//								}
+//
+//							}
+//						}
+//					} else {
+////						throw new RuntimeException("Bug! " + current.getLabel());
+//					}
+//				}				
+//			}
+//		}		
+//		
+//
+//
+//		return new HashSet<BasicBlock>(path);
+//	}
 	/**
 	 * Get a complete and feasible path from the model produced by princes.
 	 * 
 	 * @param prover
 	 * @param tr
+	 * @param necessaryNodes one of these nodes needs to be in the path
 	 * @return
 	 */
-	protected HashSet<BasicBlock> getPathFromModel(Prover prover,
-			JodTransitionRelation tr, HashSet<BasicBlock> currentPaths) {
-		LinkedList<BasicBlock> path = new LinkedList<BasicBlock>();
-
-		HashSet<BasicBlock> blocksInModel = new HashSet<BasicBlock>();
-
-		for (BasicBlock b : currentPaths) {
+	private HashSet<BasicBlock> getPathFromModel(Prover prover, JodTransitionRelation tr, Set<BasicBlock> allBlocks, Set<BasicBlock> necessaryNodes) {
+		// Blocks selected by the model 
+		HashSet<BasicBlock> enabledBlocks = new HashSet<BasicBlock>();
+		for (BasicBlock b : allBlocks) {
 			final ProverExpr pe = tr.getReachabilityVariables().get(b);
 			if (prover.evaluate(pe).getBooleanLiteralValue()) {
-				blocksInModel.add(b);
+				enabledBlocks.add(b);
 			}
 		}
 
-		
-		for (BasicBlock block : currentPaths) {
-			boolean hasPreInBlocks = false;
-			for (BasicBlock pre : block.getPredecessors()) {
-				if (currentPaths.contains(pre)) {
-					hasPreInBlocks = true; break;
+		for (BasicBlock block : necessaryNodes) {
+			if (enabledBlocks.contains(block)) {
+				// Get the path from block to the exit
+				LinkedList<BasicBlock> blockToExit = new LinkedList<BasicBlock>();
+				BasicBlock current = block;
+				while (current!=null) {
+					blockToExit.add(current);
+					BasicBlock _current = null;
+					for (BasicBlock next : current.getSuccessors()) {
+						if (enabledBlocks.contains(next)) {
+							_current = next; break;
+						}
+					}
+					current = _current;
 				}
-			}
-			if (!hasPreInBlocks) {
-				LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
-				HashSet<BasicBlock> done = new HashSet<BasicBlock>();
-
-				todo.add(block);
-				BasicBlock current = null;
-				while (!todo.isEmpty()) {
-					current = todo.pop();
-					if (blocksInModel.contains(current)) {
-						path.add(current);
-						for (BasicBlock b : current.getSuccessors()) {
-							if (!done.contains(b) && !todo.contains(b)
-									&& blocksInModel.contains(b)) {
-								todo.push(b);
-								break;
+						
+				if (blockToExit != null) {
+					// Get the path from root to the block
+					LinkedList<BasicBlock> rootToBlock = new LinkedList<BasicBlock>();
+					current = block;
+					while (current!=null) {
+						blockToExit.add(current);
+						BasicBlock _current = null;
+						for (BasicBlock next : current.getPredecessors()) {
+							if (enabledBlocks.contains(next)) {
+								_current = next; break;
 							}
 						}
-					} else {
-//						throw new RuntimeException("Bug! " + current.getLabel());
+						current = _current;
 					}
-				}				
+
+					if (rootToBlock != null) {
+						// We got a full path
+						HashSet<BasicBlock> result = new HashSet<BasicBlock>();
+						result.addAll(rootToBlock);
+						result.addAll(blockToExit);
+						return result;
+					}
+				}
 			}
-		}		
-		
-
-
-		return new HashSet<BasicBlock>(path);
+		}
+			
+		// Screwed
+//		toDot("path_error.dot", allBlocks, enabledBlocks, necessaryNodes);
+		throw new RuntimeException("Could not find a path");
 	}
+
 
 	
 	
