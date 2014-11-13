@@ -249,7 +249,7 @@ public abstract class AbstractChecker implements Runnable {
 		return coveredBlocks;
 	}
 
-	protected void toDot(String filename, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> blueBlocks, HashSet<BasicBlock> redBlocks) {
+	protected void toDot(String filename, Collection<BasicBlock> allBlocks, Collection<BasicBlock> blueBlocks, Collection<BasicBlock> redBlocks) {
 		File out = new File(filename);
 		try {
 			PrintWriter pw = new PrintWriter(out);

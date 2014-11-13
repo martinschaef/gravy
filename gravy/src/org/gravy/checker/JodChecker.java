@@ -212,7 +212,7 @@ public class JodChecker extends AbstractChecker {
 			allBlocks = reachable;
 			
 			// Try to cover one more block
-			HashSet<BasicBlock> satPath = getFeasiblePath(tr, allBlocks, todo);
+			LinkedList<BasicBlock> satPath = getFeasiblePath(tr, allBlocks, todo);
 			
 			if (satPath != null) {
 				System.err.println("Found path of length " + satPath.size());
@@ -236,13 +236,56 @@ public class JodChecker extends AbstractChecker {
 	}
 
 	/**
+	 * Take a concrete path and remove block from front and back wile keeping 
+	 * infeasibility.
+	 */
+	private void minimizeInfeasiblePath(JodTransitionRelation tr, LinkedList<BasicBlock> path) {
+
+		System.err.println("\t full : " + path.size());
+
+		// Minimize from the front
+		while (true) {
+			BasicBlock first = path.removeFirst();
+			
+			prover.push();
+			assertPaths(prover, tr, path, path, null);
+			ProverResult res = prover.checkSat(true);
+			prover.pop();
+			
+			if (res == ProverResult.Sat) {
+				// If feasible we're done
+				path.addFirst(first);				
+				break;
+			}			
+		}
+
+		// Minimize from the back
+		while (true) {
+			BasicBlock last = path.removeLast();
+			
+			prover.push();
+			assertPaths(prover, tr, path, path, null);
+			ProverResult res = prover.checkSat(true);
+			prover.pop();
+			
+			if (res == ProverResult.Sat) {
+				// If feasible we're done
+				path.addLast(last);
+				break;
+			}			
+		}
+
+		System.err.println("\t front-back minimal : " + path.size());
+	}
+	
+	/**
 	 * Tries to find one more feasible path. Returns a path if there is one, or null otherwise.
 	 * @allPaths all possible paths
 	 */
-	private HashSet<BasicBlock> getFeasiblePath(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> blocksToCover) {
+	private LinkedList<BasicBlock> getFeasiblePath(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> blocksToCover) {
 		
 		ProverResult res = null;
-		HashSet<BasicBlock> satPath = null;
+		LinkedList<BasicBlock> satPath = null;
 		
 		HashSet<BasicBlock> paths = new HashSet<BasicBlock>();
 				
@@ -275,7 +318,7 @@ public class JodChecker extends AbstractChecker {
 				
 				// Check the current concrete path
 				prover.push();
-				assertPaths(prover, tr, satPath, satPath, blocksToCover);
+				assertPaths(prover, tr, satPath, satPath, null);
 				System.err.print("concrete   : ");
 				res = prover.checkSat(true);
 				System.err.println(res);
@@ -288,7 +331,9 @@ public class JodChecker extends AbstractChecker {
 				} else if (res == ProverResult.Unsat) {
 					// Pop the solver
 					prover.pop();
-					// Unsatisfiable -> try extending, unless it's already full
+					// Minimize 
+					minimizeInfeasiblePath(tr, satPath);
+					// Concretize the infeasible path into the abstraction
 					paths.addAll(satPath);
 				} else {
 					// God knows what happened
@@ -310,7 +355,7 @@ public class JodChecker extends AbstractChecker {
 	 * @param tr
 	 * @param concreteBlocks
 	 */
-	private void assertPaths(Prover prover, JodTransitionRelation tr, HashSet<BasicBlock> concreteBlocks, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> necessaryBlocks) {
+	private void assertPaths(Prover prover, JodTransitionRelation tr, Collection<BasicBlock> concreteBlocks, Collection<BasicBlock> allBlocks, Collection<BasicBlock> necessaryBlocks) {
 
 		boolean concretizeSucc = true;
 		boolean concretizePred = true;
@@ -466,7 +511,7 @@ public class JodChecker extends AbstractChecker {
 	 * @param necessaryNodes one of these nodes needs to be in the path
 	 * @return
 	 */
-	private HashSet<BasicBlock> getPathFromModel(Prover prover, JodTransitionRelation tr, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> necessaryNodes) {
+	private LinkedList<BasicBlock> getPathFromModel(Prover prover, JodTransitionRelation tr, Collection<BasicBlock> allBlocks, Collection<BasicBlock> necessaryNodes) {
 		
 		// Blocks selected by the model 
 		HashSet<BasicBlock> enabledBlocks = new HashSet<BasicBlock>();
@@ -485,11 +530,9 @@ public class JodChecker extends AbstractChecker {
 					// Get the path from root to the block
 					LinkedList<BasicBlock> rootToBlock = getPath(tr, tr.getProcedure().getRootNode(), block, enabledBlocks);
 					if (rootToBlock != null) {
-						// We got a full path
-						HashSet<BasicBlock> result = new HashSet<BasicBlock>();
-						result.addAll(rootToBlock);
-						result.addAll(blockToExit);
-						return result;
+						blockToExit.removeFirst();
+						rootToBlock.addAll(blockToExit);
+						return rootToBlock;
 					}
 				}
 			}
