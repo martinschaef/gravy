@@ -11,7 +11,11 @@ import org.gravy.prover.ProverExpr;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgProcedure;
+import boogie.controlflow.CfgVariable;
 import boogie.controlflow.expression.CfgExpression;
+import boogie.controlflow.expression.CfgIdentifierExpression;
+import boogie.controlflow.statement.CfgAssignStatement;
+import boogie.controlflow.statement.CfgStatement;
 
 /**
  * @author schaef
@@ -20,8 +24,8 @@ import boogie.controlflow.expression.CfgExpression;
  */
 public class JodTransitionRelation extends AbstractTransitionRelation {
 	
-	public HashMap<BasicBlock, ProverExpr> blockTransitionReleations = new HashMap<BasicBlock, ProverExpr>();
-	
+	public HashMap<BasicBlock, ProverExpr> blockTransitionReleations = new HashMap<BasicBlock, ProverExpr>();	
+	public HashMap<BasicBlock, ProverExpr> abstractTransitionReleations = new HashMap<BasicBlock, ProverExpr>();
 
 	public JodTransitionRelation(CfgProcedure cfg, AbstractControlFlowFactory cff, Prover p) {
 		super(cfg, cff, p);
@@ -63,14 +67,65 @@ public class JodTransitionRelation extends AbstractTransitionRelation {
 		finalizeAxioms();
 	}	
 	
+	
+	
 	public void addBlock(BasicBlock b) {
-		List<ProverExpr> stmts = statements2proverExpression(b.getStatements());
-		this.blockTransitionReleations.put(b, prover.mkAnd(stmts.toArray(new ProverExpr[stmts.size()])));
-		this.reachabilityVariables.put(b, this.prover.mkVariable(b.getLabel() + "_fwd",
-				this.prover.getBooleanType()));			
+		LinkedList<CfgStatement> bStatements = b.getStatements();
+		
+		// Add the concrete
+		List<ProverExpr> concreteStmts = statements2proverExpression(bStatements);
+		this.blockTransitionReleations.put(b, prover.mkAnd(concreteStmts.toArray(new ProverExpr[concreteStmts.size()])));
+		
+		// Add the abstract
+		LinkedList<CfgStatement> bAbstractStatements = abstractStatements(bStatements);
+		List<ProverExpr> abstractStmts = statements2proverExpression(bAbstractStatements);
+		this.abstractTransitionReleations.put(b, prover.mkAnd(abstractStmts.toArray(new ProverExpr[abstractStmts.size()])));
+		
+		// Add the variable
+		this.reachabilityVariables.put(b, this.prover.mkVariable(b.getLabel() + "_fwd", this.prover.getBooleanType()));			
 		
 	}
 	
+	/**
+	 * Isolate the abstraction of the statements (for example, just keep the frame statements).
+	 */
+	private LinkedList<CfgStatement> abstractStatements(LinkedList<CfgStatement> bStatements) {
+		LinkedList<CfgStatement> abstractStatements = new LinkedList<CfgStatement>();
+	
+		for (CfgStatement stmnt : bStatements) {
+			if (stmnt instanceof CfgAssignStatement) {
+				CfgAssignStatement asgn = (CfgAssignStatement) stmnt;
+				CfgIdentifierExpression[] left = asgn.getLeft();
+				CfgExpression[] right = asgn.getRight();
+				
+				boolean ok = true;
+				if (left.length == right.length) {
+					for (int i = 0; ok && i < left.length; ++ i) {
+						CfgIdentifierExpression left_i = left[i];
+						CfgExpression right_i = right[i];
+						if (right_i instanceof CfgIdentifierExpression) {
+							CfgVariable left_var = left_i.getVariable();
+							CfgVariable right_var = ((CfgIdentifierExpression)right_i).getVariable();
+							if (left_var==right_var) {
+								ok = true;
+							}
+						} else {
+							ok = false;
+						}
+					}
+				} else {
+					ok = false;
+				}
+				
+				if (ok) {
+					abstractStatements.add(stmnt);
+				}
+			}
+		}
+		
+		return abstractStatements;
+	}
+
 	public void removeBlock(BasicBlock b) {
 		this.blockTransitionReleations.remove(b);
 		this.reachabilityVariables.remove(b);

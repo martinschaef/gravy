@@ -137,14 +137,92 @@ public class JodChecker2 extends AbstractChecker {
 		prover.addAssertion(tr.getEnsures());
 
 		PartialBlockOrderNode poRoot = tr.getHasseDiagram().getRoot();
-		coveredBlocks.addAll(foo(prover, tr, poRoot, new HashSet<BasicBlock>()));
+		
+		//approximate the feasible blocks - and at the 
+		//same time, collect the ones that are guaranteed
+		//to be infeasible.
+		System.err.println("Try to find local contradictions first.");
+		approximateFeasibleBlocks(prover, tr);
+		System.err.println("Found "+ this.knownInfeasibleNodes.size() + " nodes that are locally infeasible.");
+		
+		System.err.println("Searching for feasible paths...");
+		coveredBlocks.addAll(findFeasibleBlocks(prover, tr, poRoot, new HashSet<BasicBlock>()));
 		
 
 		return coveredBlocks;
 	}	
 	
-	HashSet<BasicBlock> _covered = new HashSet<BasicBlock>(); 
+	HashSet<PartialBlockOrderNode> knownInfeasibleNodes = new HashSet<PartialBlockOrderNode>(); 
 	
+	protected Set<PartialBlockOrderNode> collectPoLeafNodes(PartialBlockOrderNode node) {
+		Set<PartialBlockOrderNode> result = new HashSet<PartialBlockOrderNode>();
+		if (node.getSuccessors().size()>0) {
+			for (PartialBlockOrderNode child : node.getSuccessors()) {
+				result.addAll(collectPoLeafNodes(child));
+			}
+		} else {
+			result.add(node);
+		}	
+		return result;
+	}
+	
+	protected void propagateInfeasibility(PartialBlockOrderNode node) {
+		if (node.getSuccessors().size()>0) {
+			for (PartialBlockOrderNode child : node.getSuccessors()) {
+				propagateInfeasibility(child);
+			}
+			if (knownInfeasibleNodes.containsAll(node.getSuccessors())) {
+				knownInfeasibleNodes.add(node);
+			}
+		}
+	}
+	
+	
+	/**
+	 * for each leaf node in the partial order, check if it is feasible. If so, add the blocks
+	 * in its parent equivalence class, if not report it, if timeout ignore it.
+	 * @param prover
+	 * @param tr
+	 * @return
+	 */
+	protected void approximateFeasibleBlocks(Prover prover, JodTransitionRelation tr) {
+		int TIMEOUT_MS = 10000; //millisecs		
+		Set<PartialBlockOrderNode> leafs = collectPoLeafNodes(tr.getHasseDiagram().getRoot());
+		for (PartialBlockOrderNode node : leafs) {
+			PartialBlockOrderNode current = node;
+			Set<BasicBlock> blocks = new HashSet<BasicBlock>();
+			boolean infeasible = false;
+			while (current!=null) {
+				blocks.addAll(current.getElements());				
+				prover.push();
+				assertPaths(prover, tr, blocks);				
+				prover.checkSat(false);			
+				ProverResult proverResult = prover.getResult(TIMEOUT_MS);				
+				if (proverResult == ProverResult.Sat) {
+					prover.pop();
+				} else if (proverResult == ProverResult.Unsat){
+					prover.pop();
+					infeasible = true;
+				} else if (proverResult == ProverResult.Running){
+					System.err.println("Timeout...");
+					prover.stop();
+					prover.pop();
+					break;
+				} else {
+					prover.pop();
+					throw new RuntimeException("prover error");
+				}					
+				current = current.getParent();
+			}	
+			if (infeasible) {
+				System.err.println("Local Proof!");
+				knownInfeasibleNodes.add(node);
+			}
+		}
+		propagateInfeasibility(tr.getHasseDiagram().getRoot());
+	}
+	
+
 	/**
 	 * Check subprogram
 	 * @param prover
@@ -152,136 +230,139 @@ public class JodChecker2 extends AbstractChecker {
 	 * @param node
 	 * @return
 	 */
-	protected HashSet<BasicBlock> foo(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
+	protected HashSet<BasicBlock> findFeasibleBlocks(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
 		HashSet<BasicBlock> result = new HashSet<BasicBlock>(alreadyCovered);
+		
+		if (knownInfeasibleNodes.contains(node)) {
+			System.err.println("LOCAL PROOF - no need to check.");
+			return result;
+		}
 		
 		//the set of node that we want to cover.
 		Set<BasicBlock> toCheck = new HashSet<BasicBlock>(node.getElements());
 		toCheck.removeAll(alreadyCovered);
-		if (toCheck.isEmpty()) {
-			System.out.println("already covered, descending");
-			if (node.getSuccessors()!=null) {
-				for (PartialBlockOrderNode child : node.getSuccessors()) {
-					result.addAll(foo(prover, tr, child, alreadyCovered));
+		if (!toCheck.isEmpty()) {			
+			//make a stack of subprograms.
+			//the first is always the current, and we add splits if the current one 
+			//is not sat.
+			LinkedList<Set<BasicBlock>> subprograms = new LinkedList<Set<BasicBlock>>();
+			subprograms.add(getSubprogContainingAll(toCheck));
+			
+			int TIMEOUT_MS = 4000;
+			
+			while (!subprograms.isEmpty()) {
+				Set<BasicBlock> subprog = subprograms.pop();
+				
+				System.err.println("checking node with "+node.getSuccessors().size()+ " children, subprog size: "+subprog.size());
+				
+				prover.push();
+				assertPaths(prover, tr, subprog);
+				
+				//Wait for the solver.
+				prover.checkSat(false);			
+				ProverResult proverResult = prover.getResult(TIMEOUT_MS); 
+				
+				if (proverResult == ProverResult.Sat) {
+					System.err.println("SAT");
+					HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, subprog, toCheck);
+					prover.pop();
+					if (!feasiblePath.containsAll(toCheck)) {
+						throw new RuntimeException("This is all wrong");
+					}
+					result.addAll(feasiblePath);
+					break;
+				} else if (proverResult == ProverResult.Unsat){
+					System.err.println("UNSAT");
+					prover.pop();
+					//do nothing
+				} else if (proverResult == ProverResult.Running){
+					System.err.println("TIMEOUT");
+					prover.stop();
+					prover.pop();
+
+					//if there is no successor that we could check,
+					//subdivide the current node and add it to the list.
+					if (node.getSuccessors().isEmpty()) {
+					
+						LinkedList<Set<BasicBlock>> splits = new LinkedList<Set<BasicBlock>>(splitNTimes(tr,splitInHalf(tr, subprog), 2));
+						
+						//HACK split again
+						LinkedList<Set<BasicBlock>> _splits = new LinkedList<Set<BasicBlock>>(splits);
+						splits.clear();
+						for (Set<BasicBlock> sp : _splits) {
+							splits.addAll(splitInHalf(tr, sp));
+						}
+						
+						if (splits.size()==1) {
+							throw new RuntimeException("Cannot split the problem further ... ");
+							//TODO increase the timeout?
+						}
+//						TIMEOUT_MS += 1000;						
+						subprograms.addAll(splits);
+					}
+					
+				} else {
+					// God knows what happened
+					prover.pop();
+					throw new RuntimeException("Prover failed with " + proverResult);
 				}				
 			}
-			return result;
+			
+		} else {	
+			System.out.println("already covered.");
 		}
 		
-		
-		//remove all blocks that we covered already
-		
-		//find the subprogram contain all
-		//path going through nodes in the
-		//equivalence class node
-		Set<BasicBlock> subprog = getSubprogContainingAll(toCheck);
-		
-		System.err.println("checking node with "+node.getSuccessors().size()+ " children, subprog size: "+subprog.size());
-		if (node.getSuccessors().size()==0) {
-			System.err.print("Nodes in class: ");
-			for (BasicBlock b : node.getElements()) System.err.print(b.getLabel()+", ");
-			System.err.print("\n");
-		}
-		
-		boolean foundPath = false;
-		System.err.println("Splitting ... ");
-		LinkedList<Set<BasicBlock>> splits = new LinkedList<Set<BasicBlock>>(splitInHalf(subprog));
-//		Set<Set<BasicBlock>> splits = splitInHalf(subprog);
-		System.err.println("created "+splits.size()+" splits.");
-		int maxSplit=3;
-		int splitcount = 0;
-		while(!splits.isEmpty()) {
-			System.err.println("Splits remaining "+splits.size());
-			Set<BasicBlock> sp = splits.pop();				
-			Set<BasicBlock> res = checkSubprogram(prover, tr, sp, toCheck);
-			if (res.size()>0) {
-				result.addAll(res);
-				foundPath = true;
-				break;
-			} else {
-				if (splitcount++>maxSplit) {
-					System.err.println("Splitted "+maxSplit+" times, now trying the rest in one go.");
-				} else {
-					System.err.println("Split was unsat, so lets split everything again to be sure");
-					LinkedList<Set<BasicBlock>> newsplits = new LinkedList<Set<BasicBlock>>();
-					for (Set<BasicBlock> oldsplit : splits) {
-						newsplits.addAll(splitInHalf(oldsplit));
-					}
-					System.err.println("done creating new splits");
-					splits.clear(); 
-					splits.addAll(newsplits);
-				}
-			}
-		}
-		
-		if (!foundPath) {
-			System.err.println("No subprog was sat");
-			return result;
-		}
-		
-//		result.addAll(checkSubprogram(prover, tr, subprog, toCheck));
-		
-		HashSet<BasicBlock> covered = new HashSet<BasicBlock>(result); //make a copy of result for usage in the loop.
 		if (node.getSuccessors()!=null) {
 			for (PartialBlockOrderNode child : node.getSuccessors()) {
-				System.err.println("descending");
-				result.addAll(foo(prover, tr, child, covered));
+				result.addAll(findFeasibleBlocks(prover, tr, child, result));
 			}				
 		}
-
-		_covered.addAll(result);
-		System.err.println("Covered "+ _covered.size());
-		return result;
-	}
-
-	private Set<BasicBlock> checkSubprogram(Prover prover, JodTransitionRelation tr, Set<BasicBlock> subprog, Set<BasicBlock> toCheck) {
-		Set<BasicBlock> result = new HashSet<BasicBlock>();
-		
-		prover.push();
-		assertPaths(prover, tr, subprog);
-		ProverResult res = prover.checkSat(true);	
-		
-		if (res == ProverResult.Sat) {
-			System.err.println("SAT");
-			HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, subprog, toCheck);
-			
-			if (!feasiblePath.containsAll(toCheck)) {
-				throw new RuntimeException("This is all wrong");
-			}
-			result.addAll(feasiblePath);
-		} else if (res == ProverResult.Unsat){
-			System.err.println("UNSAT");
-			//do nothing
-		} else {
-			// God knows what happened
-			prover.pop();
-			throw new RuntimeException("Prover failed with " + res);
-		}		
-		prover.pop();
-		return result;
+		return result;	
 	}
 	
-	private BasicBlock findSplitPoint(Set<BasicBlock> subprog) {
+	private Set<Set<BasicBlock>> splitNTimes(JodTransitionRelation tr, Set<Set<BasicBlock>> splits, int n) {
+		if (n<=0) return splits;
+		HashSet<Set<BasicBlock>> result = new HashSet<Set<BasicBlock>>();
+		for (Set<BasicBlock> x : splits) {
+			result.addAll(splitInHalf(tr, x));
+		}
+		return splitNTimes(tr, result, n-1);
+	}
+	
+	
+	private BasicBlock findSplitPoint(JodTransitionRelation tr, Set<BasicBlock> subprog) {
 		BasicBlock result = null;
-		for (BasicBlock b : subprog) {
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		if (!subprog.contains(tr.getProcedure().getRootNode())) {
+			throw new RuntimeException("Bug");
+		}
+		todo.add(tr.getProcedure().getRootNode());
+		while (!todo.isEmpty()) {	
+			BasicBlock b = todo.pop();
+			done.add(b);
 			int succsInSubprog = 0;
 			for (BasicBlock s : b.getSuccessors()) {
 				if (subprog.contains(s)) {
 					succsInSubprog++;
 					result = s;
-				}
+				}				
 				if (succsInSubprog>1) return result;
+				if (!todo.contains(s) && !done.contains(s)) {
+					todo.add(s);
+				}
 			}
 		}
 		return null;
 	}
 	
-	private Set<Set<BasicBlock>> splitInHalf(Set<BasicBlock> subprog) {
+	private Set<Set<BasicBlock>> splitInHalf(JodTransitionRelation tr, Set<BasicBlock> subprog) {
 		HashSet<Set<BasicBlock>> result = new HashSet<Set<BasicBlock>>();
 		
 		HashSet<BasicBlock> split = new HashSet<BasicBlock>();
-		BasicBlock splitPoint = findSplitPoint(subprog);
+		BasicBlock splitPoint = findSplitPoint(tr, subprog);
 		if (splitPoint==null) {
+			System.err.println("No Split found");
 			result.add(subprog);
 			return result;
 		}
@@ -297,10 +378,10 @@ public class JodChecker2 extends AbstractChecker {
 		int madeUpFactor = 3;
 		if (out1.size()>madeUpFactor*out2.size()) {
 			result.add(out2);
-			result.addAll(splitInHalf(out1));
+			result.addAll(splitInHalf(tr, out1));
 		} else if (out2.size()>madeUpFactor*out1.size()) {
 			result.add(out1);
-			result.addAll(splitInHalf(out2));			
+			result.addAll(splitInHalf(tr, out2));			
 		} else {
 			result.add(out1);
 			result.add(out2);			

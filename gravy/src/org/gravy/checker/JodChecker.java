@@ -391,9 +391,14 @@ public class JodChecker extends AbstractChecker {
 		}
 
 		// Concretize
-		for (BasicBlock block : toConcretize) {
+		for (BasicBlock block : allBlocks) {
 			ProverExpr blockVar = tr.getReachabilityVariables().get(block);
-			prover.addAssertion(prover.mkImplies(blockVar, tr.blockTransitionReleations.get(block)));			
+			
+			if (toConcretize.contains(block)) {
+				prover.addAssertion(prover.mkImplies(blockVar, tr.blockTransitionReleations.get(block)));		
+			} else {
+				
+			}
 		}
 		
 		if (necessaryBlocks != null) {
