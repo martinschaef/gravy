@@ -128,6 +128,13 @@ public interface Prover {
 	 */
 	ProverResult getResult(boolean block);
 
+        /**
+         * Query result of the last <code>checkSat</code> or <code>nextModel</code>
+	 * call. Will block until a result is available, or until <code>timeout</code>
+	 * milli-seconds elapse.
+	 */
+	ProverResult getResult(long timeout);
+
 	/**
 	 * Stop a running prover. If the prover had already terminated, give same
 	 * result as <code>getResult</code>, otherwise <code>Unknown</code>.

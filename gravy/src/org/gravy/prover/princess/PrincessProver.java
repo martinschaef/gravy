@@ -472,6 +472,10 @@ public class PrincessProver implements Prover {
 		return translateRes(api.getStatus(block));
 	}
 
+        public ProverResult getResult(long timeout) {
+		return translateRes(api.getStatus(timeout));
+	}
+
 	public ProverResult nextModel(boolean block) {
 		return translateRes(api.nextModel(block));
 	}
