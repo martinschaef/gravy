@@ -143,6 +143,8 @@ public class JodChecker2 extends AbstractChecker {
 		return coveredBlocks;
 	}	
 	
+	HashSet<BasicBlock> _covered = new HashSet<BasicBlock>(); 
+	
 	/**
 	 * Check subprogram
 	 * @param prover
@@ -172,9 +174,17 @@ public class JodChecker2 extends AbstractChecker {
 		//find the subprogram contain all
 		//path going through nodes in the
 		//equivalence class node
+		
+		System.err.println("Compute new Subprogram...");
 		Set<BasicBlock> subprog = getSubprogContainingAll(toCheck);
 		
-		System.err.println("checking");
+		System.err.println("checking node with "+node.getSuccessors().size()+ " children, subprog size: "+subprog.size());
+		if (node.getSuccessors().size()==0) {
+			System.err.print("Nodes in class: ");
+			for (BasicBlock b : node.getElements()) System.err.print(b.getLabel()+", ");
+			System.err.print("\n");
+		}
+		
 		prover.push();
 		assertPaths(prover, tr, subprog);
 		ProverResult res = prover.checkSat(true);
@@ -213,10 +223,49 @@ public class JodChecker2 extends AbstractChecker {
 		}
 		
 		prover.pop();
-		
+		_covered.addAll(result);
+		System.err.println("Covered "+ _covered.size());
 		return result;
 	}
 
+	private BasicBlock findSplitPoint(Set<BasicBlock> subprog) {
+		BasicBlock result = null;
+		for (BasicBlock b : subprog) {
+			int succsInSubprog = 0;
+			for (BasicBlock s : b.getSuccessors()) {
+				if (subprog.contains(s)) {
+					succsInSubprog++;
+					result = s;
+				}
+				if (succsInSubprog>1) return result;
+			}
+		}
+		return null;
+	}
+	
+	private Set<Set<BasicBlock>> splitInHalf(Set<BasicBlock> subprog) {
+		HashSet<Set<BasicBlock>> result = new HashSet<Set<BasicBlock>>();
+		
+		HashSet<BasicBlock> split = new HashSet<BasicBlock>();
+		BasicBlock splitPoint = findSplitPoint(subprog);
+		if (splitPoint==null) {
+			result.add(subprog);
+			return result;
+		}
+		split.add(splitPoint);
+		HashSet<BasicBlock> out1 = new HashSet<BasicBlock>();
+		out1.addAll(getSubprogContainingAll(split));
+		
+		
+		HashSet<BasicBlock> othersplit = new HashSet<BasicBlock>(subprog);		
+		othersplit.removeAll(out1);
+		HashSet<BasicBlock> out2 = new HashSet<BasicBlock>();
+		out2.addAll(getSubprogContainingAll(othersplit));
+		
+		result.add(out1);
+		result.add(out2);
+		return result;	
+	}
 	
 	/**
 	 * returns the set of blocks that can reach any of the blocks in blocks
