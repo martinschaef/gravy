@@ -163,9 +163,9 @@ public class JodChecker2 extends AbstractChecker {
 			if (node.getSuccessors()!=null) {
 				for (PartialBlockOrderNode child : node.getSuccessors()) {
 					result.addAll(foo(prover, tr, child, alreadyCovered));
-				}
-				return result;
+				}				
 			}
+			return result;
 		}
 		
 		
@@ -174,8 +174,6 @@ public class JodChecker2 extends AbstractChecker {
 		//find the subprogram contain all
 		//path going through nodes in the
 		//equivalence class node
-		
-		System.err.println("Compute new Subprogram...");
 		Set<BasicBlock> subprog = getSubprogContainingAll(toCheck);
 		
 		System.err.println("checking node with "+node.getSuccessors().size()+ " children, subprog size: "+subprog.size());
@@ -185,34 +183,72 @@ public class JodChecker2 extends AbstractChecker {
 			System.err.print("\n");
 		}
 		
+		boolean foundPath = false;
+		System.err.println("Splitting ... ");
+		LinkedList<Set<BasicBlock>> splits = new LinkedList<Set<BasicBlock>>(splitInHalf(subprog));
+//		Set<Set<BasicBlock>> splits = splitInHalf(subprog);
+		System.err.println("created "+splits.size()+" splits.");
+		int maxSplit=3;
+		int splitcount = 0;
+		while(!splits.isEmpty()) {
+			System.err.println("Splits remaining "+splits.size());
+			Set<BasicBlock> sp = splits.pop();				
+			Set<BasicBlock> res = checkSubprogram(prover, tr, sp, toCheck);
+			if (res.size()>0) {
+				result.addAll(res);
+				foundPath = true;
+				break;
+			} else {
+				if (splitcount++>maxSplit) {
+					System.err.println("Splitted "+maxSplit+" times, now trying the rest in one go.");
+				} else {
+					System.err.println("Split was unsat, so lets split everything again to be sure");
+					LinkedList<Set<BasicBlock>> newsplits = new LinkedList<Set<BasicBlock>>();
+					for (Set<BasicBlock> oldsplit : splits) {
+						newsplits.addAll(splitInHalf(oldsplit));
+					}
+					System.err.println("done creating new splits");
+					splits.clear(); 
+					splits.addAll(newsplits);
+				}
+			}
+		}
+		
+		if (!foundPath) {
+			System.err.println("No subprog was sat");
+			return result;
+		}
+		
+//		result.addAll(checkSubprogram(prover, tr, subprog, toCheck));
+		
+		HashSet<BasicBlock> covered = new HashSet<BasicBlock>(result); //make a copy of result for usage in the loop.
+		if (node.getSuccessors()!=null) {
+			for (PartialBlockOrderNode child : node.getSuccessors()) {
+				System.err.println("descending");
+				result.addAll(foo(prover, tr, child, covered));
+			}				
+		}
+
+		_covered.addAll(result);
+		System.err.println("Covered "+ _covered.size());
+		return result;
+	}
+
+	private Set<BasicBlock> checkSubprogram(Prover prover, JodTransitionRelation tr, Set<BasicBlock> subprog, Set<BasicBlock> toCheck) {
+		Set<BasicBlock> result = new HashSet<BasicBlock>();
+		
 		prover.push();
 		assertPaths(prover, tr, subprog);
-		ProverResult res = prover.checkSat(true);
-		
+		ProverResult res = prover.checkSat(true);	
 		
 		if (res == ProverResult.Sat) {
 			System.err.println("SAT");
 			HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, subprog, toCheck);
 			
-//			System.err.print("To Check: ");
-//			for (BasicBlock b : toCheck) System.err.print(b.getLabel()+", ");
-//			System.err.print("\n\n");
-//
-//			System.err.print("Path: ");
-//			for (BasicBlock b : feasiblePath) System.err.print(b.getLabel()+", ");
-//			System.err.print("\n\n");
-			
 			if (!feasiblePath.containsAll(toCheck)) {
 				throw new RuntimeException("This is all wrong");
 			}
 			result.addAll(feasiblePath);
-			HashSet<BasicBlock> covered = new HashSet<BasicBlock>(result); //make a copy of result for usage in the loop.
-			if (node.getSuccessors()!=null) {
-				for (PartialBlockOrderNode child : node.getSuccessors()) {
-					System.err.println("descending");
-					result.addAll(foo(prover, tr, child, covered));
-				}				
-			}
 		} else if (res == ProverResult.Unsat){
 			System.err.println("UNSAT");
 			//do nothing
@@ -220,14 +256,11 @@ public class JodChecker2 extends AbstractChecker {
 			// God knows what happened
 			prover.pop();
 			throw new RuntimeException("Prover failed with " + res);
-		}
-		
+		}		
 		prover.pop();
-		_covered.addAll(result);
-		System.err.println("Covered "+ _covered.size());
 		return result;
 	}
-
+	
 	private BasicBlock findSplitPoint(Set<BasicBlock> subprog) {
 		BasicBlock result = null;
 		for (BasicBlock b : subprog) {
@@ -254,16 +287,25 @@ public class JodChecker2 extends AbstractChecker {
 		}
 		split.add(splitPoint);
 		HashSet<BasicBlock> out1 = new HashSet<BasicBlock>();
-		out1.addAll(getSubprogContainingAll(split));
+		out1.addAll(getSubgraphContainingAll(subprog, split));
 		
 		
-		HashSet<BasicBlock> othersplit = new HashSet<BasicBlock>(subprog);		
-		othersplit.removeAll(out1);
+		HashSet<BasicBlock> othersplit = new HashSet<BasicBlock>(subprog);			
+		othersplit.removeAll(out1);	
 		HashSet<BasicBlock> out2 = new HashSet<BasicBlock>();
-		out2.addAll(getSubprogContainingAll(othersplit));
+		out2.addAll(getSubgraphContainingAll(subprog, othersplit));
+		int madeUpFactor = 3;
+		if (out1.size()>madeUpFactor*out2.size()) {
+			result.add(out2);
+			result.addAll(splitInHalf(out1));
+		} else if (out2.size()>madeUpFactor*out1.size()) {
+			result.add(out1);
+			result.addAll(splitInHalf(out2));			
+		} else {
+			result.add(out1);
+			result.add(out2);			
+		}
 		
-		result.add(out1);
-		result.add(out2);
 		return result;	
 	}
 	
@@ -309,6 +351,51 @@ public class JodChecker2 extends AbstractChecker {
 			done.add(current);
 			for (BasicBlock x : current.getSuccessors()) {
 				if (!todo.contains(x) && !done.contains(x)) {
+					todo.add(x);
+				}
+			}
+		}
+		return done;
+	}
+	
+
+	
+	private Set<BasicBlock> getSubgraphContainingAll(Set<BasicBlock> nodes, Set<BasicBlock> blocks) {
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>(blocks);
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();
+			Set<BasicBlock> subprog = getSubgraphContaining(nodes, current);
+			done.addAll(subprog);
+		}
+		return done;
+	}
+	
+	/**
+	 * returns all nodes that occur on paths through b in nodes
+	 * @param b
+	 * @return
+	 */
+	private Set<BasicBlock> getSubgraphContaining(Set<BasicBlock> nodes, BasicBlock b) {
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
+		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+		todo.add(b);
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();
+			done.add(current);
+			for (BasicBlock x : current.getPredecessors()) {
+				if (!todo.contains(x) && !done.contains(x) && nodes.contains(x)) {
+					todo.add(x);
+				}
+			}
+		}
+		//now the other direction
+		todo.add(b);
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();
+			done.add(current);
+			for (BasicBlock x : current.getSuccessors()) {
+				if (!todo.contains(x) && !done.contains(x) && nodes.contains(x)) {
 					todo.add(x);
 				}
 			}
@@ -405,68 +492,6 @@ public class JodChecker2 extends AbstractChecker {
 
 
 
-//	/**
-//	 * Get a complete and feasible path from the model produced by princes.
-//	 * 
-//	 * @param prover
-//	 * @param tr
-//	 * @return
-//	 */
-//	protected HashSet<BasicBlock> getPathFromModel(Prover prover,
-//			JodTransitionRelation tr, HashSet<BasicBlock> currentPaths) {
-//		LinkedList<BasicBlock> path = new LinkedList<BasicBlock>();
-//
-//		HashSet<BasicBlock> blocksInModel = new HashSet<BasicBlock>();
-//
-//		for (BasicBlock b : currentPaths) {
-//			final ProverExpr pe = tr.getReachabilityVariables().get(b);
-//			if (prover.evaluate(pe).getBooleanLiteralValue()) {
-//				blocksInModel.add(b);
-//			}
-//		}
-//
-//		
-//		for (BasicBlock block : currentPaths) {
-//			boolean hasPreInBlocks = false;
-//			for (BasicBlock pre : block.getPredecessors()) {
-//				if (currentPaths.contains(pre)) {
-//					hasPreInBlocks = true; break;
-//				}
-//			}
-//			if (!hasPreInBlocks) {
-//				LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
-//				HashSet<BasicBlock> done = new HashSet<BasicBlock>();
-//
-//				todo.add(block);
-//				BasicBlock current = null;
-//				while (!todo.isEmpty()) {
-//					current = todo.pop();
-//					if (blocksInModel.contains(current)) {
-//						path.add(current);
-//						boolean found = false;
-//						for (BasicBlock b : current.getSuccessors()) {
-//							if (!done.contains(b) && !todo.contains(b)
-//									&& blocksInModel.contains(b)) {
-//								todo.push(b);
-//								if (!found) {
-//									found = true;
-//								} else {
-//									throw new RuntimeException("more than one path in model");
-//								}
-//
-//							}
-//						}
-//					} else {
-////						throw new RuntimeException("Bug! " + current.getLabel());
-//					}
-//				}				
-//			}
-//		}		
-//		
-//
-//
-//		return new HashSet<BasicBlock>(path);
-//	}
 	/**
 	 * Get a complete and feasible path from the model produced by princes.
 	 * 
@@ -528,7 +553,7 @@ public class JodChecker2 extends AbstractChecker {
 		}
 			
 		// Screwed
-//		toDot("path_error.dot", allBlocks, enabledBlocks, necessaryNodes);
+		toDot("path_error.dot", new HashSet<BasicBlock>(allBlocks), new HashSet<BasicBlock>(enabledBlocks), new HashSet<BasicBlock>(necessaryNodes));
 		throw new RuntimeException("Could not find a path");
 	}
 
