@@ -106,8 +106,8 @@ public class JodTransitionRelation extends AbstractTransitionRelation {
 						if (right_i instanceof CfgIdentifierExpression) {
 							CfgVariable left_var = left_i.getVariable();
 							CfgVariable right_var = ((CfgIdentifierExpression)right_i).getVariable();
-							if (left_var==right_var) {
-								ok = true;
+							if (left_var!=right_var) {
+								ok = false;
 							}
 						} else {
 							ok = false;
