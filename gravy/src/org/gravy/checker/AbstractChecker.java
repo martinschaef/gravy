@@ -22,7 +22,6 @@ import org.gravy.report.Report;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
 import org.gravy.verificationcondition.JodTransitionRelation;
-import org.gravy.verificationcondition.TransitionRelation;
 import org.joogie.cfgPlugin.Util.Dag;
 
 import util.Log;
@@ -259,7 +258,6 @@ public abstract class AbstractChecker implements Runnable {
 			for (BasicBlock block : blueBlocks) {
 				// Special blocks
 				if (redBlocks.contains(block)) {
-					System.err.println("FUFUFUFUFUFUFUFCK");
 					pw.println("\"" + block.getLabel() + "\" [style=filled, color=red, fillcolor=blue, label=\"" + block.getLabel() + "\"]");
 				} else {
 					pw.println("\"" + block.getLabel() + "\" [style=filled, fillcolor=blue, label=\"" + block.getLabel() + "\"]");					

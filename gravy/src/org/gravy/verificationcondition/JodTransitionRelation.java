@@ -1,5 +1,6 @@
 package org.gravy.verificationcondition;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -67,6 +68,15 @@ public class JodTransitionRelation extends AbstractTransitionRelation {
 		finalizeAxioms();
 	}	
 	
+	protected ProverExpr mkConjunction(Collection<ProverExpr> conjuncts) {
+		if (conjuncts.size() == 0) {
+			return prover.mkLiteral(true);
+		}
+		if (conjuncts.size() == 1) {
+			return conjuncts.iterator().next();
+		}
+		return prover.mkAnd(conjuncts.toArray(new ProverExpr[conjuncts.size()]));
+	}
 	
 	
 	public void addBlock(BasicBlock b) {
@@ -74,16 +84,15 @@ public class JodTransitionRelation extends AbstractTransitionRelation {
 		
 		// Add the concrete
 		List<ProverExpr> concreteStmts = statements2proverExpression(bStatements);
-		this.blockTransitionReleations.put(b, prover.mkAnd(concreteStmts.toArray(new ProverExpr[concreteStmts.size()])));
+     	this.blockTransitionReleations.put(b, mkConjunction(concreteStmts));
 		
 		// Add the abstract
 		LinkedList<CfgStatement> bAbstractStatements = abstractStatements(bStatements);
 		List<ProverExpr> abstractStmts = statements2proverExpression(bAbstractStatements);
-		this.abstractTransitionReleations.put(b, prover.mkAnd(abstractStmts.toArray(new ProverExpr[abstractStmts.size()])));
+		this.abstractTransitionReleations.put(b, mkConjunction(abstractStmts));
 		
 		// Add the variable
-		this.reachabilityVariables.put(b, this.prover.mkVariable(b.getLabel() + "_fwd", this.prover.getBooleanType()));			
-		
+		this.reachabilityVariables.put(b, this.prover.mkVariable(b.getLabel() + "_fwd", this.prover.getBooleanType()));					
 	}
 	
 	/**
