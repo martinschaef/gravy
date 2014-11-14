@@ -113,6 +113,9 @@ public class JodChecker extends AbstractChecker {
 	 * @return disjunction
 	 */
 	protected ProverExpr mkDisjunction(JodTransitionRelation tr, Collection<BasicBlock> blocks) {
+		if (blocks.size() == 0) {
+			return prover.mkLiteral(false);
+		}
 		ProverExpr[] disjuncts = new ProverExpr[blocks.size()];
 		int i = 0;
 		for (BasicBlock n : blocks) {
@@ -132,6 +135,9 @@ public class JodChecker extends AbstractChecker {
 	 * @return disjunction
 	 */
 	protected ProverExpr mkConjunction(JodTransitionRelation tr, Collection<BasicBlock> blocks) {
+		if (blocks.size() == 0) {
+			return prover.mkLiteral(true);
+		}
 		ProverExpr[] conjuncts = new ProverExpr[blocks.size()];
 		int i = 0;
 		for (BasicBlock n : blocks) {
@@ -151,6 +157,9 @@ public class JodChecker extends AbstractChecker {
 	 * @return disjunction
 	 */
 	protected ProverExpr mkConjunction(Collection<ProverExpr> input) {
+		if (input.size() == 0) {
+			return prover.mkLiteral(true);
+		}
 		ProverExpr[] conjuncts = new ProverExpr[input.size()];
 		conjuncts = input.toArray(conjuncts);
 		if (conjuncts.length == 1) {
@@ -239,43 +248,30 @@ public class JodChecker extends AbstractChecker {
 	 * Take a concrete path and remove block from front and back wile keeping 
 	 * infeasibility.
 	 */
-	private void minimizeInfeasiblePath(JodTransitionRelation tr, LinkedList<BasicBlock> path) {
+	private HashSet<BasicBlock> minimizeInfeasiblePath(JodTransitionRelation tr, Collection<BasicBlock> originalPath) {
 
+		HashSet<BasicBlock> path = new HashSet<BasicBlock>(originalPath);
 		System.err.println("\t full : " + path.size());
 
 		// Minimize from the front
-		while (true) {
-			BasicBlock first = path.removeFirst();
+		for (BasicBlock block : originalPath) {
+			
+			path.remove(block);
 			
 			prover.push();
-			assertPaths(prover, tr, path, path, null);
+			assertPaths(prover, tr, path, originalPath, null);
 			ProverResult res = prover.checkSat(true);
 			prover.pop();
 			
 			if (res == ProverResult.Sat) {
-				// If feasible we're done
-				path.addFirst(first);				
-				break;
+				// Feasible without this one, add it back
+				path.add(block);				
 			}			
 		}
 
-		// Minimize from the back
-		while (true) {
-			BasicBlock last = path.removeLast();
-			
-			prover.push();
-			assertPaths(prover, tr, path, path, null);
-			ProverResult res = prover.checkSat(true);
-			prover.pop();
-			
-			if (res == ProverResult.Sat) {
-				// If feasible we're done
-				path.addLast(last);
-				break;
-			}			
-		}
-
-		System.err.println("\t front-back minimal : " + path.size());
+		System.err.println("\t minimal : " + path.size());
+		
+		return path;
 	}
 	
 	/**
@@ -287,16 +283,19 @@ public class JodChecker extends AbstractChecker {
 		ProverResult res = null;
 		LinkedList<BasicBlock> satPath = null;
 		
-		HashSet<BasicBlock> paths = new HashSet<BasicBlock>();
+		HashSet<BasicBlock> concreteBlocks = new HashSet<BasicBlock>();
 				
 		try {
 						
 			// Try abstract paths in succession until one is found
 			while (true) {
 
+				// Let us see what was the haps
+				toDot("findPath.dot", allBlocks, concreteBlocks, blocksToCover);
+				
 				// Check the abstraction path
 				prover.push();
-				assertPaths(prover, tr, paths, allBlocks, blocksToCover);
+				assertPaths(prover, tr, concreteBlocks, allBlocks, blocksToCover);
 				System.err.print("abstraction: ");
 				res = prover.checkSat(true);
 				System.err.println(res);
@@ -331,10 +330,8 @@ public class JodChecker extends AbstractChecker {
 				} else if (res == ProverResult.Unsat) {
 					// Pop the solver
 					prover.pop();
-					// Minimize 
-					minimizeInfeasiblePath(tr, satPath);
 					// Concretize the infeasible path into the abstraction
-					paths.addAll(satPath);
+					concreteBlocks.addAll(minimizeInfeasiblePath(tr, satPath));
 				} else {
 					// God knows what happened
 					throw new RuntimeException("Prover failed with " + res);
@@ -342,7 +339,7 @@ public class JodChecker extends AbstractChecker {
 			}
 		} catch (Exception e) {
 			// Let us see what was the haps
-			toDot("findPath.dot", allBlocks, paths, blocksToCover);
+			toDot("findPath.dot", allBlocks, concreteBlocks, blocksToCover);
 			throw e;
 		}
 	}
@@ -369,35 +366,33 @@ public class JodChecker extends AbstractChecker {
 			ProverExpr blockVar = tr.getReachabilityVariables().get(block);
 			
 			// Constrain path to go through successors
-			HashSet<BasicBlock> successors = new HashSet<BasicBlock>(block.getSuccessors());
-			successors.retainAll(allBlocks);
-			if (successors.size() > 0) {
+			if (block != tr.getProcedure().getExitNode()) {
+				HashSet<BasicBlock> successors = new HashSet<BasicBlock>(block.getSuccessors());
+				successors.retainAll(allBlocks);
 				prover.addAssertion(prover.mkImplies(blockVar, mkDisjunction(tr, successors)));				
 				if (concretizeSucc && concreteBlocks.contains(block)) {
 					toConcretize.addAll(successors);
 				}
-				
 			}
 			
 			// Constrain path to go through predecessors
-			HashSet<BasicBlock> predecessors = new HashSet<BasicBlock>(block.getPredecessors());
-			predecessors.retainAll(allBlocks);
-			if (predecessors.size() > 0) {
+			if (block != tr.getProcedure().getRootNode()) {
+				HashSet<BasicBlock> predecessors = new HashSet<BasicBlock>(block.getPredecessors());
+				predecessors.retainAll(allBlocks);
 				prover.addAssertion(prover.mkImplies(blockVar, mkDisjunction(tr, predecessors)));
 				if (concretizePred && concreteBlocks.contains(block)) {
 					toConcretize.addAll(predecessors);
-				}
-			}			 
+				}			 
+			}
 		}
 
 		// Concretize
 		for (BasicBlock block : allBlocks) {
-			ProverExpr blockVar = tr.getReachabilityVariables().get(block);
-			
+			ProverExpr blockVar = tr.getReachabilityVariables().get(block);			
 			if (toConcretize.contains(block)) {
 				prover.addAssertion(prover.mkImplies(blockVar, tr.blockTransitionReleations.get(block)));		
 			} else {
-				
+				prover.addAssertion(prover.mkImplies(blockVar, tr.abstractTransitionReleations.get(block)));
 			}
 		}
 		
@@ -525,7 +520,7 @@ public class JodChecker extends AbstractChecker {
 			if (prover.evaluate(pe).getBooleanLiteralValue()) {
 				enabledBlocks.add(b);
 			}
-		}
+		} 
 
 		for (BasicBlock block : necessaryNodes) {
 			if (enabledBlocks.contains(block)) {
