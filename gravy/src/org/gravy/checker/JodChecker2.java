@@ -249,12 +249,17 @@ public class JodChecker2 extends AbstractChecker {
 			//the first is always the current, and we add splits if the current one 
 			//is not sat.
 			Set<BasicBlock> subprog = getSubprogContainingAll(toCheck);
+			if (!subprog.contains(tr.getProcedure().getRootNode()) || !subprog.contains(tr.getProcedure().getRootNode())) {
+				System.err.println("subprog is infeasible by construction. Skipping");
+				return result;				
+			}
+			
 			if (isInfeasibleSubprogram(subprog)) {
 				System.err.println("subprog known to be infeasible. Skipping");
 				return result;
 			}
 
-			int timeout = 10000;			
+			int timeout = 3000;			
 			System.err.println("checking node with "+node.getSuccessors().size()+ " children, subprog size: "+subprog.size() + " timeout: "+timeout/1000+"s");
 			
 			prover.push();
@@ -280,6 +285,7 @@ public class JodChecker2 extends AbstractChecker {
 			} else if (proverResult == ProverResult.Unsat){
 				System.err.println("UNSAT");
 				prover.pop();
+				infeasibleSubprograms.add(subprog); //make sure that we never check this subprog again.
 				return result;
 				//do nothing
 			} else if (proverResult == ProverResult.Running){
@@ -290,7 +296,7 @@ public class JodChecker2 extends AbstractChecker {
 				//if there is no successor that we could check,
 				//subdivide the current node and add it to the list.
 				if (node.getSuccessors().isEmpty()) {	
-					LinkedList<Set<BasicBlock>> splits = new LinkedList<Set<BasicBlock>>(splitNTimes(tr,splitInHalf(tr, subprog), 2));				
+					LinkedList<Set<BasicBlock>> splits = new LinkedList<Set<BasicBlock>>(splitNTimes(tr,splitInHalf(tr, subprog), 3));				
 					if (splits.size()==1) {
 						System.err.println("Cannot split the problem further ... ");
 						result.addAll(findFeasibleBlocksRecursively(prover, tr, splits.getFirst(), 0, toCheck));
@@ -298,11 +304,15 @@ public class JodChecker2 extends AbstractChecker {
 						System.err.println("Created "+splits.size()+" new splits");
 						for (Set<BasicBlock> split : splits) {
 							result.addAll(findFeasibleBlocksRecursively(prover, tr, split, timeout*2, toCheck));
+							if (!result.isEmpty()) {
+								return result;
+							}							
 						}
 					}			
-					
-					
-					result.addAll(findFeasibleBlocksRecursively(prover, tr, subprog, timeout, toCheck));
+
+					if (result.isEmpty()) {
+						infeasibleSubprograms.add(subprog);
+					}
 				}
 				
 			} else {
@@ -370,17 +380,22 @@ public class JodChecker2 extends AbstractChecker {
 		
 			if (splits.size()==1) {
 				System.err.println("Cannot split the problem further ... ");
-				return findFeasibleBlocksRecursively(prover, tr, splits.getFirst(), 0, toCheck);
+				result.addAll(findFeasibleBlocksRecursively(prover, tr, splits.getFirst(), 0, toCheck));
 			} else {
-				int max_timeout = 30000;
+				int max_timeout = 20000;
 				timeout = timeout*2;
 				timeout = (timeout>max_timeout) ? max_timeout : timeout;
 				System.err.println("Created "+splits.size()+" new splits");
 				for (Set<BasicBlock> split : splits) {
-					result.addAll(findFeasibleBlocksRecursively(prover, tr, split, timeout*2, toCheck));
+					result.addAll(findFeasibleBlocksRecursively(prover, tr, split, timeout, toCheck));
+					if (!result.isEmpty()) {
+						return result;
+					}
 				}
 			}			
-			
+			if (result.isEmpty()) {
+				infeasibleSubprograms.add(subprog);
+			}
 		} else {
 			// God knows what happened
 			prover.pop();
@@ -438,7 +453,12 @@ public class JodChecker2 extends AbstractChecker {
 			return result;
 		}
 		for (BasicBlock b : splitPoints) { 
-			result.add(getSubgraphContaining(subprog, b));
+			Set<BasicBlock> sp = getSubgraphContaining(subprog, b);
+			if (!sp.contains(tr.getProcedure().getRootNode()) || !sp.contains(tr.getProcedure().getExitNode())) {
+				System.err.println("Subprogram must pass an infeasible node ... skipping");
+			} else {
+				result.add(sp);
+			}
 		}
 	
 		return result;	
@@ -476,6 +496,7 @@ public class JodChecker2 extends AbstractChecker {
 	 * @return
 	 */
 	private Set<BasicBlock> getSubprogContaining(BasicBlock b) {
+		Set<BasicBlock> knownInfeasibleBlocks = getKnownInfeasibleBlocks();
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
 		
@@ -488,7 +509,7 @@ public class JodChecker2 extends AbstractChecker {
 			BasicBlock current = todo.pop();
 			done.add(current);
 			for (BasicBlock x : current.getPredecessors()) {
-				if (!todo.contains(x) && !done.contains(x)) {
+				if (!todo.contains(x) && !done.contains(x) && !knownInfeasibleBlocks.contains(x)) {
 					todo.add(x);
 				}
 			}
@@ -499,7 +520,7 @@ public class JodChecker2 extends AbstractChecker {
 			BasicBlock current = todo.pop();
 			done.add(current);
 			for (BasicBlock x : current.getSuccessors()) {
-				if (!todo.contains(x) && !done.contains(x)) {
+				if (!todo.contains(x) && !done.contains(x) && !knownInfeasibleBlocks.contains(x)) {
 					todo.add(x);
 				}
 			}
@@ -509,15 +530,23 @@ public class JodChecker2 extends AbstractChecker {
 	
 
 	
-	private Set<BasicBlock> getSubgraphContainingAll(Set<BasicBlock> nodes, Set<BasicBlock> blocks) {
-		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>(blocks);
-		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
-		while (!todo.isEmpty()) {
-			BasicBlock current = todo.pop();
-			Set<BasicBlock> subprog = getSubgraphContaining(nodes, current);
-			done.addAll(subprog);
+//	private Set<BasicBlock> getSubgraphContainingAll(Set<BasicBlock> nodes, Set<BasicBlock> blocks) {
+//		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>(blocks);
+//		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
+//		while (!todo.isEmpty()) {
+//			BasicBlock current = todo.pop();
+//			Set<BasicBlock> subprog = getSubgraphContaining(nodes, current);
+//			done.addAll(subprog);
+//		}
+//		return done;
+//	}
+	
+	private Set<BasicBlock> getKnownInfeasibleBlocks() {
+		Set<BasicBlock> infeasibleBlocks = new HashSet<BasicBlock>();
+		for (PartialBlockOrderNode po : this.knownInfeasibleNodes) {
+			infeasibleBlocks.addAll(po.getElements());
 		}
-		return done;
+		return infeasibleBlocks;
 	}
 	
 	/**
@@ -526,6 +555,7 @@ public class JodChecker2 extends AbstractChecker {
 	 * @return
 	 */
 	private Set<BasicBlock> getSubgraphContaining(Set<BasicBlock> nodes, BasicBlock b) {
+		Set<BasicBlock> knownInfeasibleBlocks = getKnownInfeasibleBlocks();
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
 		todo.add(b);
@@ -533,7 +563,7 @@ public class JodChecker2 extends AbstractChecker {
 			BasicBlock current = todo.pop();
 			done.add(current);
 			for (BasicBlock x : current.getPredecessors()) {
-				if (!todo.contains(x) && !done.contains(x) && nodes.contains(x)) {
+				if (!todo.contains(x) && !done.contains(x) && nodes.contains(x) && !knownInfeasibleBlocks.contains(x)) {					
 					todo.add(x);
 				}
 			}
@@ -544,7 +574,7 @@ public class JodChecker2 extends AbstractChecker {
 			BasicBlock current = todo.pop();
 			done.add(current);
 			for (BasicBlock x : current.getSuccessors()) {
-				if (!todo.contains(x) && !done.contains(x) && nodes.contains(x)) {
+				if (!todo.contains(x) && !done.contains(x) && nodes.contains(x) && !knownInfeasibleBlocks.contains(x)) {
 					todo.add(x);
 				}
 			}
