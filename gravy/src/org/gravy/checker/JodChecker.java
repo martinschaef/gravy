@@ -4,6 +4,7 @@
 package org.gravy.checker;
 
 import java.util.Collection;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.LinkedList;
@@ -174,15 +175,58 @@ public class JodChecker extends AbstractChecker {
 	 * @param tr
 	 */
 	protected void addAxioms(JodTransitionRelation tr) {
-		// add the basic prelude stuff that is needed for every check.
+		// Basic prelude stuff 
 		for (Entry<CfgAxiom, ProverExpr> entry : tr.getPreludeAxioms().entrySet()) {
 			prover.addAssertion(entry.getValue());
 		}
+		// Pre- and post- conditions
 		prover.addAssertion(tr.getRequires());
 		prover.addAssertion(tr.getEnsures());		
 	}
 	
+	HashSet<BasicBlock> getFirstClosure(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> toCover) {
+		HashSet<BasicBlock> current = new HashSet<BasicBlock>();
+		current.add(toCover.iterator().next());
+		
+		// Keep adding stuff until fixpoint
+		while (true) {
+			int oldSize = current.size();
+			
+			// Get nodes reachable from the current set
+			HashSet<BasicBlock> reachable = new HashSet<BasicBlock>();
+			reachable.addAll(getReachable(tr, current, allBlocks, ReachabilityType.FORWARD));
+			reachable.addAll(getReachable(tr, current, allBlocks, ReachabilityType.BACKWARD));
+			
+			// Add all reachable nodes to current
+			reachable.retainAll(toCover);
+			current.addAll(reachable);
+			
+			// If no new added, we're done
+			if (oldSize == current.size()) {
+				break;
+			}
+		}
+		
+		return current;
+	}
 	
+	private HashSet<BasicBlock> getMinimalClosedSet(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> todo) {
+		HashSet<BasicBlock> toCover = getFirstClosure(tr, allBlocks, todo);
+		HashSet<BasicBlock> otherToCover = new HashSet<BasicBlock>(todo);
+		otherToCover.removeAll(toCover);
+		if (otherToCover.size() > 0) {
+			otherToCover = getMinimalClosedSet(tr, allBlocks, otherToCover);
+			if (otherToCover.size() < toCover.size()) {
+				return otherToCover;
+			} else {
+				return toCover;
+			}
+		} else {
+			return toCover;
+		}
+		
+	}
+
 	/**
 	 * This is the main loop that uses our Joins-on-Demand algorithm to cover
 	 * the CFG
@@ -213,19 +257,28 @@ public class JodChecker extends AbstractChecker {
 			// We check in chunks of 10
 			System.err.println("Total blocks to cover: " + todo.size());
 
+			// Compute a self contained group of nodes to cover
+			HashSet<BasicBlock> toCover = getMinimalClosedSet(tr, allBlocks, todo);
+			
+			// We check in chunks of 10
+			System.err.println("Current blocks to cover: " + toCover.size());
+
 			// Remove from allBlocks the blocks that have no paths to or from 
 			// blocks still in need of a cover		
 			HashSet<BasicBlock> reachable = new HashSet<BasicBlock>();
-			reachable.addAll(getReachable(tr, todo, allBlocks, ReachabilityType.FORWARD));
-			reachable.addAll(getReachable(tr, todo, allBlocks, ReachabilityType.BACKWARD));
-			allBlocks = reachable;
+			reachable.addAll(getReachable(tr, toCover, allBlocks, ReachabilityType.FORWARD));
+			reachable.addAll(getReachable(tr, toCover, allBlocks, ReachabilityType.BACKWARD));
 			
 			// Try to cover one more block
-			LinkedList<BasicBlock> satPath = getFeasiblePath(tr, allBlocks, todo);
+			LinkedList<BasicBlock> satPath = getFeasiblePath(tr, reachable, toCover);
 			
 			if (satPath != null) {
 				System.err.println("Found path of length " + satPath.size());
 
+				if (getPath(tr, tr.getProcedure().getRootNode(), tr.getProcedure().getExitNode(), satPath) == null) {
+					throw new RuntimeException("Bad path!");
+				}
+				
 				// Remove from todos
 				int oldSize = todo.size();
 				todo.removeAll(satPath);
@@ -237,7 +290,8 @@ public class JodChecker extends AbstractChecker {
 				// Add to covered
 			} else {
 				// No feasible paths in chunk
-			    todo.clear();
+			    todo.removeAll(toCover);
+			    allBlocks.removeAll(toCover);
 			}
 		}
 		
@@ -248,13 +302,19 @@ public class JodChecker extends AbstractChecker {
 	 * Take a concrete path and remove block from front and back wile keeping 
 	 * infeasibility.
 	 */
-	private HashSet<BasicBlock> minimizeInfeasiblePath(JodTransitionRelation tr, Collection<BasicBlock> originalPath) {
+	private HashSet<BasicBlock> minimizeInfeasiblePath(JodTransitionRelation tr, LinkedList<BasicBlock> originalPath, Collection<BasicBlock> keep) {
 
 		HashSet<BasicBlock> path = new HashSet<BasicBlock>(originalPath);
+		
 		System.err.println("\t full : " + path.size());
-
+		
 		// Minimize from the front
 		for (BasicBlock block : originalPath) {
+
+			// Always keep nodes in the keep set
+			if (keep != null && keep.contains(block)) {
+				continue;
+			}
 			
 			path.remove(block);
 			
@@ -282,9 +342,8 @@ public class JodChecker extends AbstractChecker {
 		
 		ProverResult res = null;
 		LinkedList<BasicBlock> satPath = null;
-		
 		HashSet<BasicBlock> concreteBlocks = new HashSet<BasicBlock>();
-				
+		
 		try {
 						
 			// Try abstract paths in succession until one is found
@@ -331,7 +390,7 @@ public class JodChecker extends AbstractChecker {
 					// Pop the solver
 					prover.pop();
 					// Concretize the infeasible path into the abstraction
-					concreteBlocks.addAll(minimizeInfeasiblePath(tr, satPath));
+					concreteBlocks.addAll(satPath);
 				} else {
 					// God knows what happened
 					throw new RuntimeException("Prover failed with " + res);
@@ -401,9 +460,19 @@ public class JodChecker extends AbstractChecker {
 			selection.retainAll(allBlocks);
 			prover.addAssertion(mkDisjunction(tr, selection));
 		}
+
+	
+		// Get the necessary block to form a path
+		HashSet<BasicBlock> allBlocksCopy = new HashSet<BasicBlock>(allBlocks);
+		for (BasicBlock block : allBlocks) {
+			allBlocksCopy.remove(block);
+			if (getPath(tr, tr.getProcedure().getRootNode(), tr.getProcedure().getExitNode(), allBlocksCopy) == null) {
+				// We need this one
+		     	prover.addAssertion(tr.getReachabilityVariables().get(block));			
+			}
+			allBlocksCopy.add(block);
+		}
 		
-		// Start from the root node
-     	prover.addAssertion(tr.getReachabilityVariables().get(tr.getProcedure().getRootNode()));
 	}
 
 	enum ReachabilityType {
@@ -449,14 +518,14 @@ public class JodChecker extends AbstractChecker {
 	/**
 	 * Get a path from node to node, through successors.
 	 */
-	private LinkedList<BasicBlock> getPath(JodTransitionRelation tr, BasicBlock start, BasicBlock end, HashSet<BasicBlock> vertices) {
+	private LinkedList<BasicBlock> getPath(JodTransitionRelation tr, BasicBlock start, BasicBlock end, Collection<BasicBlock> vertices) {
 
 		if (!vertices.contains(start)) {
-			throw new RuntimeException("Don't mess with me!");
+			return null;
 		}
 
 		if (!vertices.contains(end)) {
-			throw new RuntimeException("Don't mess with me!");
+			return null;
 		}
 
 		// Result list 
