@@ -250,7 +250,7 @@ public class JodChecker extends AbstractChecker {
 		while (!todo.isEmpty()) {
 
 			// Compute a self contained group of nodes to cover
-			HashSet<BasicBlock> toCover = getFirstClosure(tr, allBlocks, todo);
+			HashSet<BasicBlock> toCover = getMinimalClosedSet(tr, allBlocks, todo);
 			Log.info("Number of remaining blocks " + todo.size() + " (" + toCover.size() + ")");
 
 			// Remove from allBlocks the blocks that have no paths to or from 
@@ -347,9 +347,15 @@ public class JodChecker extends AbstractChecker {
 				// Check the abstraction path
 				prover.push();
 				assertPaths(prover, tr, concreteBlocks, allBlocks, blocksToCover);
-				if (debugOutput) System.err.print("abstraction [" + timeLimitPerAbstraction +"s] : ");
-				prover.checkSat(false);
-				res = prover.getResult((int) timeLimitPerAbstraction*1000);
+				int timeLimit = (int) (timeLimitPerAbstraction*1000);
+				if (allBlocks.size() > blocksToCover.size()) {
+					if (debugOutput) System.err.print("abstraction [" + concreteBlocks.size() + "/" + allBlocks.size() + ", tl=" + timeLimit +"ms] : ");
+					prover.checkSat(false);
+					res = prover.getResult(timeLimit);					
+				} else {
+					if (debugOutput) System.err.print("abstraction [" + concreteBlocks.size() + "/" + allBlocks.size() + "] : ");
+					res = prover.checkSat(true);
+				}
 				if (debugOutput) System.err.println(res);
 
 				switch (res) {
@@ -368,10 +374,10 @@ public class JodChecker extends AbstractChecker {
 					prover.stop();
 					prover.pop();
 
-					// Increse the timelimit
-					timeLimitPerAbstraction *= 1.1;
 					// Add one more step to each concrete block
 					spanConcretization(tr, allBlocks, concreteBlocks);
+					// Increse the timelimit
+					timeLimitPerAbstraction *= 1.1;
 					continue;
 				default:
 					// God knows what happened
@@ -428,8 +434,8 @@ public class JodChecker extends AbstractChecker {
 	 */
 	private void assertPaths(Prover prover, JodTransitionRelation tr, Collection<BasicBlock> concreteBlocks, Collection<BasicBlock> allBlocks, Collection<BasicBlock> necessaryBlocks) {
 
-		boolean concretizeSucc = true;
-		boolean concretizePred = true;
+		boolean concretizeSucc = false;
+		boolean concretizePred = false;
 
 		HashSet<BasicBlock> toConcretize = new HashSet<BasicBlock>(concreteBlocks);
 		
