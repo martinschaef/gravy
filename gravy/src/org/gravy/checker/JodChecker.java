@@ -10,6 +10,7 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 
+import org.gravy.Options;
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
 import org.gravy.prover.Prover;
@@ -18,6 +19,7 @@ import org.gravy.prover.ProverResult;
 import org.gravy.report.InfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
+import org.gravy.util.Log;
 import org.gravy.util.Statistics;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.JodTransitionRelation;
@@ -33,6 +35,9 @@ import boogie.controlflow.CfgProcedure;
  */
 public class JodChecker extends AbstractChecker {
 
+	/** Debug output */ 
+	boolean debugOutput = false;
+	
 	/**
 	 * @param cff
 	 * @param p
@@ -40,36 +45,21 @@ public class JodChecker extends AbstractChecker {
 	public JodChecker(AbstractControlFlowFactory cff, CfgProcedure p) {
 		super(cff, p);
 
-		System.err.println("prune unreachable");
-
-		// p.toDot("./"+p.getProcedureName()+".dot");
+		// Set debug output 
+		debugOutput = Options.v().getDebugMode();
 
 		p.pruneUnreachableBlocks();
-
-		// p.toDot("./"+p.getProcedureName()+".dot");
-
-		System.err.println("remove calls");
 
 		CallUnwinding cunwind = new CallUnwinding();
 		cunwind.unwindCalls(p);
 
-		System.err.println("unwind loops");
 		AbstractLoopUnwinding.unwindeLoops(p);
 		p.pruneUnreachableBlocks();
-
-		System.err.println("ssa");
-//		 p.toFile("./"+p.getProcedureName()+".bpl");
 
 		SingleStaticAssignment ssa = new SingleStaticAssignment();
 		ssa.computeSSA(p);
 
-		System.err.println("prune again");
 		p.pruneUnreachableBlocks();
-
-		System.err.println("done");
-
-//		p.toFile("./"+p.getProcedureName()+".bpl");
-//     	p.toDot("./"+p.getProcedureName()+"_lf.dot");
 	}
 
 	/*
@@ -227,6 +217,9 @@ public class JodChecker extends AbstractChecker {
 		
 	}
 
+	/** How many infeasible result per procedure */
+	private int infeasibleCount = 0;
+	
 	/**
 	 * This is the main loop that uses our Joins-on-Demand algorithm to cover
 	 * the CFG
@@ -242,26 +235,23 @@ public class JodChecker extends AbstractChecker {
 	 */
 	protected Collection<BasicBlock> computeJodCover(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks) {
 
+		// Reset the counter
+		infeasibleCount = 0;
+		
 		// Result: all nodes we managed to cover
 		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>();
 
 		// The nodes we need to cover
-		HashSet<BasicBlock> todo = new HashSet<BasicBlock>();
-		todo.addAll(allBlocks);
+		HashSet<BasicBlock> todo = new HashSet<BasicBlock>(allBlocks);
 		
 		// Add the initial non-changing stuff to the prover
 		addAxioms(tr);
 		
 		while (!todo.isEmpty()) {
 
-			// We check in chunks of 10
-			System.err.println("Total blocks to cover: " + todo.size());
-
 			// Compute a self contained group of nodes to cover
-			HashSet<BasicBlock> toCover = getMinimalClosedSet(tr, allBlocks, todo);
-			
-			// We check in chunks of 10
-			System.err.println("Current blocks to cover: " + toCover.size());
+			HashSet<BasicBlock> toCover = getFirstClosure(tr, allBlocks, todo);
+			Log.info("Number of remaining blocks " + todo.size() + " (" + toCover.size() + ")");
 
 			// Remove from allBlocks the blocks that have no paths to or from 
 			// blocks still in need of a cover		
@@ -273,12 +263,8 @@ public class JodChecker extends AbstractChecker {
 			LinkedList<BasicBlock> satPath = getFeasiblePath(tr, reachable, toCover);
 			
 			if (satPath != null) {
-				System.err.println("Found path of length " + satPath.size());
+				if (debugOutput) System.err.println("Found path of length " + satPath.size());
 
-				if (getPath(tr, tr.getProcedure().getRootNode(), tr.getProcedure().getExitNode(), satPath) == null) {
-					throw new RuntimeException("Bad path!");
-				}
-				
 				// Remove from todos
 				int oldSize = todo.size();
 				todo.removeAll(satPath);
@@ -292,6 +278,7 @@ public class JodChecker extends AbstractChecker {
 				// No feasible paths in chunk
 			    todo.removeAll(toCover);
 			    allBlocks.removeAll(toCover);
+			    infeasibleCount ++;
 			}
 		}
 		
@@ -306,7 +293,7 @@ public class JodChecker extends AbstractChecker {
 
 		HashSet<BasicBlock> path = new HashSet<BasicBlock>(originalPath);
 		
-		System.err.println("\t full : " + path.size());
+		if (debugOutput) System.err.println("\t full : " + path.size());
 		
 		// Minimize from the front
 		for (BasicBlock block : originalPath) {
@@ -329,7 +316,7 @@ public class JodChecker extends AbstractChecker {
 			}			
 		}
 
-		System.err.println("\t minimal : " + path.size());
+		if (debugOutput) System.err.println("\t minimal : " + path.size());
 		
 		return path;
 	}
@@ -343,6 +330,9 @@ public class JodChecker extends AbstractChecker {
 		ProverResult res = null;
 		LinkedList<BasicBlock> satPath = null;
 		HashSet<BasicBlock> concreteBlocks = new HashSet<BasicBlock>();
+
+		// Timelimit in seconds
+		double timeLimitPerAbstraction = 5;
 		
 		try {
 						
@@ -350,50 +340,66 @@ public class JodChecker extends AbstractChecker {
 			while (true) {
 
 				// Let us see what was the haps
-				toDot("findPath.dot", allBlocks, concreteBlocks, blocksToCover);
+				if (debugOutput) {
+					toDot("getFeasiblePath" + infeasibleCount + ".dot", allBlocks, concreteBlocks, blocksToCover);
+				}
 				
 				// Check the abstraction path
 				prover.push();
 				assertPaths(prover, tr, concreteBlocks, allBlocks, blocksToCover);
-				System.err.print("abstraction: ");
-				res = prover.checkSat(true);
-				System.err.println(res);
+				if (debugOutput) System.err.print("abstraction [" + timeLimitPerAbstraction +"s] : ");
+				prover.checkSat(false);
+				res = prover.getResult((int) timeLimitPerAbstraction*1000);
+				if (debugOutput) System.err.println(res);
 
-				if (res == ProverResult.Sat) {
-					// The extension path
+				switch (res) {
+				case Sat: 
+					// The concretization path
 					satPath = getPathFromModel(prover, tr, allBlocks, blocksToCover);
 					// Pop the prover
 					prover.pop();
-				} else if (res == ProverResult.Unsat){
+					break;
+				case Unsat:
 					// Pop the solver
 					prover.pop();
 					// Done, infeasible
 					return null;
-				} else {
+				case Running:
+					prover.stop();
+					prover.pop();
+
+					// Increse the timelimit
+					timeLimitPerAbstraction *= 1.1;
+					// Add one more step to each concrete block
+					spanConcretization(tr, allBlocks, concreteBlocks);
+					continue;
+				default:
 					// God knows what happened
-					throw new RuntimeException("Prover failed with " + res);
+					throw new RuntimeException("Prover failed with " + res);						
 				}
-				
+								
 				// Check the current concrete path
 				prover.push();
 				assertPaths(prover, tr, satPath, satPath, null);
-				System.err.print("concrete   : ");
+				if (debugOutput) System.err.print("concrete   : ");
 				res = prover.checkSat(true);
-				System.err.println(res);
+				if (debugOutput) System.err.println(res);
 				
-				if (res == ProverResult.Sat) {
+				switch (res) {
+				case Sat:
 					// Pop the solver
 					prover.pop();
 					// Return
 					return satPath;
-				} else if (res == ProverResult.Unsat) {
+				case Unsat:
 					// Pop the solver
 					prover.pop();
 					// Concretize the infeasible path into the abstraction
 					concreteBlocks.addAll(satPath);
-				} else {
+					break;
+				default:
 					// God knows what happened
-					throw new RuntimeException("Prover failed with " + res);
+					throw new RuntimeException("Prover failed with " + res);						
 				}
 			}
 		} catch (Exception e) {
@@ -401,6 +407,15 @@ public class JodChecker extends AbstractChecker {
 			toDot("findPath.dot", allBlocks, concreteBlocks, blocksToCover);
 			throw e;
 		}
+	}
+
+	private void spanConcretization(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> concreteBlocks) {
+		HashSet<BasicBlock> concreteBlocksCopy = new HashSet<BasicBlock>(concreteBlocks);
+		for (BasicBlock block : concreteBlocksCopy) {
+			concreteBlocks.addAll(block.getSuccessors());
+			concreteBlocks.addAll(block.getPredecessors());
+		}
+		concreteBlocks.retainAll(allBlocks);
 	}
 
 	/**
@@ -605,11 +620,6 @@ public class JodChecker extends AbstractChecker {
 					}
 				}
 			}
-		}
-		
-		System.err.println("Necessary");
-		for (BasicBlock block : necessaryNodes) {
-			System.err.println(block.getLabel());
 		}
 		
 		// Screwed
