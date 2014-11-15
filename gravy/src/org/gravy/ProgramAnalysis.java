@@ -99,8 +99,9 @@ public class ProgramAnalysis {
 		String fname = org.gravy.Options.v().getFunctionName();
 		
 		Long checkTime = 0L;
+		int proccount=0;
 		for (CfgProcedure p : cff.getProcedureCFGs()) {			
-			
+			System.err.println("Analyzing procedure "+(++proccount)+"/"+cff.getProcedureCFGs().size());
 			if (fname!=null && !p.getProcedureName().equals(fname)) {
 				//if option is set to analyze only one procedure, 
 				//continue if this is not the right proc.

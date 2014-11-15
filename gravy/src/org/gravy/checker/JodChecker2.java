@@ -90,8 +90,6 @@ public class JodChecker2 extends AbstractChecker {
 	public Report checkSat(Prover prover, AbstractTransitionRelation atr) {
 		JodTransitionRelation tr = (JodTransitionRelation) atr;
 
-		toDot("./color"+tr.getProcedureName()+".dot", tr);
-		hasseToDot("H-"+tr.getProcedureName()+".dot", tr);
 		
 		
 		Statistics.HACK_effectualSetSize = tr.getEffectualSet().size();

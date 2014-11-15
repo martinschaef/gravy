@@ -147,7 +147,7 @@ public class FaultLocalizationThread implements Runnable {
 		// slice.pruneUnreachableBlocks();
 
 		// tr.getProcedure().toDot("./orig_"+slice.getProcedureName()+".dot");
-		slice.toDot("./slice_" + slice.getProcedureName() + ".dot");
+//		slice.toDot("./slice_" + slice.getProcedureName() + ".dot");
 
 		// System.err.println("compute tr");
 		FaultLocalizationTransitionRelation sliceTr = new FaultLocalizationTransitionRelation(
