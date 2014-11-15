@@ -25,7 +25,6 @@ import org.gravy.util.Statistics;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.JodTransitionRelation;
 
-import scala.util.control.TailCalls.Done;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
@@ -39,6 +38,11 @@ import boogie.controlflow.util.PartialBlockOrderNode;
  */
 public class JodChecker2 extends AbstractChecker {
 
+	public JodChecker2(AbstractControlFlowFactory cff, CfgProcedure p, Prover prover) {
+		super(cff, p);
+		this.prover = prover;
+	}
+	
 	/**
 	 * @param cff
 	 * @param p
@@ -46,7 +50,7 @@ public class JodChecker2 extends AbstractChecker {
 	public JodChecker2(AbstractControlFlowFactory cff, CfgProcedure p) {
 		super(cff, p);
 
-		//System.err.println("prune unreachable");
+		System.err.println("prune unreachable");
 
 		// p.toDot("./"+p.getProcedureName()+".dot");
 
@@ -94,19 +98,16 @@ public class JodChecker2 extends AbstractChecker {
 		
 		Statistics.HACK_effectualSetSize = tr.getEffectualSet().size();
 
-		HashSet<BasicBlock> blocks2cover = new HashSet<BasicBlock>(tr
-				.getReachabilityVariables().keySet());
-
 		// now exclude all feasible paths that may violate the postcondition
 		// compute the feasible path cover under the given postcondition
 		try {
 			feasibleBlocks = new HashSet<BasicBlock>(computeJodCover(prover,
-					tr, blocks2cover));
+					tr, new HashSet<BasicBlock>()));
 		} catch (Throwable e) {
 			e.printStackTrace();
 			throw e;
 		}
-		blocks2cover.removeAll(feasibleBlocks);
+		
 
 		// this set is empty for infeasible code detection.
 		infeasibleBlocksUnderPost = new HashSet<BasicBlock>();
@@ -122,10 +123,10 @@ public class JodChecker2 extends AbstractChecker {
 	}
 
 
-	protected Collection<BasicBlock> computeJodCover(Prover prover,
-			JodTransitionRelation tr, HashSet<BasicBlock> blocks2cover) {
+	public Collection<BasicBlock> computeJodCover(Prover prover,
+			JodTransitionRelation tr, Set<BasicBlock> alreadyCovered) {
 
-		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>();
+		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>(alreadyCovered);
 
 		// add the basic prelude stuff that is needed for every check.
 		for (Entry<CfgAxiom, ProverExpr> entry : tr.getPreludeAxioms()
@@ -136,98 +137,23 @@ public class JodChecker2 extends AbstractChecker {
 		prover.addAssertion(tr.getEnsures());
 
 		PartialBlockOrderNode poRoot = tr.getHasseDiagram().getRoot();
-		
-		//approximate the feasible blocks - and at the 
-		//same time, collect the ones that are guaranteed
-		//to be infeasible.
-//		System.err.println("Try to find local contradictions first.");
-//		approximateFeasibleBlocks(prover, tr);
-//		System.err.println("Found "+ this.knownInfeasibleNodes.size() + " nodes that are locally infeasible.");
-		
+				
 		System.err.println("Searching for feasible paths...");
-		coveredBlocks.addAll(findFeasibleBlocks(prover, tr, poRoot, new HashSet<BasicBlock>()));
+		coveredBlocks.addAll(findFeasibleBlocks(prover, tr, poRoot, new HashSet<BasicBlock>(alreadyCovered)));
 		
 
 		return coveredBlocks;
 	}	
 	
 	HashSet<PartialBlockOrderNode> knownInfeasibleNodes = new HashSet<PartialBlockOrderNode>(); 
-	
-	protected Set<PartialBlockOrderNode> collectPoLeafNodes(PartialBlockOrderNode node) {
-		Set<PartialBlockOrderNode> result = new HashSet<PartialBlockOrderNode>();
-		if (node.getSuccessors().size()>0) {
-			for (PartialBlockOrderNode child : node.getSuccessors()) {
-				result.addAll(collectPoLeafNodes(child));
-			}
-		} else {
-			result.add(node);
-		}	
-		return result;
-	}
-	
-	protected void propagateInfeasibility(PartialBlockOrderNode node) {
-		if (node.getSuccessors().size()>0) {
-			for (PartialBlockOrderNode child : node.getSuccessors()) {
-				propagateInfeasibility(child);
-			}
-			if (knownInfeasibleNodes.containsAll(node.getSuccessors())) {
-				knownInfeasibleNodes.add(node);
-			}
-		}
-	}
-	
-	
-	/**
-	 * for each leaf node in the partial order, check if it is feasible. If so, add the blocks
-	 * in its parent equivalence class, if not report it, if timeout ignore it.
-	 * @param prover
-	 * @param tr
-	 * @return
-	 */
-	protected void approximateFeasibleBlocks(Prover prover, JodTransitionRelation tr) {
-		int TIMEOUT_MS = 15000; //millisecs		
-		Set<PartialBlockOrderNode> leafs = collectPoLeafNodes(tr.getHasseDiagram().getRoot());
-		for (PartialBlockOrderNode node : leafs) {
-			PartialBlockOrderNode current = node;
-			Set<BasicBlock> blocks = new HashSet<BasicBlock>();
-			boolean infeasible = false;
-			while (current!=null) {
-				blocks.addAll(current.getElements());				
-				prover.push();
-				assertPaths(prover, tr, blocks);				
-				prover.checkSat(false);			
-				ProverResult proverResult = prover.getResult(TIMEOUT_MS);				
-				if (proverResult == ProverResult.Sat) {
-					prover.pop();
-				} else if (proverResult == ProverResult.Unsat){
-					prover.pop();
-					infeasible = true;
-				} else if (proverResult == ProverResult.Running){
-					System.err.println("Timeout...");
-					prover.stop();
-					prover.pop();
-					break;
-				} else {
-					prover.pop();
-					throw new RuntimeException("prover error");
-				}					
-				current = current.getParent();
-			}	
-			if (infeasible) {
-				System.err.println("Local Proof!");
-				knownInfeasibleNodes.add(node);
-			}
-		}
-		propagateInfeasibility(tr.getHasseDiagram().getRoot());
-	}
 
 	//TODO: keep track of everything that has been proved infeasible
 	//to make sure that we don't do the same work twice.
 	Set<Set<BasicBlock>> infeasibleSubprograms = new HashSet<Set<BasicBlock>>(); 
 
 	private int TIMEOUT1 = 8000;
-	private int TIMEOUT2 = 10000;
-	
+//	private int TIMEOUT2 = 10000;
+	private int TIMEOUT2 = 5000;
 	/**
 	 * Check subprogram
 	 * @param prover
@@ -235,7 +161,7 @@ public class JodChecker2 extends AbstractChecker {
 	 * @param node
 	 * @return
 	 */
-	protected HashSet<BasicBlock> findFeasibleBlocks(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
+	private HashSet<BasicBlock> findFeasibleBlocks(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
 		HashSet<BasicBlock> result = new HashSet<BasicBlock>(alreadyCovered);
 			
 		//the set of node that we want to cover.
@@ -293,7 +219,7 @@ public class JodChecker2 extends AbstractChecker {
 				if (node.getSuccessors().isEmpty()) {	
 					//TODO: try to find a local proof first.
 					//if this fails, enumerate all paths.
-					if (isInfeasibleInAbstraction(prover, tr, node, toCheck, 60000, 0)) {
+					if (isInfeasibleInAbstraction(prover, tr, node, node.getElements(), 60000, 0)) {
 						infeasibleSubprograms.add(subprog); //make sure that we never check this subprog again.
 						return result;						
 					} else {
@@ -338,10 +264,10 @@ public class JodChecker2 extends AbstractChecker {
 				System.err.println("SAT in abstraction, refining.");
 				return isInfeasibleInAbstraction(prover, tr, node.getParent(), toCheck, timeout, iterations+1);
 			} else {
-				if (this.getSubprogContainingAll(node.getElements()).size()!=subprog.size()) {
-					throw new RuntimeException("Bug");
-				}
-				
+//				if (this.getSubprogContainingAll(node.getElements()).size()!=subprog.size()) {
+//					throw new RuntimeException("Bug");
+//				}
+//				HashSet<BasicBlock> feasiblePath = getPathFromModel(prover, tr, subprog, toCheck);
 				prover.pop();
 				System.err.println("Went all the way to root ... can't show infeasibility in abstraction");
 				return false;

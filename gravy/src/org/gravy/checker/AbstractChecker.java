@@ -22,6 +22,7 @@ import org.gravy.report.Report;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
 import org.gravy.verificationcondition.JodTransitionRelation;
+import org.gravy.verificationcondition.RocketScienceTransitionRelation;
 import org.joogie.cfgPlugin.Util.Dag;
 
 import util.Log;
@@ -95,6 +96,10 @@ public abstract class AbstractChecker implements Runnable {
 				tr = new JodTransitionRelation(this.procedure, this.cff, prover);
 				break;
 			}								
+			case 5: {
+				tr = new RocketScienceTransitionRelation(this.procedure, this.cff, prover);
+				break;
+			}											
 			default: {
 				Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);

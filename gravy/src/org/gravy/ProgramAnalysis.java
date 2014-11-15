@@ -13,6 +13,7 @@ import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
 import org.gravy.checker.JodChecker;
 import org.gravy.checker.JodChecker2;
+import org.gravy.checker.RocketScienceChecker;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.reportprinter.DefaultGraVyReportPrinter;
@@ -76,6 +77,10 @@ public class ProgramAnalysis {
 			rp = new DefaultInfeasibleCodeReportPrinter();
 			break;
 		}						
+		case 5: {
+			rp = new DefaultInfeasibleCodeReportPrinter();
+			break;
+		}								
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			rp = new DefaultGraVyReportPrinter();
@@ -99,9 +104,9 @@ public class ProgramAnalysis {
 		String fname = org.gravy.Options.v().getFunctionName();
 		
 		Long checkTime = 0L;
-		int proccount=0;
+//		int proccount=0;
 		for (CfgProcedure p : cff.getProcedureCFGs()) {			
-			System.err.println("Analyzing procedure "+(++proccount)+"/"+cff.getProcedureCFGs().size());
+//			System.err.println("Analyzing procedure "+(++proccount)+"/"+cff.getProcedureCFGs().size());
 			if (fname!=null && !p.getProcedureName().equals(fname)) {
 				//if option is set to analyze only one procedure, 
 				//continue if this is not the right proc.
@@ -216,6 +221,10 @@ public class ProgramAnalysis {
 			detectionThread = new JodChecker2(cff, p);
 			break;
 		}						
+		case 5: {
+			detectionThread = new RocketScienceChecker(cff, p);
+			break;
+		}								
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			detectionThread = new GravyChecker(cff, p);
