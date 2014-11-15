@@ -227,6 +227,9 @@ public class JodChecker extends AbstractChecker {
 		
 	}
 
+	/** How many infeasible result per procedure */
+	private int infeasibleCount = 0;
+	
 	/**
 	 * This is the main loop that uses our Joins-on-Demand algorithm to cover
 	 * the CFG
@@ -242,6 +245,9 @@ public class JodChecker extends AbstractChecker {
 	 */
 	protected Collection<BasicBlock> computeJodCover(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks) {
 
+		// Reset the counter
+		infeasibleCount = 0;
+		
 		// Result: all nodes we managed to cover
 		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>();
 
@@ -275,10 +281,6 @@ public class JodChecker extends AbstractChecker {
 			if (satPath != null) {
 				System.err.println("Found path of length " + satPath.size());
 
-				if (getPath(tr, tr.getProcedure().getRootNode(), tr.getProcedure().getExitNode(), satPath) == null) {
-					throw new RuntimeException("Bad path!");
-				}
-				
 				// Remove from todos
 				int oldSize = todo.size();
 				todo.removeAll(satPath);
@@ -292,6 +294,7 @@ public class JodChecker extends AbstractChecker {
 				// No feasible paths in chunk
 			    todo.removeAll(toCover);
 			    allBlocks.removeAll(toCover);
+			    infeasibleCount ++;
 			}
 		}
 		
@@ -343,6 +346,9 @@ public class JodChecker extends AbstractChecker {
 		ProverResult res = null;
 		LinkedList<BasicBlock> satPath = null;
 		HashSet<BasicBlock> concreteBlocks = new HashSet<BasicBlock>();
+
+		// Timelimit in seconds
+		double timeLimitPerAbstraction = 10;
 		
 		try {
 						
@@ -350,30 +356,42 @@ public class JodChecker extends AbstractChecker {
 			while (true) {
 
 				// Let us see what was the haps
-				toDot("findPath.dot", allBlocks, concreteBlocks, blocksToCover);
+				toDot("getFeasiblePath" + infeasibleCount + ".dot", allBlocks, concreteBlocks, blocksToCover);
 				
 				// Check the abstraction path
 				prover.push();
 				assertPaths(prover, tr, concreteBlocks, allBlocks, blocksToCover);
-				System.err.print("abstraction: ");
-				res = prover.checkSat(true);
+				System.err.print("abstraction [" + timeLimitPerAbstraction +"s] : ");
+				prover.checkSat(false);
+				res = prover.getResult((int) timeLimitPerAbstraction*1000);
 				System.err.println(res);
 
-				if (res == ProverResult.Sat) {
-					// The extension path
+				switch (res) {
+				case Sat: 
+					// The concretization path
 					satPath = getPathFromModel(prover, tr, allBlocks, blocksToCover);
 					// Pop the prover
 					prover.pop();
-				} else if (res == ProverResult.Unsat){
+					break;
+				case Unsat:
 					// Pop the solver
 					prover.pop();
 					// Done, infeasible
 					return null;
-				} else {
+				case Running:
+					prover.stop();
+					prover.pop();
+
+					// Increse the timelimit
+					timeLimitPerAbstraction *= 1.1;
+					// Add one more step to each concrete block
+					spanConcretization(tr, allBlocks, concreteBlocks);
+					continue;
+				default:
 					// God knows what happened
-					throw new RuntimeException("Prover failed with " + res);
+					throw new RuntimeException("Prover failed with " + res);						
 				}
-				
+								
 				// Check the current concrete path
 				prover.push();
 				assertPaths(prover, tr, satPath, satPath, null);
@@ -381,19 +399,21 @@ public class JodChecker extends AbstractChecker {
 				res = prover.checkSat(true);
 				System.err.println(res);
 				
-				if (res == ProverResult.Sat) {
+				switch (res) {
+				case Sat:
 					// Pop the solver
 					prover.pop();
 					// Return
 					return satPath;
-				} else if (res == ProverResult.Unsat) {
+				case Unsat:
 					// Pop the solver
 					prover.pop();
 					// Concretize the infeasible path into the abstraction
 					concreteBlocks.addAll(satPath);
-				} else {
+					break;
+				default:
 					// God knows what happened
-					throw new RuntimeException("Prover failed with " + res);
+					throw new RuntimeException("Prover failed with " + res);						
 				}
 			}
 		} catch (Exception e) {
@@ -401,6 +421,15 @@ public class JodChecker extends AbstractChecker {
 			toDot("findPath.dot", allBlocks, concreteBlocks, blocksToCover);
 			throw e;
 		}
+	}
+
+	private void spanConcretization(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks, HashSet<BasicBlock> concreteBlocks) {
+		HashSet<BasicBlock> concreteBlocksCopy = new HashSet<BasicBlock>(concreteBlocks);
+		for (BasicBlock block : concreteBlocksCopy) {
+			concreteBlocks.addAll(block.getSuccessors());
+			concreteBlocks.addAll(block.getPredecessors());
+		}
+		concreteBlocks.retainAll(allBlocks);
 	}
 
 	/**
