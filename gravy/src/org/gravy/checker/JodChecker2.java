@@ -219,7 +219,7 @@ public class JodChecker2 extends AbstractChecker {
 				if (node.getSuccessors().isEmpty()) {	
 					//TODO: try to find a local proof first.
 					//if this fails, enumerate all paths.
-					if (isInfeasibleInAbstraction(prover, tr, node, node.getElements(), 60000, 0)) {
+					if (isInfeasibleInAbstraction(prover, tr, node, node.getElements(), 30000, 0)) {
 						infeasibleSubprograms.add(subprog); //make sure that we never check this subprog again.
 						return result;						
 					} else {
