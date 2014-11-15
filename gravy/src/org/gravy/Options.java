@@ -59,7 +59,7 @@ public class Options {
 	
 	
 	
-	public boolean stopTime = false;
+	public boolean stopTime = true;
 	
 	
 	
