@@ -21,6 +21,7 @@ import org.gravy.prover.ProverResult;
 import org.gravy.report.InfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
+import org.gravy.util.Log;
 import org.gravy.util.Statistics;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.JodTransitionRelation;
@@ -122,10 +123,12 @@ public class JodChecker2 extends AbstractChecker {
 				this.infeasibleBlocks);
 	}
 
-
+	JodTransitionRelation transRel;
+	
 	public Collection<BasicBlock> computeJodCover(Prover prover,
 			JodTransitionRelation tr, Set<BasicBlock> alreadyCovered) {
 
+		transRel = tr;
 		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>(alreadyCovered);
 
 		// add the basic prelude stuff that is needed for every check.
@@ -219,12 +222,13 @@ public class JodChecker2 extends AbstractChecker {
 				if (node.getSuccessors().isEmpty()) {	
 					//TODO: try to find a local proof first.
 					//if this fails, enumerate all paths.
-					if (isInfeasibleInAbstraction(prover, tr, node, node.getElements(), 30000, 0)) {
-						infeasibleSubprograms.add(subprog); //make sure that we never check this subprog again.
-						return result;						
-					} else {
-						result.addAll(findFeasibleBlocksRecursively(prover, tr, subprog, TIMEOUT1, toCheck));
-					}
+//					if (isInfeasibleInAbstraction(prover, tr, node, node.getElements(), 30000, 0)) {
+//						infeasibleSubprograms.add(subprog); //make sure that we never check this subprog again.
+//						return result;						
+//					} else {
+//						result.addAll(findFeasibleBlocksRecursively(prover, tr, subprog, TIMEOUT1, toCheck));
+//					}
+					result.addAll(tryToFindConflictInPO(prover, tr, node, 0));
 				}			
 			} else {
 				// God knows what happened
@@ -869,5 +873,113 @@ public class JodChecker2 extends AbstractChecker {
 			e.printStackTrace();
 		}
 	}	
+
+/*
+ * ---------------------------- Plan B --------------------------------
+ */
+	
+	private Set<BasicBlock> tryToFindConflictInPO(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, int timeout) {	
+		//pick any
+		BasicBlock current = node.getElements().iterator().next();
+		try {
+			return up(current, current, new HashSet<BasicBlock>());
+		} catch (HackInfeasibleException e){
+			Log.error("YEAH");
+		}
+		return new HashSet<BasicBlock>();
+	}
+	
+	private Set<BasicBlock> up(BasicBlock b, BasicBlock source, Set<BasicBlock> path) throws HackInfeasibleException {
+		Set<BasicBlock> path_ = new HashSet<BasicBlock>(path);
+		path_.add(b);
+		if (b!= this.procedure.getRootNode()) {
+			for (BasicBlock x : b.getPredecessors()) {
+				Set<BasicBlock> result = up(x, source, path_);
+				if (result!=null) return result;
+			}
+		} else {
+			Set<BasicBlock> result = down(source, source, path_);
+			if (result!=null) return result;
+		}
+		return new HashSet<BasicBlock>();
+	}
+
+	private Set<BasicBlock> down(BasicBlock b, BasicBlock source, Set<BasicBlock> path) throws HackInfeasibleException {
+		Set<BasicBlock> path_ = new HashSet<BasicBlock>(path);
+		path_.add(b);
+		if (b!= this.procedure.getExitNode()) {
+			for (BasicBlock x : b.getSuccessors()) {
+				Set<BasicBlock> result = down(x, source, path_);
+				if (result!=null) return result;
+			}
+		} else {
+			if (checkPath(source, path_)) {
+				return path_;
+			}
+		}
+		return null;
+	}
+	
+	public class HackInfeasibleException extends Exception {
+		
+	}
+	
+	private boolean checkPath(BasicBlock source, Set<BasicBlock> path) throws HackInfeasibleException {
+		Log.info("checking path");
+		
+		prover.push();
+		for (BasicBlock b : path) {
+			prover.addAssertion(this.transRel.blockTransitionReleations.get(b));			
+		}
+		ProverResult res = prover.checkSat(true);
+		prover.pop();
+		if (res == ProverResult.Sat) {
+			return true;
+		} else if (res == ProverResult.Unsat) {
+			int oldsize = path.size();
+			computePseudoUnsatCore(path);
+			if (oldsize==path.size()) {
+				Log.error("nothing could be removed");
+				return false;
+			}
+			Set<BasicBlock> inevitableBlocks = findNodeThatMustBePassed(this.transRel.getHasseDiagram().findNode(source));
+			if (inevitableBlocks.containsAll(path)) {
+				Log.info("FOUND CONFLICT! DONE"); 
+				throw new HackInfeasibleException();
+			}
+		} else {
+			throw new RuntimeException("PROVER FAILED");
+		}
+		return false;
+	}
+	
+	private void computePseudoUnsatCore(Set<BasicBlock> path) {
+		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>(path);
+		Log.info("computing pseudo unsat core");
+		while (!todo.isEmpty()) {
+			BasicBlock current = todo.pop();
+			path.remove(current);
+			prover.push();
+			for (BasicBlock b : path) {
+				prover.addAssertion(this.transRel.blockTransitionReleations.get(b));			
+			}
+			ProverResult res = prover.checkSat(true);
+			prover.pop();
+			if (res == ProverResult.Sat) {
+				path.add(current); //then we needed this one
+			} else if (res == ProverResult.Unsat) {
+				//otherwise, we can remove it.
+			} else {
+				throw new RuntimeException("PROVER FAILED");
+			}		
+		}
+	}
+	
+	private Set<BasicBlock> findNodeThatMustBePassed(PartialBlockOrderNode node) {
+		if (node==null) return new HashSet<BasicBlock>();		
+		Set<BasicBlock> result = findNodeThatMustBePassed(node.getParent());
+		result.addAll(node.getElements());
+		return result;		
+	}
 	
 }
