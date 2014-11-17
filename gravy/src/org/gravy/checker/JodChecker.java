@@ -10,6 +10,8 @@ import java.util.HashSet;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 
+import javax.management.RuntimeErrorException;
+
 import org.gravy.Options;
 import org.gravy.callunwinding.CallUnwinding;
 import org.gravy.loopunwinding.AbstractLoopUnwinding;
@@ -220,6 +222,227 @@ public class JodChecker extends AbstractChecker {
 	/** How many infeasible result per procedure */
 	private int infeasibleCount = 0;
 	
+	/** A path */
+	public class Path extends LinkedList<BasicBlock> {
+		private static final long serialVersionUID = 1L;
+	}
+	
+	/** A set of paths */
+	public class PathSet extends HashSet<Path> {
+		private static final long serialVersionUID = 1L;
+	}
+		
+	protected HashSet<BasicBlock> computeJodCoverDirect(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks) {
+
+		// Result: all nodes we managed to cover
+		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>();
+
+		// Queue of block to process
+		LinkedList<BasicBlock> blockQueue = new LinkedList<BasicBlock>();
+
+		// Map from block to the feasible paths that end in the block
+		HashMap<BasicBlock, PathSet> blockPaths = new HashMap<BasicBlock, PathSet>();
+				
+		// Map from blocks to blocks covered by it's paths
+		HashMap<BasicBlock, HashSet<BasicBlock>> blockCovered = new HashMap<BasicBlock, HashSet<BasicBlock>>();
+		
+		// Map from block to their in-degrees (of unprocessed nodes)
+		HashMap<BasicBlock, Integer> blockDegree = new HashMap<BasicBlock, Integer>();
+		for (BasicBlock block : allBlocks) {
+			int degree = block.getPredecessors().size();
+			blockDegree.put(block, degree);
+			if (degree == 0) {
+				blockQueue.addFirst(block);
+				
+				// Basic path 
+				Path path = new Path();
+				path.addLast(block);
+				
+				// Basic path set
+				PathSet pathSet = new PathSet();
+				pathSet.add(path);
+				blockPaths.put(block, pathSet);
+				
+				// Basic set of nodes
+				HashSet<BasicBlock> blockSet = new HashSet<BasicBlock>();
+				blockSet.add(block);
+				blockCovered.put(block, blockSet);
+			}
+		}
+			
+		Log.info("To cover: " + allBlocks.size());
+		
+		HashSet<BasicBlock> processed = new HashSet<BasicBlock>();
+		
+		// Process the nodes 
+		while (!blockQueue.isEmpty()) {
+
+			// Get the next block to process
+			BasicBlock block = blockQueue.removeFirst();
+			processed.add(block);
+			
+			if (blockPaths.containsKey(block)) {
+				
+				// The paths leading into block
+				PathSet paths = blockPaths.get(block);
+	
+				// Log.info("paths: " + paths.size());
+				
+				// Extend all the paths
+				for (Path path : paths) {
+
+					// Path push
+					prover.push();
+
+					// Assert the path up to block
+					for (BasicBlock pathBlock : path) {
+						prover.addAssertion(tr.blockTransitionReleations.get(pathBlock));
+					}
+					
+					// Extend this path for each successor
+					for (BasicBlock succ : block.getSuccessors()) {
+
+						// The new path
+						Path succPath = new Path();
+						succPath.addAll(path);
+						succPath.addLast(succ);
+											
+						// Existing paths 
+						HashSet<BasicBlock> succCoveredBlocks = null;
+						PathSet succExistingPaths = null;
+						if (blockCovered.containsKey(succ)) {
+							succCoveredBlocks = blockCovered.get(succ);
+							succExistingPaths = blockPaths.get(succ);
+						} else {
+							succCoveredBlocks = new HashSet<BasicBlock>();
+							blockCovered.put(succ, succCoveredBlocks);
+							succExistingPaths = new PathSet();
+							blockPaths.put(succ, succExistingPaths);
+						}
+
+						// Is it coverint something new
+						// Something different from existing paths
+						boolean extra = false;
+						for (BasicBlock succBlock : succPath) {
+							if (!succCoveredBlocks.contains(succBlock)) {
+								extra = true;
+								break;
+							}
+						}
+						if (!extra) {
+							continue;
+						}
+
+						// Add and check the successor
+						prover.push();
+						prover.addAssertion(tr.blockTransitionReleations.get(succ));
+						ProverResult res = prover.checkSat(true);
+						switch (res) {
+							case Sat:
+								succExistingPaths.add(succPath);
+								succCoveredBlocks.addAll(succPath);
+								break;
+							case Unsat:
+								break;
+							default:
+								throw new RuntimeException("Hella problems!");
+						}
+						prover.pop();
+					}
+					
+					// Path pop
+					prover.pop();
+				}
+			}
+
+			// Extend this path for each successor
+			for (BasicBlock succ : block.getSuccessors()) {
+				// Done with this edge
+				int succDegree = blockDegree.get(succ) - 1;
+				blockDegree.put(succ, succDegree);
+				if (succDegree == 0) {
+					blockQueue.addLast(succ);
+				}
+			}
+
+			if (block != tr.getProcedure().getExitNode()) {
+				blockPaths.remove(block);
+				blockCovered.remove(block);
+			}
+			
+			if (processed.size() % 100 == 0) {
+				Log.info("processed: " + processed.size());
+			}
+		}
+		
+		// Get the paths of the exit node
+		BasicBlock exit = tr.getProcedure().getExitNode();
+	
+		if (blockPaths.containsKey(exit)) {
+			PathSet paths = blockPaths.get(exit);
+			for (Path path : paths) {
+				coveredBlocks.addAll(path);
+			}
+		}
+
+		Log.info("covered: " + coveredBlocks.size());
+
+		// Return the covered blocks
+		return coveredBlocks;
+	}
+	
+	private ProverExpr getPathFormula(JodTransitionRelation tr, Path path) {
+		if (path.size() == 0) {
+			return prover.mkLiteral(true);
+		}
+		ProverExpr[] conjuncts = new ProverExpr[path.size()];
+		int i = 0;
+		for (BasicBlock block : path) {
+			conjuncts[i] = tr.blockTransitionReleations.get(block);
+			i ++;
+		}
+		if (conjuncts.length == 1) {
+			return conjuncts[0];
+		} else {
+			return prover.mkAnd(conjuncts);
+		}
+	}
+	
+	private boolean isFeasibleAndNew(JodTransitionRelation tr, Path path, Collection<BasicBlock> existingBlocks) {
+
+		// Something different from existing paths
+		if (existingBlocks != null) {
+			boolean extra = false;
+			for (BasicBlock block : path) {
+				if (!existingBlocks.contains(block)) {
+					extra = true;
+					break;
+				}
+			}
+			if (!extra) {
+				return false;
+			}
+		}
+
+		prover.push();
+		
+		// Current path to check
+		prover.addAssertion(getPathFormula(tr, path));
+				
+		ProverResult res = prover.checkSat(true);
+		switch (res) {
+			case Sat:
+			case Unsat:
+				break;
+			default:
+				throw new RuntimeException("Hella problems!");
+		}
+		
+		prover.pop();
+				
+		return res == ProverResult.Sat;
+	}
+
 	/**
 	 * This is the main loop that uses our Joins-on-Demand algorithm to cover
 	 * the CFG
@@ -238,19 +461,20 @@ public class JodChecker extends AbstractChecker {
 		// Reset the counter
 		infeasibleCount = 0;
 		
+		// Add the initial non-changing stuff to the prover
+		addAxioms(tr);
+
 		// Result: all nodes we managed to cover
-		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>();
+		HashSet<BasicBlock> coveredBlocks = computeJodCoverDirect(tr, allBlocks);
 
 		// The nodes we need to cover
 		HashSet<BasicBlock> todo = new HashSet<BasicBlock>(allBlocks);
-		
-		// Add the initial non-changing stuff to the prover
-		addAxioms(tr);
-		
+		todo.removeAll(coveredBlocks);
+				
 		while (!todo.isEmpty()) {
 
 			// Compute a self contained group of nodes to cover
-			HashSet<BasicBlock> toCover = getMinimalClosedSet(tr, allBlocks, todo);
+			HashSet<BasicBlock> toCover = getFirstClosure(tr, allBlocks, todo);
 			Log.info("Number of remaining blocks " + todo.size() + " (" + toCover.size() + ")");
 
 			// Remove from allBlocks the blocks that have no paths to or from 
@@ -259,9 +483,33 @@ public class JodChecker extends AbstractChecker {
 			reachable.addAll(getReachable(tr, toCover, allBlocks, ReachabilityType.FORWARD));
 			reachable.addAll(getReachable(tr, toCover, allBlocks, ReachabilityType.BACKWARD));
 			
-			// Try to cover one more block
-			LinkedList<BasicBlock> satPath = getFeasiblePath(tr, reachable, toCover);
+
+			// Check the abstraction path
+			prover.push();
+			assertPaths(prover, tr, reachable, reachable, toCover);
+			ProverResult res = prover.checkSat(true);
 			
+			// The path, if satisfiable
+			LinkedList<BasicBlock> satPath = null;
+
+			switch (res) {
+			case Sat: 
+				// The concretization path
+				satPath = getPathFromModel(prover, tr, reachable, toCover);
+				// Pop the prover
+				prover.pop();
+				break;
+			case Unsat:
+				// Pop the solver
+				prover.pop();
+				// Done, infeasible
+				satPath = null;
+				break;
+			default:
+				// God knows what happened
+				throw new RuntimeException("Prover failed with " + res);						
+			}
+
 			if (satPath != null) {
 				if (debugOutput) System.err.println("Found path of length " + satPath.size());
 
@@ -329,11 +577,8 @@ public class JodChecker extends AbstractChecker {
 		
 		ProverResult res = null;
 		LinkedList<BasicBlock> satPath = null;
-		HashSet<BasicBlock> concreteBlocks = new HashSet<BasicBlock>();
+		HashSet<BasicBlock> concreteBlocks = new HashSet<BasicBlock>(allBlocks);
 
-		// Timelimit in seconds
-		double timeLimitPerAbstraction = 5;
-		
 		try {
 						
 			// Try abstract paths in succession until one is found
@@ -347,15 +592,8 @@ public class JodChecker extends AbstractChecker {
 				// Check the abstraction path
 				prover.push();
 				assertPaths(prover, tr, concreteBlocks, allBlocks, blocksToCover);
-				int timeLimit = (int) (timeLimitPerAbstraction*1000);
-				if (allBlocks.size() > blocksToCover.size()) {
-					if (debugOutput) System.err.print("abstraction [" + concreteBlocks.size() + "/" + allBlocks.size() + ", tl=" + timeLimit +"ms] : ");
-					prover.checkSat(false);
-					res = prover.getResult(timeLimit);					
-				} else {
-					if (debugOutput) System.err.print("abstraction [" + concreteBlocks.size() + "/" + allBlocks.size() + "] : ");
-					res = prover.checkSat(true);
-				}
+				if (debugOutput) System.err.print("abstraction [" + concreteBlocks.size() + "/" + allBlocks.size() + "] : ");
+				res = prover.checkSat(true);
 				if (debugOutput) System.err.println(res);
 
 				switch (res) {
@@ -370,15 +608,6 @@ public class JodChecker extends AbstractChecker {
 					prover.pop();
 					// Done, infeasible
 					return null;
-				case Running:
-					prover.stop();
-					prover.pop();
-
-					// Add one more step to each concrete block
-					spanConcretization(tr, allBlocks, concreteBlocks);
-					// Increse the timelimit
-					timeLimitPerAbstraction *= 1.1;
-					continue;
 				default:
 					// God knows what happened
 					throw new RuntimeException("Prover failed with " + res);						
@@ -401,7 +630,7 @@ public class JodChecker extends AbstractChecker {
 					// Pop the solver
 					prover.pop();
 					// Concretize the infeasible path into the abstraction
-					concreteBlocks.addAll(satPath);
+					concreteBlocks.addAll(minimizeInfeasiblePath(tr, satPath, null));
 					break;
 				default:
 					// God knows what happened
@@ -434,8 +663,8 @@ public class JodChecker extends AbstractChecker {
 	 */
 	private void assertPaths(Prover prover, JodTransitionRelation tr, Collection<BasicBlock> concreteBlocks, Collection<BasicBlock> allBlocks, Collection<BasicBlock> necessaryBlocks) {
 
-		boolean concretizeSucc = false;
-		boolean concretizePred = false;
+		boolean concretizeSucc = true;
+		boolean concretizePred = true;
 
 		HashSet<BasicBlock> toConcretize = new HashSet<BasicBlock>(concreteBlocks);
 		
