@@ -963,8 +963,10 @@ public class JodChecker2 extends AbstractChecker {
 		ProverResult res = prover.checkSat(true);
 		prover.pop();
 		if (res == ProverResult.Sat) {
+			Log.info("\tSAT");
 			return true;
 		} else if (res == ProverResult.Unsat) {
+			Log.info("\tUNST");
 			int oldsize = path.size();
 			computePseudoUnsatCore(path);
 			if (oldsize==path.size()) {
@@ -977,6 +979,7 @@ public class JodChecker2 extends AbstractChecker {
 				markSmallestSubtreeInfeasible(path);
 				throw new HackInfeasibleException();
 			} else {
+				Log.info("\ttrying to learn conflict.");
 //				for (BasicBlock b : path) System.err.println(b);
 				learnedConflicts.add(new HashSet<BasicBlock>(path));
 
@@ -1008,7 +1011,7 @@ public class JodChecker2 extends AbstractChecker {
 				
 				System.err.println("TODO list Before: "+todo.size());
 				for (Set<BasicBlock> conflict : learnedConflicts) {
-					if (conflict.containsAll(core)) {
+					if (conflict.containsAll(core) && core.size()>0) {
 						for (BasicBlock other : conflict) {
 							if (!core.contains(other)) {
 								todo.removeAll(findAllChildren(this.transRel.getHasseDiagram().findNode(other)));
@@ -1023,6 +1026,7 @@ public class JodChecker2 extends AbstractChecker {
 					}
 				}				
 				System.err.println("TODO list After: "+todo.size());
+				Log.info("\tno conflict learned :(");
 			}
 		} else {
 			throw new RuntimeException("PROVER FAILED");
