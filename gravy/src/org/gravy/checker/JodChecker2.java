@@ -19,13 +19,14 @@ import org.gravy.loopunwinding.AbstractLoopUnwinding;
 import org.gravy.prover.Prover;
 import org.gravy.prover.ProverExpr;
 import org.gravy.prover.ProverResult;
+import org.gravy.prover.princess.PrincessProver;
 import org.gravy.report.InfeasibleReport;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.util.Log;
 import org.gravy.util.Statistics;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
-import org.gravy.verificationcondition.JodTransitionRelation;
+import org.gravy.verificationcondition.RocketScienceTransitionRelation;
 import org.joogie.cfgPlugin.Util.Dag;
 
 import ap.parser.IFormula;
@@ -96,7 +97,7 @@ public class JodChecker2 extends AbstractChecker {
 	 */
 	@Override
 	public Report checkSat(Prover prover, AbstractTransitionRelation atr) {
-		JodTransitionRelation tr = (JodTransitionRelation) atr;
+		RocketScienceTransitionRelation tr = (RocketScienceTransitionRelation) atr;
 
 		
 		
@@ -126,10 +127,10 @@ public class JodChecker2 extends AbstractChecker {
 				this.infeasibleBlocks);
 	}
 
-	JodTransitionRelation transRel;
+	RocketScienceTransitionRelation transRel;
 	
 	public Collection<BasicBlock> computeJodCover(Prover prover,
-			JodTransitionRelation tr, Set<BasicBlock> alreadyCovered) {
+			RocketScienceTransitionRelation tr, Set<BasicBlock> alreadyCovered) {
 
 		transRel = tr;
 		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>(alreadyCovered);
@@ -167,7 +168,7 @@ public class JodChecker2 extends AbstractChecker {
 	 * @param node
 	 * @return
 	 */
-	private HashSet<BasicBlock> findFeasibleBlocks(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
+	private HashSet<BasicBlock> findFeasibleBlocks(Prover prover, RocketScienceTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
 		HashSet<BasicBlock> result = new HashSet<BasicBlock>(alreadyCovered);
 			
 		if (knownInfeasibleNodes.contains(node)) {
@@ -255,7 +256,7 @@ public class JodChecker2 extends AbstractChecker {
 		return result;	
 	}
 	
-	private HashSet<BasicBlock> findFeasibleBlocks2(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
+	private HashSet<BasicBlock> findFeasibleBlocks2(Prover prover, RocketScienceTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
 		if (node.getSuccessors().size()>0) {
 			boolean allChildrenInfeasible = true;
 			HashSet<BasicBlock> result = new HashSet<BasicBlock>();
@@ -279,7 +280,7 @@ public class JodChecker2 extends AbstractChecker {
 	
 	
 	
-	private boolean isInfeasibleInAbstraction(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> toCheck, int timeout, int iterations) {
+	private boolean isInfeasibleInAbstraction(Prover prover, RocketScienceTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> toCheck, int timeout, int iterations) {
 		System.err.print("Building abstraction ... ");
 		Set<BasicBlock> subprog = findSubProgramForNode(node, toCheck);
 		System.err.println("done.");
@@ -380,7 +381,7 @@ public class JodChecker2 extends AbstractChecker {
 	}
 	
 	
-	private Set<BasicBlock> findFeasibleBlocksRecursively(Prover prover, JodTransitionRelation tr, Set<BasicBlock> subprog, int timeout, Set<BasicBlock> toCheck) {
+	private Set<BasicBlock> findFeasibleBlocksRecursively(Prover prover, RocketScienceTransitionRelation tr, Set<BasicBlock> subprog, int timeout, Set<BasicBlock> toCheck) {
 		Set<BasicBlock> result = new HashSet<BasicBlock>();
 		System.err.println("Checking subprog of size "+subprog.size()+ " with timeout "+(timeout/1000)+"s");
 		if (isInfeasibleSubprogram(subprog)) {
@@ -447,7 +448,7 @@ public class JodChecker2 extends AbstractChecker {
 	}
 	
 	
-	private Set<Set<BasicBlock>> splitNTimes(JodTransitionRelation tr, Set<Set<BasicBlock>> splits, int n) {
+	private Set<Set<BasicBlock>> splitNTimes(RocketScienceTransitionRelation tr, Set<Set<BasicBlock>> splits, int n) {
 		if (n<=0) return splits;
 		HashSet<Set<BasicBlock>> result = new HashSet<Set<BasicBlock>>();
 		for (Set<BasicBlock> x : splits) {
@@ -457,7 +458,7 @@ public class JodChecker2 extends AbstractChecker {
 	}
 	
 	
-	private Set<BasicBlock> findSplitPoints(JodTransitionRelation tr, Set<BasicBlock> subprog) {
+	private Set<BasicBlock> findSplitPoints(RocketScienceTransitionRelation tr, Set<BasicBlock> subprog) {
 		Set<BasicBlock> result = new HashSet<BasicBlock>();
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>();
 		HashSet<BasicBlock> done = new HashSet<BasicBlock>();
@@ -483,7 +484,7 @@ public class JodChecker2 extends AbstractChecker {
 		return result;
 	}
 	
-	private Set<Set<BasicBlock>> splitInHalf(JodTransitionRelation tr, Set<BasicBlock> subprog) {
+	private Set<Set<BasicBlock>> splitInHalf(RocketScienceTransitionRelation tr, Set<BasicBlock> subprog) {
 		HashSet<Set<BasicBlock>> result = new HashSet<Set<BasicBlock>>();
 		
 		Set<BasicBlock> splitPoints = findSplitPoints(tr, subprog);
@@ -622,7 +623,7 @@ public class JodChecker2 extends AbstractChecker {
 	
 	
 
-	private ProverExpr mkDisjunction(JodTransitionRelation tr, Collection<BasicBlock> blocks) {
+	private ProverExpr mkDisjunction(RocketScienceTransitionRelation tr, Collection<BasicBlock> blocks) {
 		ProverExpr next;
 		if (blocks.size() == 0) {
 			next = prover.mkLiteral(true);
@@ -647,7 +648,7 @@ public class JodChecker2 extends AbstractChecker {
 	 * @param tr
 	 * @param paths
 	 */
-	private void assertPaths(Prover prover, JodTransitionRelation tr,
+	private void assertPaths(Prover prover, RocketScienceTransitionRelation tr,
 			Set<BasicBlock> blocks) {
 
 		// Encode each block
@@ -717,7 +718,7 @@ public class JodChecker2 extends AbstractChecker {
 	 * @param necessaryNodes one of these nodes needs to be in the path
 	 * @return
 	 */
-	private HashSet<BasicBlock> getPathFromModel(Prover prover, JodTransitionRelation tr, Set<BasicBlock> allBlocks, Set<BasicBlock> necessaryNodes) {
+	private HashSet<BasicBlock> getPathFromModel(Prover prover, RocketScienceTransitionRelation tr, Set<BasicBlock> allBlocks, Set<BasicBlock> necessaryNodes) {
 		// Blocks selected by the model 
 		HashSet<BasicBlock> enabledBlocks = new HashSet<BasicBlock>();
 		for (BasicBlock b : allBlocks) {
@@ -794,7 +795,7 @@ public class JodChecker2 extends AbstractChecker {
 
 	}
 	
-	public void toDot(String filename, JodTransitionRelation tr) {
+	public void toDot(String filename, RocketScienceTransitionRelation tr) {
 		HasseDiagram hd = tr.getHasseDiagram();
 //		HashSet<PartialBlockOrderNode> poNodes = getPoNodes(hd.getRoot());
 		HashMap<PartialBlockOrderNode, Integer> node2color = new HashMap<PartialBlockOrderNode, Integer>();
@@ -855,7 +856,7 @@ public class JodChecker2 extends AbstractChecker {
 	
 	
 	
-	public void hasseToDot(String filename, JodTransitionRelation tr) {
+	public void hasseToDot(String filename, RocketScienceTransitionRelation tr) {
 		HasseDiagram hd = tr.getHasseDiagram();
 		
 		File fpw = new File(filename);		
@@ -907,7 +908,7 @@ public class JodChecker2 extends AbstractChecker {
  * ---------------------------- Plan B --------------------------------
  */
 	
-	private Set<BasicBlock> tryToFindConflictInPO(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, int timeout) {	
+	private Set<BasicBlock> tryToFindConflictInPO(Prover prover, RocketScienceTransitionRelation tr, PartialBlockOrderNode node, int timeout) {	
 		//pick any
 		learnedConflicts.clear();
 		BasicBlock current = node.getElements().iterator().next();
@@ -1189,8 +1190,11 @@ public class JodChecker2 extends AbstractChecker {
 		
 		prover.push();
 		//assert this subprogram.
-		assertAbstractaPath(blocks);
-		prover.addAssertion(transRel.getReachabilityVariables().get(current));
+//		assertAbstractaPath(blocks);
+		
+		assertAbstractaPathCfGTheory(blocks);
+		
+		prover.addAssertion(transRel.getReachabilityVariables().get(current));		
 		//block all learned conflicts
 		Log.info("Asserting "+this.learnedConflicts.size()+" conflicts");
 		for (Set<BasicBlock> conflict : this.learnedConflicts) {
@@ -1272,6 +1276,70 @@ public class JodChecker2 extends AbstractChecker {
 		//System.err.println("Entries "+count);
 	}
 	
+
+	private void assertAbstractaPathCfGTheory(Set<BasicBlock> blocks) {
+		LinkedHashMap<ProverExpr, ProverExpr> ineffFlags = new LinkedHashMap<ProverExpr, ProverExpr>();
+		for (BasicBlock block : blocks) {
+			ProverExpr v = transRel.getReachabilityVariables().get(block);
+			ineffFlags.put(v, prover.mkVariable("" + v + "_flag",
+					prover.getBooleanType()));
+		}
+		Dag<IFormula> vcdag = transRel.getProverDAG();
+
+		LinkedList<ProverExpr> remainingBlockVars = new LinkedList<ProverExpr>();
+		LinkedList<ProverExpr> remainingIneffFlags = new LinkedList<ProverExpr>();
+		for (Entry<ProverExpr, ProverExpr> entry : ineffFlags.entrySet()) {
+			remainingBlockVars.add(entry.getKey());
+			remainingIneffFlags.add(entry.getValue());
+		}
+
+		((PrincessProver) prover).setupCFGPlugin(vcdag, remainingBlockVars,
+				remainingIneffFlags, 1);
+		
+		
+		// Encode each block
+		for (BasicBlock block : blocks) {
+			
+			// Get the successors of the block
+			LinkedList<BasicBlock> successors = new LinkedList<BasicBlock>();
+			for (BasicBlock succ : block.getSuccessors()) {
+				if (blocks.contains(succ)) {
+					successors.add(succ);
+				} 
+			}
+			
+			// Construct the disjunction of the successors
+			
+			// Make the assertion
+			ProverExpr assertion = prover.mkImplies(
+					transRel.getReachabilityVariables().get(block), mkDisjunction(transRel, successors)
+				);
+			
+			// Assert it
+			prover.addAssertion(assertion);
+			
+//			//now assert bwd
+//			LinkedList<BasicBlock> predecessors = new LinkedList<BasicBlock>();
+//			for (BasicBlock pred : block.getPredecessors()) {
+//				if (blocks.contains(pred)) {
+//					predecessors.add(pred);
+//				} 
+//			}
+//			
+//			assertion = prover.mkImplies(
+//					transRel.getReachabilityVariables().get(block), 
+//					mkDisjunction(transRel, predecessors)
+//				);
+//			
+//			// Assert it
+//			prover.addAssertion(assertion);			
+		}
+
+
+		prover.addAssertion(transRel.getReachabilityVariables().get(transRel.getProcedure().getRootNode()));
+		prover.addAssertion(transRel.getReachabilityVariables().get(transRel.getProcedure().getExitNode()));
+		//System.err.println("Entries "+count);
+	}
 	
 	
 }

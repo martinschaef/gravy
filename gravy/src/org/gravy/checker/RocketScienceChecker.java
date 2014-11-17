@@ -237,7 +237,7 @@ public class RocketScienceChecker extends
 		
 
 		JodChecker2 jodcheck = new JodChecker2(cff, procedure, prover);
-		JodTransitionRelation jtr = new JodTransitionRelation(procedure, cff, prover);
+		RocketScienceTransitionRelation jtr = new RocketScienceTransitionRelation(procedure, cff, prover);
 		
 		result.addAll(jodcheck.computeJodCover(prover, jtr, covered));
 		return result;
