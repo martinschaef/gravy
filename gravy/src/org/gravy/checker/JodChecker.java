@@ -231,7 +231,7 @@ public class JodChecker extends AbstractChecker {
 	public class PathSet extends HashSet<Path> {
 		private static final long serialVersionUID = 1L;
 	}
-	
+		
 	protected HashSet<BasicBlock> computeJodCoverDirect(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks) {
 
 		// Result: all nodes we managed to cover
@@ -243,6 +243,9 @@ public class JodChecker extends AbstractChecker {
 		// Map from block to the feasible paths that end in the block
 		HashMap<BasicBlock, PathSet> blockPaths = new HashMap<BasicBlock, PathSet>();
 				
+		// Map from blocks to blocks covered by it's paths
+		HashMap<BasicBlock, HashSet<BasicBlock>> blockCovered = new HashMap<BasicBlock, HashSet<BasicBlock>>();
+		
 		// Map from block to their in-degrees (of unprocessed nodes)
 		HashMap<BasicBlock, Integer> blockDegree = new HashMap<BasicBlock, Integer>();
 		for (BasicBlock block : allBlocks) {
@@ -250,11 +253,20 @@ public class JodChecker extends AbstractChecker {
 			blockDegree.put(block, degree);
 			if (degree == 0) {
 				blockQueue.addFirst(block);
+				
+				// Basic path 
 				Path path = new Path();
 				path.addLast(block);
+				
+				// Basic path set
 				PathSet pathSet = new PathSet();
 				pathSet.add(path);
 				blockPaths.put(block, pathSet);
+				
+				// Basic set of nodes
+				HashSet<BasicBlock> blockSet = new HashSet<BasicBlock>();
+				blockSet.add(block);
+				blockCovered.put(block, blockSet);
 			}
 		}
 			
@@ -279,6 +291,14 @@ public class JodChecker extends AbstractChecker {
 				// Extend all the paths
 				for (Path path : paths) {
 
+					// Path push
+					prover.push();
+
+					// Assert the path up to block
+					for (BasicBlock pathBlock : path) {
+						prover.addAssertion(tr.blockTransitionReleations.get(pathBlock));
+					}
+					
 					// Extend this path for each successor
 					for (BasicBlock succ : block.getSuccessors()) {
 
@@ -288,19 +308,50 @@ public class JodChecker extends AbstractChecker {
 						succPath.addLast(succ);
 					
 						// Existing paths 
+						HashSet<BasicBlock> succCoveredBlocks = null;
 						PathSet succExistingPaths = null;
-						if (blockPaths.containsKey(succ)) {
+						if (blockCovered.containsKey(succ)) {
+							succCoveredBlocks = blockCovered.get(succ);
 							succExistingPaths = blockPaths.get(succ);
 						} else {
+							succCoveredBlocks = new HashSet<BasicBlock>();
+							blockCovered.put(succ, succCoveredBlocks);
 							succExistingPaths = new PathSet();
+							blockPaths.put(succ, succExistingPaths);
 						}
 
-						// Check the path
-						if (isFeasibleAndNew(tr, succPath, succExistingPaths)) {
-							succExistingPaths.add(succPath);
-							blockPaths.put(succ, succExistingPaths);
-						} 
+						// Is it coverint something new
+						// Something different from existing paths
+						boolean extra = false;
+						for (BasicBlock succBlock : succPath) {
+							if (!succCoveredBlocks.contains(succBlock)) {
+								extra = true;
+								break;
+							}
+						}
+						if (!extra) {
+							continue;
+						}
+
+						// Add and check the successor
+						prover.push();
+						prover.addAssertion(tr.blockTransitionReleations.get(succ));
+						ProverResult res = prover.checkSat(true);
+						switch (res) {
+							case Sat:
+								succExistingPaths.add(succPath);
+								succCoveredBlocks.addAll(succPath);
+								break;
+							case Unsat:
+								break;
+							default:
+								throw new RuntimeException("Hella problems!");
+						}
+						prover.pop();
 					}
+					
+					// Path pop
+					prover.pop();
 				}
 			}
 
@@ -316,6 +367,7 @@ public class JodChecker extends AbstractChecker {
 
 			if (block != tr.getProcedure().getExitNode()) {
 				blockPaths.remove(block);
+				blockCovered.remove(block);
 			}
 			
 			Log.info("processed: " + processed.size());
@@ -354,17 +406,18 @@ public class JodChecker extends AbstractChecker {
 		}
 	}
 	
-	private boolean isFeasibleAndNew(JodTransitionRelation tr, Path path, PathSet existingPaths) {
+	private boolean isFeasibleAndNew(JodTransitionRelation tr, Path path, Collection<BasicBlock> existingBlocks) {
 
 		// Something different from existing paths
-		if (existingPaths != null) {
-			HashSet<BasicBlock> covered = new HashSet<BasicBlock>();
-			for (Path existingPath : existingPaths) {
-				covered.addAll(existingPath);
+		if (existingBlocks != null) {
+			boolean extra = false;
+			for (BasicBlock block : path) {
+				if (!existingBlocks.contains(block)) {
+					extra = true;
+					break;
+				}
 			}
-			int size = covered.size();
-			covered.addAll(path);
-			if (size == covered.size()) {
+			if (!extra) {
 				return false;
 			}
 		}
