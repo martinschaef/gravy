@@ -286,7 +286,7 @@ public class JodChecker extends AbstractChecker {
 				// The paths leading into block
 				PathSet paths = blockPaths.get(block);
 	
-				Log.info("paths: " + paths.size());
+				// Log.info("paths: " + paths.size());
 				
 				// Extend all the paths
 				for (Path path : paths) {
@@ -306,7 +306,7 @@ public class JodChecker extends AbstractChecker {
 						Path succPath = new Path();
 						succPath.addAll(path);
 						succPath.addLast(succ);
-					
+											
 						// Existing paths 
 						HashSet<BasicBlock> succCoveredBlocks = null;
 						PathSet succExistingPaths = null;
@@ -370,7 +370,9 @@ public class JodChecker extends AbstractChecker {
 				blockCovered.remove(block);
 			}
 			
-			Log.info("processed: " + processed.size());
+			if (processed.size() % 100 == 0) {
+				Log.info("processed: " + processed.size());
+			}
 		}
 		
 		// Get the paths of the exit node
