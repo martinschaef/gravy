@@ -9,6 +9,7 @@ import java.io.PrintWriter;
 import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
+import java.util.LinkedHashMap;
 import java.util.LinkedList;
 import java.util.Map.Entry;
 import java.util.Set;
@@ -25,7 +26,9 @@ import org.gravy.util.Log;
 import org.gravy.util.Statistics;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.JodTransitionRelation;
+import org.joogie.cfgPlugin.Util.Dag;
 
+import ap.parser.IFormula;
 import boogie.controlflow.AbstractControlFlowFactory;
 import boogie.controlflow.BasicBlock;
 import boogie.controlflow.CfgAxiom;
@@ -142,7 +145,7 @@ public class JodChecker2 extends AbstractChecker {
 		PartialBlockOrderNode poRoot = tr.getHasseDiagram().getRoot();
 				
 		System.err.println("Searching for feasible paths...");
-		coveredBlocks.addAll(findFeasibleBlocks(prover, tr, poRoot, new HashSet<BasicBlock>(alreadyCovered)));
+		coveredBlocks.addAll(findFeasibleBlocks2(prover, tr, poRoot, new HashSet<BasicBlock>(alreadyCovered)));
 		
 
 		return coveredBlocks;
@@ -154,7 +157,7 @@ public class JodChecker2 extends AbstractChecker {
 	//to make sure that we don't do the same work twice.
 	Set<Set<BasicBlock>> infeasibleSubprograms = new HashSet<Set<BasicBlock>>(); 
 
-	private int TIMEOUT1 = 8000;
+	private int TIMEOUT1 = 1000;
 //	private int TIMEOUT2 = 10000;
 	private int TIMEOUT2 = 5000;
 	/**
@@ -251,6 +254,30 @@ public class JodChecker2 extends AbstractChecker {
 		}		
 		return result;	
 	}
+	
+	private HashSet<BasicBlock> findFeasibleBlocks2(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> alreadyCovered) {
+		if (node.getSuccessors().size()>0) {
+			boolean allChildrenInfeasible = true;
+			HashSet<BasicBlock> result = new HashSet<BasicBlock>();
+			for (PartialBlockOrderNode child : node.getSuccessors()) {
+				Set<BasicBlock> res = findFeasibleBlocks2(prover, tr, child, alreadyCovered);
+				result.addAll(res);
+				if (!res.isEmpty()) allChildrenInfeasible = false;
+				//check if we have proved this node to be infeasible
+				if (knownInfeasibleNodes.contains(node)) return new HashSet<BasicBlock>();
+			}
+			if (allChildrenInfeasible) knownInfeasibleNodes.add(node);
+			return result;			
+		} else {
+			HashSet<BasicBlock> result = new HashSet<BasicBlock>(alreadyCovered);
+			if (alreadyCovered.contains(node.getElements())) return result;
+			result.addAll(tryToFindConflictInPO(prover, tr, node, 0));
+			return result;
+		}
+	}
+
+	
+	
 	
 	private boolean isInfeasibleInAbstraction(Prover prover, JodTransitionRelation tr, PartialBlockOrderNode node, Set<BasicBlock> toCheck, int timeout, int iterations) {
 		System.err.print("Building abstraction ... ");
@@ -885,13 +912,25 @@ public class JodChecker2 extends AbstractChecker {
 		learnedConflicts.clear();
 		BasicBlock current = node.getElements().iterator().next();
 		try {
-			Set<BasicBlock> res = up(current, current, new HashSet<BasicBlock>());
-			if (res==null) {
+			Set<BasicBlock> res = null;
+			//find the first one cheap.
+			Set<BasicBlock> path = up(current, current, new HashSet<BasicBlock>());
+			
+			while (path!=null) {
+				if (checkPath(current, path)) {
+					return path;
+				}
+				path = findNextPath(current);
+			}
+			
+//			Set<BasicBlock> res = up(current, current, new HashSet<BasicBlock>());
+			if (path==null) {
 				Log.error("Cool ... learned stuff from conflict.");
 				res = new HashSet<BasicBlock>();
 			}
 			return res;
 		} catch (HackInfeasibleException e){
+			this.knownInfeasibleNodes.add(node);
 			Log.error("YEAH");
 		}
 		return new HashSet<BasicBlock>();
@@ -926,9 +965,9 @@ public class JodChecker2 extends AbstractChecker {
 			//ignore paths that are already known conflicts.
 			if (isInLearnedConflicts(path_)) return null;
 			
-			if (checkPath(source, path_)) {
+//			if (checkPath(source, path_)) {
 				return path_;
-			}
+//			}
 		}
 		return null;
 	}
@@ -969,6 +1008,7 @@ public class JodChecker2 extends AbstractChecker {
 			Log.info("\tUNST");
 			int oldsize = path.size();
 			computePseudoUnsatCore(path);
+			learnedConflicts.add(new HashSet<BasicBlock>(path));
 			if (oldsize==path.size()) {
 				Log.error("nothing could be removed");
 				return false;
@@ -979,60 +1019,65 @@ public class JodChecker2 extends AbstractChecker {
 				markSmallestSubtreeInfeasible(path);
 				throw new HackInfeasibleException();
 			} else {
-				Log.info("\ttrying to learn conflict.");
-//				for (BasicBlock b : path) System.err.println(b);
-				learnedConflicts.add(new HashSet<BasicBlock>(path));
-
-				//compute the part of the core that is not in higher equiv classes
-				Set<BasicBlock> missingPart = new HashSet<BasicBlock>(path);
-				missingPart.removeAll(inevitableBlocks);
-				
-				//compute the part of the core that is in higher equiv classes
-				Set<BasicBlock> core = new HashSet<BasicBlock>(path);
-				core.removeAll(missingPart);
-				
-				System.err.println("Core size "+ core.size() + " missing part: "+missingPart.size());
-				
-				Set<PartialBlockOrderNode> parents = findAllParents(this.transRel.getHasseDiagram().findNode(source));
-								
-				Set<PartialBlockOrderNode> todo = new HashSet<PartialBlockOrderNode>(); 
-				for (BasicBlock b : missingPart) {
-					PartialBlockOrderNode n = findParentIn(this.transRel.getHasseDiagram().findNode(b), parents);
-					if (n!=null) {
-						//get the subtree for n
-						Set<PartialBlockOrderNode> tmp = findAllChildren(n);
-						//remove n from the sub tree and add all the other to the todo list
-						tmp.remove(n);
-						todo.addAll(tmp);
-					} else {
-						throw new RuntimeException("bug");
-					}
-				}
-				
-				System.err.println("TODO list Before: "+todo.size());
-				for (Set<BasicBlock> conflict : learnedConflicts) {
-					if (conflict.containsAll(core) && core.size()>0) {
-						for (BasicBlock other : conflict) {
-							if (!core.contains(other)) {
-								todo.removeAll(findAllChildren(this.transRel.getHasseDiagram().findNode(other)));
-								removeParentsWithoutChildren(todo);
-								if (todo.isEmpty()) {
-									Log.info("Hurray, we actually learned something"); 
-									markSmallestSubtreeInfeasible(path);
-									throw new HackInfeasibleException();									
-								}
-							}
-						}
-					}
-				}				
-				System.err.println("TODO list After: "+todo.size());
-				Log.info("\tno conflict learned :(");
+				Log.info("nothing learned. Looking for next path.");
 			}
 		} else {
 			throw new RuntimeException("PROVER FAILED");
 		}
 		return false;
 	}
+	
+	
+	private void tryToLearnConflict(BasicBlock source, Set<BasicBlock> path, Set<BasicBlock> inevitableBlocks) throws HackInfeasibleException {
+		Log.info("\ttrying to learn conflict.");
+//		for (BasicBlock b : path) System.err.println(b);
+
+		//compute the part of the core that is not in higher equiv classes
+		Set<BasicBlock> missingPart = new HashSet<BasicBlock>(path);
+		missingPart.removeAll(inevitableBlocks);
+		
+		//compute the part of the core that is in higher equiv classes
+		Set<BasicBlock> core = new HashSet<BasicBlock>(path);
+		core.removeAll(missingPart);
+		
+		System.err.println("Core size "+ core.size() + " missing part: "+missingPart.size());
+		
+		Set<PartialBlockOrderNode> parents = findAllParents(this.transRel.getHasseDiagram().findNode(source));
+						
+		Set<PartialBlockOrderNode> todo = new HashSet<PartialBlockOrderNode>(); 
+		for (BasicBlock b : missingPart) {
+			PartialBlockOrderNode n = findParentIn(this.transRel.getHasseDiagram().findNode(b), parents);
+			if (n!=null) {
+				//get the subtree for n
+				Set<PartialBlockOrderNode> tmp = findAllChildren(n);
+				//remove n from the sub tree and add all the other to the todo list
+				tmp.remove(n);
+				todo.addAll(tmp);
+			} else {
+				throw new RuntimeException("bug");
+			}
+		}
+		
+		System.err.println("TODO list Before: "+todo.size());
+		for (Set<BasicBlock> conflict : learnedConflicts) {
+			if (conflict.containsAll(core) && core.size()>0) {
+				for (BasicBlock other : conflict) {
+					if (!core.contains(other)) {
+						todo.removeAll(findAllChildren(this.transRel.getHasseDiagram().findNode(other)));
+						removeParentsWithoutChildren(todo);
+						if (todo.isEmpty()) {
+							Log.info("Hurray, we actually learned something"); 
+							markSmallestSubtreeInfeasible(path);
+							throw new HackInfeasibleException();									
+						}
+					}
+				}
+			}
+		}				
+		System.err.println("TODO list After: "+todo.size());
+		Log.info("\tno conflict learned :(");
+	}
+	
 	
 	private void removeParentsWithoutChildren(Set<PartialBlockOrderNode> nodes) {
 		boolean progress = true;
@@ -1049,7 +1094,10 @@ public class JodChecker2 extends AbstractChecker {
 				}
 				if (!found) toDelete.add(node);
 			}
-			if (toDelete.size()>0) progress = true;
+			if (toDelete.size()>0) {
+				System.err.println("removing "+toDelete.size());
+				progress = true;
+			}
 			nodes.removeAll(toDelete);
 		}		
 	}
@@ -1129,4 +1177,101 @@ public class JodChecker2 extends AbstractChecker {
 		}
 		return false;
 	}
+	
+	
+/*
+ * ================ stuff to find path with sat solver ===================== 	
+ */
+	
+	private Set<BasicBlock> findNextPath(BasicBlock current) {
+		Log.info("Finding next path");
+		Set<BasicBlock> blocks = this.getSubprogContaining(current);
+		
+		prover.push();
+		//assert this subprogram.
+		assertAbstractaPath(blocks);
+		prover.addAssertion(transRel.getReachabilityVariables().get(current));
+		//block all learned conflicts
+		Log.info("Asserting "+this.learnedConflicts.size()+" conflicts");
+		for (Set<BasicBlock> conflict : this.learnedConflicts) {
+			ProverExpr[] conj = new ProverExpr[conflict.size()];
+			int i=0;
+			for (BasicBlock b : conflict) {
+				conj[i++] = this.transRel.getReachabilityVariables().get(b);
+			}
+			prover.addAssertion(prover.mkNot(prover.mkAnd(conj)));
+		}
+		Log.info("Checking for path.");		
+		ProverResult res = prover.checkSat(true);
+		if (res == ProverResult.Sat) {
+			HashSet<BasicBlock> necessaryNodes = new HashSet<BasicBlock>();
+			necessaryNodes.add(current);
+			Set<BasicBlock> path = this.getPathFromModel(prover, transRel, blocks, necessaryNodes);
+			prover.pop();
+			Log.info("Found one.");
+			return path;
+		} else if (res == ProverResult.Unsat) {
+			prover.pop();
+			//otherwise, we can remove it.
+		} else {
+			throw new RuntimeException("PROVER FAILED");
+		}	
+		Log.info("Found NONE.");
+		return null;
+	}
+	
+	private void assertAbstractaPath(Set<BasicBlock> blocks) {
+//		LinkedHashMap<ProverExpr, ProverExpr> ineffFlags = new LinkedHashMap<ProverExpr, ProverExpr>();
+//		for (BasicBlock block : blocks) {
+//			ProverExpr v = transRel.getReachabilityVariables().get(block);
+//			ineffFlags.put(v, prover.mkVariable("" + v + "_flag",
+//					prover.getBooleanType()));
+//		}
+//		Dag<IFormula> vcdag = transRel.getProverDAG();
+		
+		// Encode each block
+		for (BasicBlock block : blocks) {
+			
+			// Get the successors of the block
+			LinkedList<BasicBlock> successors = new LinkedList<BasicBlock>();
+			for (BasicBlock succ : block.getSuccessors()) {
+				if (blocks.contains(succ)) {
+					successors.add(succ);
+				} 
+			}
+			
+			// Construct the disjunction of the successors
+			
+			// Make the assertion
+			ProverExpr assertion = prover.mkImplies(
+					transRel.getReachabilityVariables().get(block), mkDisjunction(transRel, successors)
+				);
+			
+			// Assert it
+			prover.addAssertion(assertion);
+			
+			//now assert fwd
+			LinkedList<BasicBlock> predecessors = new LinkedList<BasicBlock>();
+			for (BasicBlock pred : block.getPredecessors()) {
+				if (blocks.contains(pred)) {
+					predecessors.add(pred);
+				} 
+			}
+			
+			assertion = prover.mkImplies(
+					transRel.getReachabilityVariables().get(block), 
+					mkDisjunction(transRel, predecessors)
+				);
+			
+			// Assert it
+			prover.addAssertion(assertion);			
+		}
+
+
+		prover.addAssertion(transRel.getReachabilityVariables().get(transRel.getProcedure().getRootNode()));
+		//System.err.println("Entries "+count);
+	}
+	
+	
+	
 }
