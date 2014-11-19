@@ -57,10 +57,10 @@ public class ProgramAnalysis {
 	private static ReportPrinter getDefaultReportPrinter() {
 		ReportPrinter rp = null;
 		switch (Options.v().getChecker()) {
-		case 0: {
-			rp = new DefaultGraVyReportPrinter();
-			break;
-		}
+//		case 0: {
+//			rp = new DefaultGraVyReportPrinter();
+//			break;
+//		}
 		case 1: {
 			rp = new InterpolatingInfeasibleCodeReportPrinter();
 			break;
@@ -83,7 +83,7 @@ public class ProgramAnalysis {
 		}								
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
-			rp = new DefaultGraVyReportPrinter();
+			rp = new DefaultInfeasibleCodeReportPrinter();
 			break;
 		}
 		}
@@ -201,10 +201,10 @@ public class ProgramAnalysis {
 		
 		
 		switch (Options.v().getChecker()) {
-		case 0: {
-			detectionThread = new GravyChecker(cff, p);
-			break;
-		}
+//		case 0: {
+//			detectionThread = new GravyChecker(cff, p);
+//			break;
+//		}
 		case 1: {
 			detectionThread = new InfeasibleCodeChecker(cff, p);
 			break;
@@ -227,7 +227,7 @@ public class ProgramAnalysis {
 		}								
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
-			detectionThread = new GravyChecker(cff, p);
+			detectionThread = new RocketScienceChecker(cff, p);
 			break;
 		}
 		}

@@ -76,10 +76,10 @@ public abstract class AbstractChecker implements Runnable {
 			AbstractTransitionRelation tr;
 			
 			switch (Options.v().getChecker()) {
-			case 0: {
-				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
-				break;
-			}
+//			case 0: {
+//				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
+//				break;
+//			}
 			case 1: {
 				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
 				break;
@@ -102,7 +102,7 @@ public abstract class AbstractChecker implements Runnable {
 			}											
 			default: {
 				Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
-				tr = new CfgTransitionRelation(this.procedure, this.cff, prover);
+				tr = new RocketScienceTransitionRelation(this.procedure, this.cff, prover);
 				break;
 			}
 			}			
