@@ -72,7 +72,7 @@ public class Options {
 
 	@Option(name = "-loopmode", usage = "Method for abstracting loops.\n \t0: (default) use havoc instead of unwindings.\n"
 			+ "\t1: use havoc and unwind the last iteration (experimental)")
-	private int loopmode = 0; //-1 means no unwindings
+	private int loopmode = 1; //-1 means no unwindings
 	
 	public int getLoopMode() {
 		return loopmode;
