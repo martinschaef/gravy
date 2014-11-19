@@ -231,8 +231,101 @@ public class JodChecker extends AbstractChecker {
 	public class PathSet extends HashSet<Path> {
 		private static final long serialVersionUID = 1L;
 	}
+
+	// Map from blocks to blocks covered by it's paths
+	HashMap<BasicBlock, HashSet<BasicBlock>> dfsBlockCovered = new HashMap<BasicBlock, HashSet<BasicBlock>>();
+
+	// Path for the dfs
+	Path dfsPath = new Path();
+	
+	JodTransitionRelation dfsTr = null;
+	
+	protected HashSet<BasicBlock> computeJodCoverDirectDFS(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks) {
+
+		Log.info("to cover: " + allBlocks.size());
+
+		// Result: all nodes we managed to cover
+		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>();
 		
-	protected HashSet<BasicBlock> computeJodCoverDirect(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks) {
+		dfsBlockCovered.clear();
+		dfsPath.clear();
+		dfsTr = tr;
+		
+		// Add the root and start
+		computeJodCoverDirectDFS_runner(tr.getProcedure().getRootNode());
+
+		// Get the paths of the exit node
+		BasicBlock exit = tr.getProcedure().getExitNode();
+	
+		// Get covered stuff
+		if (dfsBlockCovered.containsKey(exit)) {
+			coveredBlocks.addAll(dfsBlockCovered.get(exit));
+		}
+
+		Log.info("covered: " + coveredBlocks.size());
+
+		return coveredBlocks;
+	}
+	
+	// 
+	private void computeJodCoverDirectDFS_runner(BasicBlock block) {
+		// Add the block to the path
+		dfsPath.addLast(block);
+		
+		// Get the block covered alrady 
+		if (!dfsBlockCovered.containsKey(block)) {
+			dfsBlockCovered.put(block, new HashSet<BasicBlock>());
+		}
+		HashSet<BasicBlock> blockCovered = dfsBlockCovered.get(block);
+		
+		// Check if this path covers something new
+		boolean extra = false;
+		for (BasicBlock pathBlock : dfsPath) {
+			if (!blockCovered.contains(pathBlock)) {
+				extra = true;
+				break;
+			}
+		}
+		
+		// If we cover something new, then check feasibility
+		if (extra) {
+			
+			// Push the solver
+			prover.push();
+
+			// Add the asssertino and check if the path is feasible
+			prover.addAssertion(dfsTr.blockTransitionReleations.get(block));
+			ProverResult res = prover.checkSat(true);
+			
+			switch (res) {
+			case Sat:
+				// Feasible, add to covered blocks
+				dfsBlockCovered.get(block).addAll(dfsPath);
+				// Continue with the children
+				for (BasicBlock succ : block.getSuccessors()) {
+						computeJodCoverDirectDFS_runner(succ);
+				}
+				if (block == dfsTr.getProcedure().getExitNode()) {
+					Log.info("covered: " + dfsBlockCovered.get(block).size());
+				}
+				
+				break;
+			case Unsat:
+				// Not feasible, done
+				break;
+			default:
+				throw new RuntimeException("WHOA!");
+			}
+			
+			// Pop the solver
+			prover.pop();
+		}
+		
+		// Remove the block from the path
+		dfsPath.removeLast();
+	}
+
+	protected HashSet<BasicBlock> computeJodCoverDirectBFS(JodTransitionRelation tr, HashSet<BasicBlock> allBlocks) {
 
 		// Result: all nodes we managed to cover
 		HashSet<BasicBlock> coveredBlocks = new HashSet<BasicBlock>();
@@ -465,7 +558,8 @@ public class JodChecker extends AbstractChecker {
 		addAxioms(tr);
 
 		// Result: all nodes we managed to cover
-		HashSet<BasicBlock> coveredBlocks = computeJodCoverDirect(tr, allBlocks);
+		// HashSet<BasicBlock> coveredBlocks = computeJodCoverDirectBFS(tr, allBlocks);
+		HashSet<BasicBlock> coveredBlocks = computeJodCoverDirectDFS(tr, allBlocks);
 
 		// The nodes we need to cover
 		HashSet<BasicBlock> todo = new HashSet<BasicBlock>(allBlocks);

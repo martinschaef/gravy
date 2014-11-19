@@ -37,8 +37,10 @@ cp $JAR .
 (
 for test in `find $TEST_DIR -name "*.bpl" | sort`
 do 
-  echo Running $test
-  java -jar gravy.jar "$test" -checker $checker -loopmode 1 -t $TIMELIMIT 
+  cp $test .
+  TO_RUN=`basename $test`
+  echo Running $TO_RUN
+  java -Xmx4g -Xms4g -Xss4m -jar gravy.jar "$TO_RUN" -checker $checker -loopmode 1 -t $TIMELIMIT 
 done
 ) >& run_tests.out &
 
