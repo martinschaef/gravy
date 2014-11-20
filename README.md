@@ -5,7 +5,7 @@ GraVy is a static checker for Boogie programs. Similar to a deductive verifier, 
 
 
 GraVy support two modes of checking Boogie files:
-- **[Infeasible code detection](http://iist.unu.edu/sites/iist.unu.edu/files/biblio/cav12.pdf)**. Infeasible code detection checks for the existence of statements, that are either not forward or not backward reachable on any feasible path.
+- **[Inconsistent code detection](http://iist.unu.edu/sites/iist.unu.edu/files/biblio/cav12.pdf)**. Inconsistent code detection checks for the existence of statements, that are either not forward or not backward reachable on any feasible path. To run the inconsistent code detection on Java, use our new [Bixie](www.csl.sri.com/projects/bixie/) tool.
 
 - **[Gradual verification](http://www.csl.sri.com/users/schaef/nfm14.pdf)**. In gradual verification, every assertion of the form *assert(e)* is turned into a conditional choice *if(!e){$AssertionFailure=true;return;}*. This way, GraVy can be used to check if an assertion never fails (the assignment *$AssertionFailure=true* does not occur on any feasible path), if it may fail (both branches of the conditional are reachable), if it must fail, or if it is unreachable.  
 
@@ -18,9 +18,13 @@ GraVy support two modes of checking Boogie files:
 For a quick start, download the all-in-one [jar file](https://github.com/martinschaef/gravy/blob/master/gravy/dist/gravy.jar). For gradual verification of a Boogie file call:
     java -jar gravy.jar [myFile.bpl]
     
-for infeasible code detection call: 
+for inconsistent code detection call: 
 
-    java -jar gravy.jar [myFile.bpl] -checker 1
+    java -jar gravy.jar [myFile.bpl] -checker 1 -loopmode 1
+
+or for an experimental but faster checker use:
+
+    java -jar gravy.jar [myFile.bpl] -checker 5 -loopmode 1
     
 It makes sense to provide GraVy with a lot of memory when checking real programs. We use:
 
