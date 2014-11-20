@@ -70,7 +70,6 @@ public abstract class AbstractChecker implements Runnable {
 		//Prover prover = pf.spawnWithLog("lala");
 		try {
 			this.prover = pf.spawn();
-//			this.prover = pf.spawnWithLog("fuckadoodoo");
 			Log.debug("Compute Transition Relation "+this.procedure.getProcedureName());
 			//AbstractTransitionRelation tr = new TransitionRelation(this.procedure, this.cff, prover);
 			AbstractTransitionRelation tr;

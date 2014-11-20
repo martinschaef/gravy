@@ -9,14 +9,12 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.gravy.checker.AbstractChecker;
-import org.gravy.checker.GravyChecker;
 import org.gravy.checker.InfeasibleCodeChecker;
 import org.gravy.checker.JodChecker;
 import org.gravy.checker.JodChecker2;
 import org.gravy.checker.RocketScienceChecker;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
-import org.gravy.reportprinter.DefaultGraVyReportPrinter;
 import org.gravy.reportprinter.DefaultInfeasibleCodeReportPrinter;
 import org.gravy.reportprinter.InterpolatingInfeasibleCodeReportPrinter;
 import org.gravy.reportprinter.ReportPrinter;
@@ -189,9 +187,9 @@ public class ProgramAnalysis {
 	}
 	
 	private static Report analyzeProcedure(CfgProcedure p, AbstractControlFlowFactory cff) {
-//		if (Options.v().getDebugMode()) {
+		if (Options.v().getDebugMode()) {
 			Log.info("Checking: " + p.getProcedureName());
-//		}
+		}
 		// create an executor to kill the verification with a timeout if
 		// necessary
 		ExecutorService executor = Executors.newSingleThreadExecutor();		

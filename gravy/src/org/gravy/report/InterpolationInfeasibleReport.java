@@ -51,7 +51,7 @@ public class InterpolationInfeasibleReport extends Report {
 	
 	@Override
 	public void update() {
-		Log.info("trying to localize fault.");
+//		Log.info("trying to localize fault.");
 		if (this.flt!=null && this.tr!=null && this.infeasibleBlocks!=null) {
 //			this.flt.run();
 //			this.flt.shutDownProver();
