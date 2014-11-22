@@ -102,6 +102,9 @@ public class RocketScienceChecker extends
 		infeasibleBlocks = new HashSet<BasicBlock>(tr.getReachabilityVariables().keySet());
 		infeasibleBlocks.removeAll(feasibleBlocks);
 		//this is just for debugging purposes
+		if (Options.v().getChecker()==4) {
+			return new InterpolationInfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
+		}
 		return new InfeasibleReport(this.cff, atr, this.feasibleBlocks, this.infeasibleBlocks);
 	}
 		

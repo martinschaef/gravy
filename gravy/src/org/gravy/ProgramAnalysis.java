@@ -72,7 +72,7 @@ public class ProgramAnalysis {
 			break;
 		}				
 		case 4: {
-			rp = new DefaultInfeasibleCodeReportPrinter();
+			rp = new InterpolatingInfeasibleCodeReportPrinter();
 			break;
 		}						
 		case 5: {
@@ -216,7 +216,7 @@ public class ProgramAnalysis {
 			break;
 		}				
 		case 4: {
-			detectionThread = new JodChecker2(cff, p);
+			detectionThread = new RocketScienceChecker(cff, p);
 			break;
 		}						
 		case 5: {
