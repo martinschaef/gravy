@@ -236,9 +236,13 @@ public class ProgramAnalysis {
 		boolean exception = false;
 
 		try {
-			// start thread and wait xx seconds			
-			future.get(Options.v().getTimeOut(),
-					TimeUnit.MILLISECONDS);
+			// start thread and wait xx seconds. If timeout is set to 0, wait until it terminates.			
+			if (Options.v().getTimeOut()>0) {
+				future.get(Options.v().getTimeOut(),
+						TimeUnit.MILLISECONDS);
+			} else {
+				future.get();
+			}
 			Log.debug("Finished method " + p.getProcedureName());
 		} catch (TimeoutException e) {
 			// set timeout to method info

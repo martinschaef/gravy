@@ -172,7 +172,7 @@ public class JodChecker2 extends AbstractChecker {
 		HashSet<BasicBlock> result = new HashSet<BasicBlock>(alreadyCovered);
 			
 		if (knownInfeasibleNodes.contains(node)) {
-			Log.info("covered with previous check. Done");
+			Log.debug("covered with previous check. Done");
 			return result;
 		}
 		
@@ -926,13 +926,13 @@ public class JodChecker2 extends AbstractChecker {
 			
 //			Set<BasicBlock> res = up(current, current, new HashSet<BasicBlock>());
 			if (path==null) {
-				Log.error("Cool ... learned stuff from conflict.");
+				Log.debug("Cool ... learned stuff from conflict.");
 				res = new HashSet<BasicBlock>();
 			}
 			return res;
 		} catch (HackInfeasibleException e){
 			this.knownInfeasibleNodes.add(node);
-			Log.error("YEAH");
+			Log.debug("YEAH");
 		}
 		return new HashSet<BasicBlock>();
 	}
@@ -994,7 +994,7 @@ public class JodChecker2 extends AbstractChecker {
 	Set<Set<BasicBlock>> learnedConflicts = new HashSet<Set<BasicBlock>>();
 	
 	private boolean checkPath(BasicBlock source, Set<BasicBlock> path) throws HackInfeasibleException {
-		Log.info("checking path");
+		Log.debug("checking path");
 		
 		prover.push();
 		for (BasicBlock b : path) {
@@ -1003,24 +1003,24 @@ public class JodChecker2 extends AbstractChecker {
 		ProverResult res = prover.checkSat(true);
 		prover.pop();
 		if (res == ProverResult.Sat) {
-			Log.info("\tSAT");
+			Log.debug("\tSAT");
 			return true;
 		} else if (res == ProverResult.Unsat) {
-			Log.info("\tUNST");
+			Log.debug("\tUNST");
 			int oldsize = path.size();
 			computePseudoUnsatCore(path);
 			learnedConflicts.add(new HashSet<BasicBlock>(path));
 			if (oldsize==path.size()) {
-				Log.error("nothing could be removed");
+				Log.debug("nothing could be removed");
 				return false;
 			}
 			Set<BasicBlock> inevitableBlocks = findNodeThatMustBePassed(this.transRel.getHasseDiagram().findNode(source));
 			if (inevitableBlocks.containsAll(path)) {
-				Log.info("FOUND CONFLICT! DONE"); 
+				Log.debug("FOUND CONFLICT! DONE"); 
 				markSmallestSubtreeInfeasible(path);
 				throw new HackInfeasibleException();
 			} else {
-				Log.info("nothing learned. Looking for next path.");
+				Log.debug("nothing learned. Looking for next path.");
 			}
 		} else {
 			throw new RuntimeException("PROVER FAILED");
@@ -1030,7 +1030,7 @@ public class JodChecker2 extends AbstractChecker {
 	
 	
 	private void tryToLearnConflict(BasicBlock source, Set<BasicBlock> path, Set<BasicBlock> inevitableBlocks) throws HackInfeasibleException {
-		Log.info("\ttrying to learn conflict.");
+		Log.debug("\ttrying to learn conflict.");
 //		for (BasicBlock b : path) System.err.println(b);
 
 		//compute the part of the core that is not in higher equiv classes
@@ -1067,7 +1067,7 @@ public class JodChecker2 extends AbstractChecker {
 						todo.removeAll(findAllChildren(this.transRel.getHasseDiagram().findNode(other)));
 						removeParentsWithoutChildren(todo);
 						if (todo.isEmpty()) {
-							Log.info("Hurray, we actually learned something"); 
+							Log.debug("Hurray, we actually learned something"); 
 							markSmallestSubtreeInfeasible(path);
 							throw new HackInfeasibleException();									
 						}
@@ -1076,7 +1076,7 @@ public class JodChecker2 extends AbstractChecker {
 			}
 		}				
 		System.err.println("TODO list After: "+todo.size());
-		Log.info("\tno conflict learned :(");
+		Log.debug("\tno conflict learned :(");
 	}
 	
 	
@@ -1125,7 +1125,7 @@ public class JodChecker2 extends AbstractChecker {
 	
 	private void computePseudoUnsatCore(Set<BasicBlock> path) {
 		LinkedList<BasicBlock> todo = new LinkedList<BasicBlock>(path);
-		Log.info("computing pseudo unsat core");
+		Log.debug("computing pseudo unsat core");
 		while (!todo.isEmpty()) {
 			BasicBlock current = todo.pop();
 			path.remove(current);
@@ -1185,7 +1185,7 @@ public class JodChecker2 extends AbstractChecker {
  */
 	
 	private Set<BasicBlock> findNextPath(BasicBlock current) {
-		Log.info("Finding next path");
+		Log.debug("Finding next path");
 		Set<BasicBlock> blocks = this.getSubprogContaining(current);
 		
 		prover.push();
@@ -1196,7 +1196,7 @@ public class JodChecker2 extends AbstractChecker {
 		
 		prover.addAssertion(transRel.getReachabilityVariables().get(current));		
 		//block all learned conflicts
-		Log.info("Asserting "+this.learnedConflicts.size()+" conflicts");
+		Log.debug("Asserting "+this.learnedConflicts.size()+" conflicts");
 		for (Set<BasicBlock> conflict : this.learnedConflicts) {
 			ProverExpr[] conj = new ProverExpr[conflict.size()];
 			int i=0;
@@ -1205,14 +1205,14 @@ public class JodChecker2 extends AbstractChecker {
 			}
 			prover.addAssertion(prover.mkNot(prover.mkAnd(conj)));
 		}
-		Log.info("Checking for path.");		
+		Log.debug("Checking for path.");		
 		ProverResult res = prover.checkSat(true);
 		if (res == ProverResult.Sat) {
 			HashSet<BasicBlock> necessaryNodes = new HashSet<BasicBlock>();
 			necessaryNodes.add(current);
 			Set<BasicBlock> path = this.getPathFromModel(prover, transRel, blocks, necessaryNodes);
 			prover.pop();
-			Log.info("Found one.");
+			Log.debug("Found one.");
 			return path;
 		} else if (res == ProverResult.Unsat) {
 			prover.pop();
@@ -1220,7 +1220,7 @@ public class JodChecker2 extends AbstractChecker {
 		} else {
 			throw new RuntimeException("PROVER FAILED");
 		}	
-		Log.info("Found NONE.");
+		Log.debug("Found NONE.");
 		return null;
 	}
 	
