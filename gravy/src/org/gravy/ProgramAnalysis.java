@@ -9,12 +9,13 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
 
 import org.gravy.checker.AbstractChecker;
+import org.gravy.checker.Atva15Checker;
 import org.gravy.checker.InfeasibleCodeChecker;
 import org.gravy.checker.JodChecker;
-import org.gravy.checker.JodChecker2;
 import org.gravy.checker.RocketScienceChecker;
 import org.gravy.report.InterpolationInfeasibleReport;
 import org.gravy.report.Report;
+import org.gravy.reportprinter.Atva15ReportPrinter;
 import org.gravy.reportprinter.DefaultInfeasibleCodeReportPrinter;
 import org.gravy.reportprinter.InterpolatingInfeasibleCodeReportPrinter;
 import org.gravy.reportprinter.ReportPrinter;
@@ -77,6 +78,10 @@ public class ProgramAnalysis {
 		}						
 		case 5: {
 			rp = new DefaultInfeasibleCodeReportPrinter();
+			break;
+		}								
+		case 6: {
+			rp = new Atva15ReportPrinter();
 			break;
 		}								
 		default: {
@@ -222,7 +227,11 @@ public class ProgramAnalysis {
 		case 5: {
 			detectionThread = new RocketScienceChecker(cff, p);
 			break;
-		}								
+		}
+		case 6: {
+			detectionThread = new Atva15Checker(cff, p);
+			break;
+		}										
 		default: {
 			Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 			detectionThread = new RocketScienceChecker(cff, p);

@@ -20,6 +20,7 @@ import org.gravy.prover.ProverResult;
 import org.gravy.prover.princess.PrincessProver;
 import org.gravy.report.Report;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
+import org.gravy.verificationcondition.Atva15TransitionRelation;
 import org.gravy.verificationcondition.CfgTransitionRelation;
 import org.gravy.verificationcondition.JodTransitionRelation;
 import org.gravy.verificationcondition.RocketScienceTransitionRelation;
@@ -99,6 +100,10 @@ public abstract class AbstractChecker implements Runnable {
 				tr = new RocketScienceTransitionRelation(this.procedure, this.cff, prover);
 				break;
 			}											
+			case 6: {
+				tr = new Atva15TransitionRelation(this.procedure, this.cff, prover);
+				break;
+			}														
 			default: {
 				Log.error("WARNING: -checker "+ Options.v().getChecker() + " using default 0 instead!");
 				tr = new RocketScienceTransitionRelation(this.procedure, this.cff, prover);
