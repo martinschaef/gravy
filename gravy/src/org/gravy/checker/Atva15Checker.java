@@ -21,6 +21,7 @@ import org.gravy.report.Atva15Report;
 import org.gravy.report.Report;
 import org.gravy.ssa.SingleStaticAssignment;
 import org.gravy.util.Statistics;
+import org.gravy.util.StopWatch;
 import org.gravy.verificationcondition.AbstractTransitionRelation;
 import org.gravy.verificationcondition.Atva15TransitionRelation;
 import org.joogie.cfgPlugin.Util.Dag;
@@ -38,8 +39,12 @@ import boogie.controlflow.CfgProcedure;
  */
 public class Atva15Checker extends AbstractChecker {
 
+	public static long overhead_time = 0L;
+	
 	protected HashSet<BasicBlock> dangerousBlocks;
 
+	private StopWatch overheadTimer;
+	
 	/**
 	 * @param cff
 	 * @param p
@@ -47,7 +52,7 @@ public class Atva15Checker extends AbstractChecker {
 	public Atva15Checker(AbstractControlFlowFactory cff, CfgProcedure p) {
 		super(cff, p);
 
-		Log.info("ATVA'15 checker");
+		
 
 		p.pruneUnreachableBlocks();
 
@@ -74,6 +79,8 @@ public class Atva15Checker extends AbstractChecker {
 	@Override
 	public Report checkSat(Prover prover, AbstractTransitionRelation atr) {
 
+		overhead_time = 0L;
+		
 		Atva15TransitionRelation tr = (Atva15TransitionRelation) atr;
 
 		// generate ineff flags; this map is also used to keep
@@ -296,6 +303,7 @@ public class Atva15Checker extends AbstractChecker {
 				this.feasibleBlocks = new HashSet<BasicBlock>(coveredBlocks);
 				// pop the assertion from the first phase.
 				prover.pop();
+				 this.overheadTimer = StopWatch.getInstanceAndStart();
 			} else {
 				throw new RuntimeException("no no no");
 			}
@@ -388,6 +396,11 @@ public class Atva15Checker extends AbstractChecker {
 
 			}
 		}
+		
+		if (this.overheadTimer != null) {
+			overhead_time = this.overheadTimer.stop();
+		}
+		
 		// new remove all blocks that have been covered in the first round.
 		coveredBlocks.removeAll(this.feasibleBlocks);
 		this.dangerousBlocks = new HashSet<BasicBlock>(coveredBlocks);

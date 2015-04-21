@@ -39,10 +39,13 @@ public class Atva15Report extends Report {
 	private FaultLocalizationThread flt1 = null;
 	private FaultLocalizationThread flt2 = null;
 	private FaultLocalizationThread flt3 = null;
+	
+	public String proc_name;
 
 	public Atva15Report(AbstractControlFlowFactory cff,
 			AbstractTransitionRelation tr, Set<BasicBlock> feasibleBlocks,
 			Set<BasicBlock> fwd_dangerousBlocks, Set<BasicBlock> bwd_dangerousBlocks, Set<BasicBlock> unreachableBlocks) {
+		this.proc_name = tr.getProcedureName();		
 		this.fwd_dangerousBlocks = fwd_dangerousBlocks;
 		this.bwd_dangerousBlocks = bwd_dangerousBlocks;
 		this.unreachableBlocks = unreachableBlocks;

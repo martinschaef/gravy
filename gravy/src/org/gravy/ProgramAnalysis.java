@@ -107,6 +107,7 @@ public class ProgramAnalysis {
 		String fname = org.gravy.Options.v().getFunctionName();
 		
 		Long checkTime = 0L;
+		Long overheadTime = 0L;
 //		int proccount=0;
 		for (CfgProcedure p : cff.getProcedureCFGs()) {			
 //			System.err.println("Analyzing procedure "+(++proccount)+"/"+cff.getProcedureCFGs().size());
@@ -124,12 +125,12 @@ public class ProgramAnalysis {
 
 				Long t = sw.getTime();
 				checkTime+=t;
-
+				overheadTime += Atva15Checker.overhead_time;
+				
 				if (Options.v().stopTime) {					
 					int lines = countStatementsForStatistics(p);
 					Statistics.v().writeCheckerStats(p.getProcedureName(), lines, t.doubleValue(), report);
-					sw.stop();
-					
+					sw.stop();					
 				}
 				
 				
@@ -161,6 +162,7 @@ public class ProgramAnalysis {
 
 		totalTime+=checkTime;
 		Log.info("Total time: " + ((float)checkTime)/1000f + "s");
+		Log.info("Overhead time: " + ((float)overheadTime)/1000f + "s");
 		Log.info("Total Timeouts after " + Options.v().getTimeOut()
 				+ "ms: " + timeouts);
 				
