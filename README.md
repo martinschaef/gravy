@@ -1,6 +1,6 @@
 ##Gravy
 =====
-** Discontinued and now integrated in [Bixie](https://github.com/martinschaef/bixie) **
+###Discontinued and now integrated in [Bixie](https://github.com/martinschaef/bixie)!
 
 GraVy is a static checker for Boogie programs. Similar to a deductive verifier, such as [Boogie](http://boogie.codeplex.com/), it checks a boogie program one procedure at a time. The difference is that, instead of checking if there exists an execution of the procedure that may violate the postcondition, GraVy collects all (feasible) paths that have normal terminating executions. In a second path, GraVy collects all paths that are only feasible if the postcondition is ignored. Every statement that is not covered by any of these paths is infeasible. 
 
